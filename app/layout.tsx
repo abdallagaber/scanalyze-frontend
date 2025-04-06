@@ -15,7 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="">
-      <body className="min-h-screen w-full">{children}</body>
+      <body className="min-h-screen w-full">
+        <SidebarProvider>{children}</SidebarProvider>
+      </body>
     </html>
   );
 }
