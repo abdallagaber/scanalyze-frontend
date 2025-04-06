@@ -9,7 +9,7 @@ export default function LabTechnicianRootLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="grid h-screen w-full grid-cols-[auto_1fr]">
+      <div className="grid h-screen w-full md:grid-cols-[auto_1fr]">
         <DashboardSidebar role="lab-technician" />
         <main className="min-w-0 h-full overflow-hidden flex flex-col">
           {children}

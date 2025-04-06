@@ -1,104 +1,118 @@
+"use client";
+
+import { useState } from "react";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Search, FileText, User, Download } from "lucide-react";
+import { FileText, Download } from "lucide-react";
+import { type ColumnDef } from "@tanstack/react-table";
+
+interface Report {
+  id: string;
+  reportId: string;
+  patientName: string;
+  type: string;
+  date: string;
+  status: "Completed" | "Pending" | "Failed";
+}
+
+const columns: ColumnDef<Report>[] = [
+  {
+    accessorKey: "reportId",
+    header: "Report ID",
+  },
+  {
+    accessorKey: "patientName",
+    header: "Patient",
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span>{row.getValue("patientName")}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "type",
+    header: "Type",
+  },
+  {
+    accessorKey: "date",
+    header: "Date",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      return (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            status === "Completed"
+              ? "bg-green-100 text-green-700"
+              : status === "Pending"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {status}
+        </span>
+      );
+    },
+  },
+  {
+    id: "actions",
+    cell: () => {
+      return (
+        <Button variant="ghost" size="sm">
+          <Download className="h-4 w-4" />
+        </Button>
+      );
+    },
+  },
+];
+
+const mockData: Report[] = [
+  {
+    id: "1",
+    reportId: "#REP-001",
+    patientName: "John Doe",
+    type: "Blood Test",
+    date: "2024-04-05",
+    status: "Completed",
+  },
+  {
+    id: "2",
+    reportId: "#REP-002",
+    patientName: "Jane Smith",
+    type: "X-Ray",
+    date: "2024-04-03",
+    status: "Pending",
+  },
+];
 
 export default function ReceptionistReports() {
+  const [data] = useState<Report[]>(mockData);
+
   return (
-    <div className="flex h-full w-full">
-      <DashboardSidebar role="receptionist" />
-      <div className="flex-1">
-        <DashboardPageLayout
-          title="Reports"
-          role="receptionist"
-          breadcrumbItems={[]}
-        >
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold tracking-tight">
-                Medical Reports
-              </h2>
-              <Button>
-                <FileText className="mr-2 h-4 w-4" />
-                Generate Report
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search reports..." className="pl-8" />
-              </div>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Report ID</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>#REP-001</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>John Doe</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>Blood Test</TableCell>
-                    <TableCell>2024-04-05</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                        Completed
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>#REP-002</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>Jane Smith</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>X-Ray</TableCell>
-                    <TableCell>2024-04-03</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
-                        Pending
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+    <DashboardPageLayout
+      title="Reports"
+      role="receptionist"
+      breadcrumbItems={[]}
+    >
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Medical Reports</h1>
           </div>
-        </DashboardPageLayout>
+          <Button>
+            <FileText className="mr-2 h-4 w-4" />
+            Generate Report
+          </Button>
+        </div>
+        <DataTable columns={columns} data={data} searchKey="patientName" />
       </div>
-    </div>
+    </DashboardPageLayout>
   );
 }

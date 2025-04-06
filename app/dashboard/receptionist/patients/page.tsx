@@ -1,126 +1,123 @@
+"use client";
+
+import { useState } from "react";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Search, User, Phone, Mail } from "lucide-react";
+import { User } from "lucide-react";
+import { type ColumnDef } from "@tanstack/react-table";
+
+interface Patient {
+  id: string;
+  patientId: string;
+  name: string;
+  phone: string;
+  email: string;
+  lastVisit: string;
+  status: "Active" | "Pending" | "Inactive";
+}
+
+const columns: ColumnDef<Patient>[] = [
+  {
+    accessorKey: "patientId",
+    header: "Patient ID",
+  },
+  {
+    accessorKey: "name",
+    header: "Name",
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span>{row.getValue("name")}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "contact",
+    header: "Contact",
+    cell: ({ row }) => {
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span>{row.original.phone}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>{row.original.email}</span>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "lastVisit",
+    header: "Last Visit",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      return (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            status === "Active"
+              ? "bg-green-100 text-green-700"
+              : status === "Pending"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-gray-100 text-gray-700"
+          }`}
+        >
+          {status}
+        </span>
+      );
+    },
+  },
+];
+
+const mockData: Patient[] = [
+  {
+    id: "1",
+    patientId: "#PAT-001",
+    name: "John Doe",
+    phone: "+1 234 567 890",
+    email: "john@example.com",
+    lastVisit: "2024-04-05",
+    status: "Active",
+  },
+  {
+    id: "2",
+    patientId: "#PAT-002",
+    name: "Jane Smith",
+    phone: "+1 234 567 891",
+    email: "jane@example.com",
+    lastVisit: "2024-04-03",
+    status: "Pending",
+  },
+];
 
 export default function ReceptionistPatients() {
+  const [data] = useState<Patient[]>(mockData);
+
   return (
-    <div className="flex h-full w-full">
-      <DashboardSidebar role="receptionist" />
-      <div className="flex-1">
-        <DashboardPageLayout
-          title="Patients"
-          role="receptionist"
-          breadcrumbItems={[]}
-        >
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold tracking-tight">
-                Patient Records
-              </h2>
-              <Button>
-                <User className="mr-2 h-4 w-4" />
-                Add New Patient
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search patients..." className="pl-8" />
-              </div>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Patient ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Last Visit</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>#PAT-001</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>John Doe</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>+1 234 567 890</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span>john@example.com</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>2024-04-05</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                        Active
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>#PAT-002</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>Jane Smith</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>+1 234 567 891</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span>jane@example.com</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>2024-04-03</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
-                        Pending
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+    <DashboardPageLayout
+      title="Patients"
+      role="receptionist"
+      breadcrumbItems={[]}
+    >
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Patient Records</h1>
           </div>
-        </DashboardPageLayout>
+          <Button>
+            <User className="mr-2 h-4 w-4" />
+            Add New Patient
+          </Button>
+        </div>
+        <DataTable columns={columns} data={data} searchKey="name" />
       </div>
-    </div>
+    </DashboardPageLayout>
   );
 }

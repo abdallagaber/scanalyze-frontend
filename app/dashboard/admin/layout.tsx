@@ -9,7 +9,7 @@ export default function AdminRootLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="grid h-screen w-full grid-cols-[auto_1fr]">
+      <div className="grid h-screen w-full md:grid-cols-[auto_1fr]">
         <DashboardSidebar role="admin" />
         <main className="min-w-0 h-full overflow-hidden flex flex-col">
           {children}

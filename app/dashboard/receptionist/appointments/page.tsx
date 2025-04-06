@@ -1,104 +1,108 @@
+"use client";
+
+import { useState } from "react";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar } from "lucide-react";
+import { type ColumnDef } from "@tanstack/react-table";
+
+interface Appointment {
+  id: string;
+  time: string;
+  patientName: string;
+  type: string;
+  status: "Confirmed" | "Pending" | "Cancelled";
+}
+
+const columns: ColumnDef<Appointment>[] = [
+  {
+    accessorKey: "time",
+    header: "Time",
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span>{row.getValue("time")}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "patientName",
+    header: "Patient",
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span>{row.getValue("patientName")}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "type",
+    header: "Type",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      return (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            status === "Confirmed"
+              ? "bg-green-100 text-green-700"
+              : status === "Pending"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {status}
+        </span>
+      );
+    },
+  },
+];
+
+const mockData: Appointment[] = [
+  {
+    id: "1",
+    time: "09:00 AM",
+    patientName: "John Doe",
+    type: "General Checkup",
+    status: "Confirmed",
+  },
+  {
+    id: "2",
+    time: "10:30 AM",
+    patientName: "Jane Smith",
+    type: "Lab Test",
+    status: "Pending",
+  },
+];
 
 export default function ReceptionistAppointments() {
+  const [data] = useState<Appointment[]>(mockData);
+
   return (
-    <div className="flex h-full w-full">
-      <DashboardSidebar role="receptionist" />
-      <div className="flex-1">
-        <DashboardPageLayout
-          title="Appointments"
-          role="receptionist"
-          breadcrumbItems={[]}
-        >
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold tracking-tight">
-                Today's Appointments
-              </h2>
-              <Button>
-                <Calendar className="mr-2 h-4 w-4" />
-                New Appointment
-              </Button>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>09:00 AM</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>John Doe</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>General Checkup</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                        Confirmed
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>10:30 AM</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>Jane Smith</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>Lab Test</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
-                        Pending
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+    <DashboardPageLayout
+      title="Appointments"
+      role="receptionist"
+      breadcrumbItems={[]}
+    >
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Today's Appointments</h1>
           </div>
-        </DashboardPageLayout>
+          <Button>
+            <Calendar className="mr-2 h-4 w-4" />
+            New Appointment
+          </Button>
+        </div>
+        <DataTable columns={columns} data={data} searchKey="patientName" />
       </div>
-    </div>
+    </DashboardPageLayout>
   );
 }
