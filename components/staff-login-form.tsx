@@ -1,23 +1,45 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, EyeOff } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Create schema for Email login
 const emailSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
-})
+  role: z.string().min(1, { message: "Please select your role" }),
+});
 
 // Create schema for Phone Number login
 const phoneSchema = z.object({
@@ -29,19 +51,22 @@ const phoneSchema = z.object({
     .refine(
       (val) => {
         // Check if it starts with a valid Egyptian mobile prefix
-        return ["010", "011", "012", "015"].some((prefix) => val.startsWith(prefix))
+        return ["010", "011", "012", "015"].some((prefix) =>
+          val.startsWith(prefix)
+        );
       },
       {
         message: "Egyptian phone numbers must start with 010, 011, 012, or 015",
-      },
+      }
     ),
   password: z.string().min(1, { message: "Password is required" }),
-})
+  role: z.string().min(1, { message: "Please select your role" }),
+});
 
 export default function StaffLoginForm() {
-  const [activeTab, setActiveTab] = useState<string>("email")
-  const [showPassword, setShowPassword] = useState(false)
-  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<string>("email");
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   // Form for Email login
   const emailForm = useForm<z.infer<typeof emailSchema>>({
@@ -49,8 +74,9 @@ export default function StaffLoginForm() {
     defaultValues: {
       email: "",
       password: "",
+      role: "",
     },
-  })
+  });
 
   // Form for Phone Number login
   const phoneForm = useForm<z.infer<typeof phoneSchema>>({
@@ -58,35 +84,44 @@ export default function StaffLoginForm() {
     defaultValues: {
       phone: "",
       password: "",
+      role: "",
     },
-  })
+  });
 
   const onSubmitEmail = (values: z.infer<typeof emailSchema>) => {
-    console.log("Staff Login with Email:", values)
+    console.log("Staff Login with Email:", values);
     // In a real app, you would handle authentication here
     // For now, we'll just simulate a successful login
-    router.push("/dashboard")
-  }
+    router.push(`/dashboard/${values.role}`);
+  };
 
   const onSubmitPhone = (values: z.infer<typeof phoneSchema>) => {
-    console.log("Staff Login with Phone:", values)
+    console.log("Staff Login with Phone:", values);
     // In a real app, you would handle authentication here
     // For now, we'll just simulate a successful login
-    router.push("/dashboard")
-  }
+    router.push(`/dashboard/${values.role}`);
+  };
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
-  }
+    setShowPassword(!showPassword);
+  };
 
   return (
     <Card className="scanalyze-card">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center scanalyze-heading">Staff Sign In</CardTitle>
-        <CardDescription className="text-center">Enter your credentials to access the staff portal</CardDescription>
+        <CardTitle className="text-2xl font-bold text-center scanalyze-heading">
+          Staff Sign In
+        </CardTitle>
+        <CardDescription className="text-center">
+          Enter your credentials to access the staff portal
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="email" onValueChange={setActiveTab} value={activeTab}>
+        <Tabs
+          defaultValue="email"
+          onValueChange={setActiveTab}
+          value={activeTab}
+        >
           <TabsList className="grid grid-cols-2 mb-6">
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="phone">Phone Number</TabsTrigger>
@@ -94,7 +129,10 @@ export default function StaffLoginForm() {
 
           <TabsContent value="email">
             <Form {...emailForm}>
-              <form onSubmit={emailForm.handleSubmit(onSubmitEmail)} className="space-y-4">
+              <form
+                onSubmit={emailForm.handleSubmit(onSubmitEmail)}
+                className="space-y-4"
+              >
                 <FormField
                   control={emailForm.control}
                   name="email"
@@ -102,7 +140,11 @@ export default function StaffLoginForm() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Enter your email address" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="Enter your email address"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -128,7 +170,11 @@ export default function StaffLoginForm() {
                             onClick={togglePasswordVisibility}
                             tabIndex={-1}
                           >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
                           </button>
                         </div>
                       </FormControl>
@@ -137,13 +183,49 @@ export default function StaffLoginForm() {
                   )}
                 />
 
+                <FormField
+                  control={emailForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="lab-technicians">
+                            Lab Technician
+                          </SelectItem>
+                          <SelectItem value="receptionists">
+                            Receptionist
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="text-right">
-                  <Link href="/forgot-password" className="text-sm text-scanalyze-600 hover:text-scanalyze-800">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-scanalyze-600 hover:text-scanalyze-800"
+                  >
                     Forgot password?
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full scanalyze-button-primary">
+                <Button
+                  type="submit"
+                  className="w-full scanalyze-button-primary"
+                >
                   Sign In
                 </Button>
               </form>
@@ -152,7 +234,10 @@ export default function StaffLoginForm() {
 
           <TabsContent value="phone">
             <Form {...phoneForm}>
-              <form onSubmit={phoneForm.handleSubmit(onSubmitPhone)} className="space-y-4">
+              <form
+                onSubmit={phoneForm.handleSubmit(onSubmitPhone)}
+                className="space-y-4"
+              >
                 <FormField
                   control={phoneForm.control}
                   name="phone"
@@ -160,7 +245,10 @@ export default function StaffLoginForm() {
                     <FormItem>
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your Egyptian phone number" {...field} />
+                        <Input
+                          placeholder="Enter your Egyptian phone number"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -186,7 +274,11 @@ export default function StaffLoginForm() {
                             onClick={togglePasswordVisibility}
                             tabIndex={-1}
                           >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
                           </button>
                         </div>
                       </FormControl>
@@ -195,13 +287,49 @@ export default function StaffLoginForm() {
                   )}
                 />
 
+                <FormField
+                  control={phoneForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="lab-technicians">
+                            Lab Technician
+                          </SelectItem>
+                          <SelectItem value="receptionists">
+                            Receptionist
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="text-right">
-                  <Link href="/forgot-password" className="text-sm text-scanalyze-600 hover:text-scanalyze-800">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-scanalyze-600 hover:text-scanalyze-800"
+                  >
                     Forgot password?
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full scanalyze-button-primary">
+                <Button
+                  type="submit"
+                  className="w-full scanalyze-button-primary"
+                >
                   Sign In
                 </Button>
               </form>
@@ -222,13 +350,15 @@ export default function StaffLoginForm() {
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Are you a patient?{" "}
-            <Link href="/login" className="font-medium text-scanalyze-600 hover:text-scanalyze-800">
+            <Link
+              href="/login"
+              className="font-medium text-scanalyze-600 hover:text-scanalyze-800"
+            >
               Login here
             </Link>
           </p>
         </div>
       </CardFooter>
     </Card>
-  )
+  );
 }
-

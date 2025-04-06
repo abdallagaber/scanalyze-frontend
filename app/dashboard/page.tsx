@@ -1,32 +1,64 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   return (
-    <div className="min-h-screen flex flex-col scanalyze-gradient">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-center md:justify-start">
-          <Image src="/images/scanalyze-logo.png" alt="Scanalyze Logo" width={180} height={60} priority />
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6 scanalyze-card p-8 rounded-lg">
-          <h1 className="text-3xl font-bold scanalyze-heading">Welcome to Scanalyze</h1>
-          <p className="text-gray-600">You have successfully logged in to your account.</p>
-          <p className="text-gray-600">This is a placeholder dashboard page.</p>
-
-          <div className="pt-4">
-            <Link href="/login">
-              <Button variant="outline" className="scanalyze-button-outline">
-                Back to Login
-              </Button>
-            </Link>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Overview</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div className="aspect-video rounded-xl bg-muted/50 p-4">
+              <h3 className="text-lg font-semibold">Total Patients</h3>
+              <p className="text-3xl font-bold">1,234</p>
+            </div>
+            <div className="aspect-video rounded-xl bg-muted/50 p-4">
+              <h3 className="text-lg font-semibold">Lab Tests Today</h3>
+              <p className="text-3xl font-bold">56</p>
+            </div>
+            <div className="aspect-video rounded-xl bg-muted/50 p-4">
+              <h3 className="text-lg font-semibold">Pending Reports</h3>
+              <p className="text-3xl font-bold">12</p>
+            </div>
+          </div>
+          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 p-4 md:min-h-min">
+            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div className="space-y-4">
+              {/* Add your recent activity items here */}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  )
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
-
