@@ -200,7 +200,7 @@ export default function StaffLoginForm() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="lab-technicians">
+                          <SelectItem value="lab-technician">
                             Lab Technician
                           </SelectItem>
                           <SelectItem value="receptionists">
