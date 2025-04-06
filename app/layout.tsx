@@ -3,9 +3,9 @@ import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.dev",
+  title: "Scanalyze",
+  description:
+    "Advanced laboratory testing and medical scans with fast, accurate results",
 };
 
 export default function RootLayout({
@@ -14,10 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <SidebarProvider>{children}</SidebarProvider>
-      </body>
+    <html lang="en" className="">
+      <body className="min-h-screen w-full">{children}</body>
     </html>
   );
 }
