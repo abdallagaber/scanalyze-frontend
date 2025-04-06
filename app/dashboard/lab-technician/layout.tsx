@@ -2,7 +2,7 @@ import React from "react";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-export default function AdminRootLayout({
+export default function LabTechnicianRootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ export default function AdminRootLayout({
   return (
     <SidebarProvider>
       <div className="grid h-screen w-full grid-cols-[auto_1fr]">
-        <DashboardSidebar role="admin" />
+        <DashboardSidebar role="lab-technician" />
         <main className="min-w-0 h-full overflow-hidden flex flex-col">
           {children}
         </main>

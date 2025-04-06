@@ -1,7 +1,7 @@
-import StaffLoginForm from "@/components/staff-login-form"
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import StaffLoginForm from "@/components/staff-login-form";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function StaffLoginPage() {
   return (
@@ -33,6 +33,5 @@ export default function StaffLoginPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
-

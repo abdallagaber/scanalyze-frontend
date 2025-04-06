@@ -10,20 +10,26 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export interface AdminPageLayoutProps {
+type Role = "admin" | "lab-technician" | "receptionist";
+
+export interface DashboardPageLayoutProps {
   children: React.ReactNode;
   title: string;
+  role: Role;
   breadcrumbItems?: {
     title: string;
     href: string;
   }[];
 }
 
-export function AdminPageLayout({
+export function DashboardPageLayout({
   children,
   title,
+  role,
   breadcrumbItems = [],
-}: AdminPageLayoutProps) {
+}: DashboardPageLayoutProps) {
+  const basePath = `/dashboard/${role}`;
+
   return (
     <div className="flex h-full flex-col min-w-0">
       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center border-b bg-background px-4">
@@ -33,9 +39,7 @@ export function AdminPageLayout({
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard/admin">
-                  Dashboard
-                </BreadcrumbLink>
+                <BreadcrumbLink href={basePath}>Dashboard</BreadcrumbLink>
               </BreadcrumbItem>
               {breadcrumbItems.map((item, index) => (
                 <React.Fragment key={index}>

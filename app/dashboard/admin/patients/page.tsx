@@ -8,7 +8,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { EntityDialog } from "@/components/dialogs/entity-dialog";
-import { AdminPageLayout } from "@/components/admin-page-layout";
+import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 
 import {
   DropdownMenu,
@@ -182,7 +182,7 @@ export default function PatientsPage() {
   };
 
   return (
-    <AdminPageLayout title="Patients" breadcrumbItems={[]}>
+    <DashboardPageLayout title="Patients" role="admin" breadcrumbItems={[]}>
       <div className="flex w-full flex-col space-y-4">
         <div className="flex w-full items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Patients</h2>
@@ -235,6 +235,6 @@ export default function PatientsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </AdminPageLayout>
+    </DashboardPageLayout>
   );
 }
