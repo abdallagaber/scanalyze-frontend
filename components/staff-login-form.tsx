@@ -203,7 +203,7 @@ export default function StaffLoginForm() {
                           <SelectItem value="lab-technician">
                             Lab Technician
                           </SelectItem>
-                          <SelectItem value="receptionists">
+                          <SelectItem value="receptionist">
                             Receptionist
                           </SelectItem>
                         </SelectContent>
