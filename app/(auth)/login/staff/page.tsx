@@ -12,7 +12,7 @@ export default function StaffLoginPage() {
           className="inline-flex items-center text-scanalyze-600 hover:text-scanalyze-800 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Patient Login
+          Back to Home
         </Link>
       </div>
 
