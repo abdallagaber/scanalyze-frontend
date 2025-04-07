@@ -38,7 +38,6 @@ import {
 const emailSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
-  role: z.string().min(1, { message: "Please select your role" }),
 });
 
 // Create schema for Phone Number login
@@ -60,7 +59,6 @@ const phoneSchema = z.object({
       }
     ),
   password: z.string().min(1, { message: "Password is required" }),
-  role: z.string().min(1, { message: "Please select your role" }),
 });
 
 export default function StaffLoginForm() {
@@ -74,7 +72,6 @@ export default function StaffLoginForm() {
     defaultValues: {
       email: "",
       password: "",
-      role: "",
     },
   });
 
@@ -84,7 +81,6 @@ export default function StaffLoginForm() {
     defaultValues: {
       phone: "",
       password: "",
-      role: "",
     },
   });
 
@@ -92,14 +88,14 @@ export default function StaffLoginForm() {
     console.log("Staff Login with Email:", values);
     // In a real app, you would handle authentication here
     // For now, we'll just simulate a successful login
-    router.push(`/dashboard/${values.role}`);
+    router.push("/dashboard");
   };
 
   const onSubmitPhone = (values: z.infer<typeof phoneSchema>) => {
     console.log("Staff Login with Phone:", values);
     // In a real app, you would handle authentication here
     // For now, we'll just simulate a successful login
-    router.push(`/dashboard/${values.role}`);
+    router.push("/dashboard");
   };
 
   const togglePasswordVisibility = () => {
@@ -183,36 +179,6 @@ export default function StaffLoginForm() {
                   )}
                 />
 
-                <FormField
-                  control={emailForm.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="lab-technician">
-                            Lab Technician
-                          </SelectItem>
-                          <SelectItem value="receptionist">
-                            Receptionist
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className="text-right">
                   <Link
                     href="/forgot-password"
@@ -282,36 +248,6 @@ export default function StaffLoginForm() {
                           </button>
                         </div>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={phoneForm.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="lab-technicians">
-                            Lab Technician
-                          </SelectItem>
-                          <SelectItem value="receptionists">
-                            Receptionist
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

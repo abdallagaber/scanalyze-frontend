@@ -11,12 +11,13 @@ import {
   Settings,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-
+import { NavUser } from "@/components/nav-user";
 import { NavMain } from "@/components/nav-main";
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar";
 
@@ -132,6 +133,12 @@ export function DashboardSidebar({ role, ...props }: DashboardSidebarProps) {
     isActive: pathname === item.url,
   }));
 
+  const user = {
+    name: "John Doe",
+    email: "john.doe@example.com",
+    avatar: "https://github.com/shadcn.png",
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -145,6 +152,9 @@ export function DashboardSidebar({ role, ...props }: DashboardSidebarProps) {
       <SidebarContent>
         <NavMain items={navItems} />
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={user} />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
