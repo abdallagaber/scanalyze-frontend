@@ -8,7 +8,7 @@ export default function StaffLoginPage() {
     <main className="min-h-screen flex flex-col scanalyze-gradient">
       <div className="container mx-auto px-4 py-6">
         <Link
-          href="/login"
+          href=".."
           className="inline-flex items-center text-scanalyze-600 hover:text-scanalyze-800 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
