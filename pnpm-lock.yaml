@@ -113,11 +113,14 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.2
         version: 8.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@types/js-cookie':
+        specifier: ^3.0.6
+        version: 3.0.6
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.21(postcss@8.5.3)
       axios:
-        specifier: latest
+        specifier: ^1.8.4
         version: 1.8.4
       browser-image-compression:
         specifier: latest
@@ -143,12 +146,18 @@ importers:
       input-otp:
         specifier: latest
         version: 1.4.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      js-cookie:
+        specifier: ^3.0.5
+        version: 3.0.5
       lucide-react:
         specifier: ^0.454.0
         version: 0.454.0(react@19.1.0)
       next:
         specifier: 15.2.4
         version: 15.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next-client-cookies:
+        specifier: ^2.0.1
+        version: 2.0.1(next@15.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -1099,6 +1108,9 @@ packages:
     resolution: {integrity: sha512-uvXk/U4cBiFMxt+p9/G7yUWI/UbHYbyghLCjlpWZ3mLeIZiUBSKcUnw9UnKkdRz7Z/N4UBuFLWQdJCjUe7HjvA==}
     engines: {node: '>=12'}
 
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
+
   '@types/node@22.14.0':
     resolution: {integrity: sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA==}
 
@@ -1439,6 +1451,10 @@ packages:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
 
+  js-cookie@3.0.5:
+    resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
+    engines: {node: '>=14'}
+
   lilconfig@3.1.3:
     resolution: {integrity: sha512-/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw==}
     engines: {node: '>=14'}
@@ -1489,6 +1505,12 @@ packages:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  next-client-cookies@2.0.1:
+    resolution: {integrity: sha512-iut6Q+vc+2dfnaFVgAvb2Hsch872JO2r08LNoJ/bF8Gqi+zANoGqOL+TJLBq163GqEwjtGGEcm6DUzo5+5Za8g==}
+    peerDependencies:
+      next: '>= 15.0.0'
+      react: '>= 16.8.0'
 
   next-themes@0.4.6:
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
@@ -2770,6 +2792,8 @@ snapshots:
 
   '@tanstack/table-core@8.21.2': {}
 
+  '@types/js-cookie@3.0.6': {}
+
   '@types/node@22.14.0':
     dependencies:
       undici-types: 6.21.0
@@ -3109,6 +3133,8 @@ snapshots:
 
   jiti@1.21.7: {}
 
+  js-cookie@3.0.5: {}
+
   lilconfig@3.1.3: {}
 
   lines-and-columns@1.2.4: {}
@@ -3147,6 +3173,12 @@ snapshots:
       thenify-all: 1.6.0
 
   nanoid@3.3.11: {}
+
+  next-client-cookies@2.0.1(next@15.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0):
+    dependencies:
+      js-cookie: 3.0.5
+      next: 15.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
 
   next-themes@0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:

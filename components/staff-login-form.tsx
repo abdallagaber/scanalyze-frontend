@@ -33,6 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import axiosInstance from "@/lib/axios";
+import Cookies from "js-cookie";
+import { toast } from "sonner";
 
 // Create schema for Email login
 const emailSchema = z.object({
@@ -64,6 +67,7 @@ const phoneSchema = z.object({
 export default function StaffLoginForm() {
   const [activeTab, setActiveTab] = useState<string>("email");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   // Form for Email login
@@ -84,18 +88,100 @@ export default function StaffLoginForm() {
     },
   });
 
-  const onSubmitEmail = (values: z.infer<typeof emailSchema>) => {
-    console.log("Staff Login with Email:", values);
-    // In a real app, you would handle authentication here
-    // For now, we'll just simulate a successful login
-    router.push("/dashboard");
+  const onSubmitEmail = async (values: z.infer<typeof emailSchema>) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.post(
+        "/api/v1/auth/staff/login/email",
+        values
+      );
+
+      // Set user data in cookies
+      Cookies.set("role", response.data.user.role);
+      Cookies.set("token", response.data.token);
+      Cookies.set(
+        "user",
+        JSON.stringify({
+          name: response.data.user.name,
+          email: response.data.user.email,
+          imageProfile: response.data.user.imageProfile || "",
+        })
+      );
+
+      // Redirect based on role
+      switch (response.data.user.role) {
+        case "Admin":
+          router.push("/dashboard/admin");
+          break;
+        case "Receptionist":
+          router.push("/dashboard/receptionist");
+          break;
+        case "LabTechnician":
+          router.push("/dashboard/lab-technician");
+          break;
+      }
+
+      toast.success("Login successful!", {
+        className: "bg-green-500 text-white",
+      });
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Login failed. Please try again.",
+        {
+          className: "bg-red-500 text-white",
+        }
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const onSubmitPhone = (values: z.infer<typeof phoneSchema>) => {
-    console.log("Staff Login with Phone:", values);
-    // In a real app, you would handle authentication here
-    // For now, we'll just simulate a successful login
-    router.push("/dashboard");
+  const onSubmitPhone = async (values: z.infer<typeof phoneSchema>) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.post(
+        "/api/v1/auth/staff/login/phone",
+        values
+      );
+
+      // Set user data in cookies
+      Cookies.set("role", response.data.user.role);
+      Cookies.set("token", response.data.token);
+      Cookies.set(
+        "user",
+        JSON.stringify({
+          name: response.data.user.name,
+          email: response.data.user.email,
+          imageProfile: response.data.user.imageProfile || "",
+        })
+      );
+
+      // Redirect based on role
+      switch (response.data.user.role) {
+        case "Admin":
+          router.push("/dashboard/admin");
+          break;
+        case "Receptionist":
+          router.push("/dashboard/receptionist");
+          break;
+        case "LabTechnician":
+          router.push("/dashboard/lab-technician");
+          break;
+      }
+
+      toast.success("Login successful!", {
+        className: "bg-green-500 text-white",
+      });
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Login failed. Please try again.",
+        {
+          className: "bg-red-500 text-white",
+        }
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -191,8 +277,9 @@ export default function StaffLoginForm() {
                 <Button
                   type="submit"
                   className="w-full scanalyze-button-primary"
+                  disabled={isLoading}
                 >
-                  Sign In
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </Form>
@@ -265,8 +352,9 @@ export default function StaffLoginForm() {
                 <Button
                   type="submit"
                   className="w-full scanalyze-button-primary"
+                  disabled={isLoading}
                 >
-                  Sign In
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </Form>
