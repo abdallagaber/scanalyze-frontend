@@ -35,10 +35,10 @@ export function middleware(request: NextRequest) {
   const role = request.cookies.get("role")?.value;
   const token = request.cookies.get("token")?.value;
 
-  // Redirect from /dashboard to role-specific dashboard
+  // Handle /dashboard route
   if (pathname === "/dashboard") {
     if (!role || !token) {
-      return NextResponse.redirect(new URL("/login/staff", request.url));
+      return NextResponse.redirect(new URL("/not-found", request.url));
     }
     const redirectPath =
       role === "Admin"
