@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Metadata } from "next";
 import * as z from "zod";
 import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "@/lib/axios";
+import { AxiosError } from "axios";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { EntityDialog } from "@/components/dialogs/entity-dialog";
@@ -29,37 +32,34 @@ import {
 
 // This would come from your API/database
 interface LabTechnician {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
-  specialization: string;
-  joinDate: string;
+  role: string;
+  laboratory: string;
+  experience: number;
+  imageProfile?: string;
+  addresses: string;
+  createdAt: string;
 }
-
-const technicians: LabTechnician[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@scanalyze.com",
-    phone: "+1234567890",
-    specialization: "Hematology",
-    joinDate: "2024-01-15",
-  },
-  // Add more mock data as needed
-];
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  specialization: z
-    .string()
-    .min(2, "Specialization must be at least 2 characters"),
-  joinDate: z.string(),
+  laboratory: z.string().min(2, "Laboratory must be at least 2 characters"),
+  experience: z.number().min(0, "Experience must be a positive number"),
+  addresses: z.string().min(5, "Address must be at least 5 characters"),
 });
 
 type FormSchema = z.infer<typeof schema>;
+
+interface ApiResponse {
+  results: number;
+  paginationResult: any;
+  data: LabTechnician[];
+}
 
 export default function LabTechniciansPage() {
   const [open, setOpen] = useState(false);
@@ -69,6 +69,76 @@ export default function LabTechniciansPage() {
   const [deletingTechnicianId, setDeletingTechnicianId] = useState<
     string | null
   >(null);
+
+  // Log environment variables
+  useEffect(() => {
+    console.log("Environment Variables:", {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+      NODE_ENV: process.env.NODE_ENV,
+    });
+  }, []);
+
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<ApiResponse>({
+    queryKey: ["lab-technicians"],
+    queryFn: async () => {
+      try {
+        console.log("Starting API call to fetch lab technicians...");
+        console.log("Axios Instance Config:", {
+          baseURL: axiosInstance.defaults.baseURL,
+          headers: axiosInstance.defaults.headers,
+          withCredentials: axiosInstance.defaults.withCredentials,
+        });
+
+        const response = await axiosInstance.get<ApiResponse>(
+          `/api/v1/staff/?role=LabTechnician`
+        );
+
+        console.log("API Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          data: response.data,
+        });
+
+        if (
+          !response.data ||
+          !response.data.data ||
+          response.data.data.length === 0
+        ) {
+          console.log("No data returned from API");
+          return { results: 0, paginationResult: {}, data: [] } as ApiResponse;
+        }
+
+        return response.data;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        console.error("Detailed API Error:", {
+          message: axiosError.message,
+          response: axiosError.response?.data,
+          status: axiosError.response?.status,
+          headers: axiosError.response?.headers,
+        });
+        throw error;
+      }
+    },
+  });
+
+  // Log component state changes
+  useEffect(() => {
+    if (response) {
+      console.log("Component State:", {
+        isLoading,
+        error,
+        techniciansCount: response.data.length,
+        technicians: response.data,
+      });
+    }
+  }, [isLoading, error, response]);
 
   const columns: ColumnDef<LabTechnician>[] = [
     {
@@ -84,14 +154,22 @@ export default function LabTechniciansPage() {
       header: "Phone",
     },
     {
-      accessorKey: "specialization",
-      header: "Specialization",
+      accessorKey: "laboratory",
+      header: "Laboratory",
     },
     {
-      accessorKey: "joinDate",
+      accessorKey: "experience",
+      header: "Experience (years)",
+    },
+    {
+      accessorKey: "addresses",
+      header: "Address",
+    },
+    {
+      accessorKey: "createdAt",
       header: "Join Date",
       cell: ({ row }) => {
-        return new Date(row.getValue("joinDate")).toLocaleDateString();
+        return new Date(row.getValue("createdAt")).toLocaleDateString();
       },
     },
     {
@@ -119,7 +197,7 @@ export default function LabTechniciansPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  setDeletingTechnicianId(technician.id);
+                  setDeletingTechnicianId(technician._id);
                   setDeleteOpen(true);
                 }}
                 className="text-destructive"
@@ -149,29 +227,55 @@ export default function LabTechniciansPage() {
     },
     { name: "phone", label: "Phone", placeholder: "Enter phone number" },
     {
-      name: "specialization",
-      label: "Specialization",
-      placeholder: "Enter specialization",
+      name: "laboratory",
+      label: "Laboratory",
+      placeholder: "Enter laboratory",
     },
-    { name: "joinDate", label: "Join Date", type: "date" },
+    {
+      name: "experience",
+      label: "Experience",
+      type: "number",
+      placeholder: "Enter years of experience",
+    },
+    {
+      name: "addresses",
+      label: "Address",
+      placeholder: "Enter address",
+    },
   ];
 
-  const handleSubmit = (values: FormSchema) => {
-    if (editingTechnician) {
-      // Update existing technician
-      console.log("Updating technician:", values);
-    } else {
-      // Create new technician
-      console.log("Creating new technician:", values);
+  const handleSubmit = async (values: FormSchema) => {
+    try {
+      if (editingTechnician) {
+        // Update existing technician
+        await axiosInstance.put(`/api/v1/staff/${editingTechnician._id}`, {
+          ...values,
+          role: "LabTechnician",
+        });
+      } else {
+        // Create new technician
+        await axiosInstance.post("/api/v1/staff", {
+          ...values,
+          role: "LabTechnician",
+        });
+      }
+      refetch();
+      setOpen(false);
+    } catch (error) {
+      console.error("Error saving technician:", error);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingTechnicianId) {
-      // Delete technician
-      console.log("Deleting technician:", deletingTechnicianId);
-      setDeleteOpen(false);
-      setDeletingTechnicianId(null);
+      try {
+        await axiosInstance.delete(`/api/v1/staff/${deletingTechnicianId}`);
+        refetch();
+        setDeleteOpen(false);
+        setDeletingTechnicianId(null);
+      } catch (error) {
+        console.error("Error deleting technician:", error);
+      }
     }
   };
 
@@ -186,16 +290,28 @@ export default function LabTechniciansPage() {
           <h2 className="text-3xl font-bold tracking-tight">Lab Technicians</h2>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={technicians}
-          searchKey="name"
-          searchPlaceholder="Search technicians..."
-          onAdd={() => {
-            setEditingTechnician(null);
-            setOpen(true);
-          }}
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg text-red-500">
+              Error loading lab technicians. Please try again later.
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={response?.data || []}
+            searchKey="name"
+            searchPlaceholder="Search technicians..."
+            onAdd={() => {
+              setEditingTechnician(null);
+              setOpen(true);
+            }}
+          />
+        )}
 
         <EntityDialog
           open={open}

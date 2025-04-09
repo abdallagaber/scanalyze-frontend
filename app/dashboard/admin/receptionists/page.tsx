@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Metadata } from "next";
 import * as z from "zod";
 import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "@/lib/axios";
+import { AxiosError } from "axios";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { EntityDialog } from "@/components/dialogs/entity-dialog";
@@ -28,37 +31,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// This would come from your API/database
 interface Receptionist {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
-  shift: string;
-  joinDate: string;
-  status: string;
+  role: string;
+  laboratory: string;
+  experience: number;
+  imageProfile?: string;
+  addresses: string;
+  createdAt: string;
 }
 
-const receptionists: Receptionist[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@scanalyze.com",
-    phone: "+1234567890",
-    shift: "Morning",
-    joinDate: "2023-12-01",
-    status: "Active",
-  },
-  // Add more mock data as needed
-];
+interface ApiResponse {
+  results: number;
+  paginationResult: any;
+  data: Receptionist[];
+}
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  shift: z.string().min(1, "Shift is required"),
-  joinDate: z.string(),
-  status: z.string().min(1, "Status is required"),
+  laboratory: z.string().min(2, "Laboratory must be at least 2 characters"),
+  experience: z.number().min(0, "Experience must be a positive number"),
+  addresses: z.string().min(5, "Address must be at least 5 characters"),
 });
 
 type FormSchema = z.infer<typeof schema>;
@@ -71,6 +69,56 @@ export default function ReceptionistsPage() {
   const [deletingReceptionistId, setDeletingReceptionistId] = useState<
     string | null
   >(null);
+
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<ApiResponse>({
+    queryKey: ["receptionists"],
+    queryFn: async () => {
+      try {
+        console.log("Starting API call to fetch receptionists...");
+        console.log("Axios Instance Config:", {
+          baseURL: axiosInstance.defaults.baseURL,
+          headers: axiosInstance.defaults.headers,
+          withCredentials: axiosInstance.defaults.withCredentials,
+        });
+
+        const response = await axiosInstance.get<ApiResponse>(
+          `/api/v1/staff/?role=Receptionist`
+        );
+
+        console.log("API Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          data: response.data,
+        });
+
+        if (
+          !response.data ||
+          !response.data.data ||
+          response.data.data.length === 0
+        ) {
+          console.log("No data returned from API");
+          return { results: 0, paginationResult: {}, data: [] };
+        }
+
+        return response.data;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        console.error("Detailed API Error:", {
+          message: axiosError.message,
+          response: axiosError.response?.data,
+          status: axiosError.response?.status,
+          headers: axiosError.response?.headers,
+        });
+        throw error;
+      }
+    },
+  });
 
   const columns: ColumnDef<Receptionist>[] = [
     {
@@ -86,19 +134,23 @@ export default function ReceptionistsPage() {
       header: "Phone",
     },
     {
-      accessorKey: "shift",
-      header: "Shift",
+      accessorKey: "laboratory",
+      header: "Laboratory",
     },
     {
-      accessorKey: "joinDate",
+      accessorKey: "experience",
+      header: "Experience (years)",
+    },
+    {
+      accessorKey: "addresses",
+      header: "Address",
+    },
+    {
+      accessorKey: "createdAt",
       header: "Join Date",
       cell: ({ row }) => {
-        return new Date(row.getValue("joinDate")).toLocaleDateString();
+        return new Date(row.getValue("createdAt")).toLocaleDateString();
       },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
     },
     {
       id: "actions",
@@ -125,7 +177,7 @@ export default function ReceptionistsPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  setDeletingReceptionistId(receptionist.id);
+                  setDeletingReceptionistId(receptionist._id);
                   setDeleteOpen(true);
                 }}
                 className="text-destructive"
@@ -155,30 +207,55 @@ export default function ReceptionistsPage() {
     },
     { name: "phone", label: "Phone", placeholder: "Enter phone number" },
     {
-      name: "shift",
-      label: "Shift",
-      placeholder: "Enter shift (Morning/Evening)",
+      name: "laboratory",
+      label: "Laboratory",
+      placeholder: "Enter laboratory",
     },
-    { name: "joinDate", label: "Join Date", type: "date" },
-    { name: "status", label: "Status", placeholder: "Enter status" },
+    {
+      name: "experience",
+      label: "Experience",
+      type: "number",
+      placeholder: "Enter years of experience",
+    },
+    {
+      name: "addresses",
+      label: "Address",
+      placeholder: "Enter address",
+    },
   ];
 
-  const handleSubmit = (values: FormSchema) => {
-    if (editingReceptionist) {
-      // Update existing receptionist
-      console.log("Updating receptionist:", values);
-    } else {
-      // Create new receptionist
-      console.log("Creating new receptionist:", values);
+  const handleSubmit = async (values: FormSchema) => {
+    try {
+      if (editingReceptionist) {
+        // Update existing receptionist
+        await axiosInstance.put(`/api/v1/staff/${editingReceptionist._id}`, {
+          ...values,
+          role: "Receptionist",
+        });
+      } else {
+        // Create new receptionist
+        await axiosInstance.post("/api/v1/staff", {
+          ...values,
+          role: "Receptionist",
+        });
+      }
+      refetch();
+      setOpen(false);
+    } catch (error) {
+      console.error("Error saving receptionist:", error);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingReceptionistId) {
-      // Delete receptionist
-      console.log("Deleting receptionist:", deletingReceptionistId);
-      setDeleteOpen(false);
-      setDeletingReceptionistId(null);
+      try {
+        await axiosInstance.delete(`/api/v1/staff/${deletingReceptionistId}`);
+        refetch();
+        setDeleteOpen(false);
+        setDeletingReceptionistId(null);
+      } catch (error) {
+        console.error("Error deleting receptionist:", error);
+      }
     }
   };
 
@@ -193,16 +270,28 @@ export default function ReceptionistsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Receptionists</h2>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={receptionists}
-          searchKey="name"
-          searchPlaceholder="Search receptionists..."
-          onAdd={() => {
-            setEditingReceptionist(null);
-            setOpen(true);
-          }}
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg text-red-500">
+              Error loading receptionists. Please try again later.
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={response?.data || []}
+            searchKey="name"
+            searchPlaceholder="Search receptionists..."
+            onAdd={() => {
+              setEditingReceptionist(null);
+              setOpen(true);
+            }}
+          />
+        )}
 
         <EntityDialog
           open={open}
