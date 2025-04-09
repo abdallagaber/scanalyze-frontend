@@ -30,7 +30,7 @@ export default function LabTechnicianOverview({
       test: "Blood Analysis",
       type: "Lab Test",
       status: "Completed",
-      avatar: "/avatars/01.png",
+      avatar: "/placeholder-user.jpg",
       date: "2024-03-15",
     },
     {
@@ -38,7 +38,7 @@ export default function LabTechnicianOverview({
       test: "MRI Scan",
       type: "Scan",
       status: "Processing",
-      avatar: "/avatars/02.png",
+      avatar: "/placeholder-user.jpg",
       date: "2024-03-15",
     },
     {
@@ -46,7 +46,7 @@ export default function LabTechnicianOverview({
       test: "X-Ray",
       type: "Scan",
       status: "Completed",
-      avatar: "/avatars/03.png",
+      avatar: "/placeholder-user.jpg",
       date: "2024-03-14",
     },
     {
@@ -54,7 +54,7 @@ export default function LabTechnicianOverview({
       test: "CT Scan",
       type: "Scan",
       status: "Scheduled",
-      avatar: "/avatars/04.png",
+      avatar: "/placeholder-user.jpg",
       date: "2024-03-16",
     },
     {
@@ -62,7 +62,7 @@ export default function LabTechnicianOverview({
       test: "Ultrasound",
       type: "Scan",
       status: "Completed",
-      avatar: "/avatars/05.png",
+      avatar: "/placeholder-user.jpg",
       date: "2024-03-14",
     },
   ];
