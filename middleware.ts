@@ -35,6 +35,20 @@ export function middleware(request: NextRequest) {
   const role = request.cookies.get("role")?.value;
   const token = request.cookies.get("token")?.value;
 
+  // Redirect from /dashboard to role-specific dashboard
+  if (pathname === "/dashboard") {
+    if (!role || !token) {
+      return NextResponse.redirect(new URL("/login/staff", request.url));
+    }
+    const redirectPath =
+      role === "Admin"
+        ? "/dashboard/admin"
+        : role === "LabTechnician"
+        ? "/dashboard/lab-technician"
+        : "/dashboard/receptionist";
+    return NextResponse.redirect(new URL(redirectPath, request.url));
+  }
+
   // Check if user is trying to access a public path while authenticated
   if (publicPaths.includes(pathname) && role && token) {
     // Redirect to appropriate dashboard based on role
