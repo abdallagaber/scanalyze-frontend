@@ -8,6 +8,14 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "@/lib/axios";
 import { AxiosError } from "axios";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { EntityDialog } from "@/components/dialogs/entity-dialog";
@@ -31,17 +39,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface Branch {
+  _id: string;
+  name: string;
+  address: string;
+  phone: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Receptionist {
   _id: string;
   name: string;
   email: string;
+  nationalId: string;
   phone: string;
   role: string;
-  laboratory: string;
-  experience: number;
+  branch: Branch | string;
   imageProfile?: string;
+  birthDate: string;
+  age: number;
   addresses: string;
   createdAt: string;
+  password?: string;
 }
 
 interface ApiResponse {
@@ -50,13 +70,70 @@ interface ApiResponse {
   data: Receptionist[];
 }
 
+interface ApiErrorResponse {
+  message: string;
+  statusCode: number;
+  error: string;
+}
+
+interface FormValues {
+  name: string;
+  email: string;
+  nationalId: string;
+  phone: string;
+  branch: string;
+  addresses: string;
+  password?: string;
+}
+
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  laboratory: z.string().min(2, "Laboratory must be at least 2 characters"),
-  experience: z.number().min(0, "Experience must be a positive number"),
+  nationalId: z
+    .string()
+    .length(14, "National ID must be 14 digits")
+    .regex(/^[23]\d{13}$/, "National ID must start with 2 or 3")
+    .refine((value) => {
+      // Extract birth date components
+      const year = parseInt(value.substring(1, 3));
+      const month = parseInt(value.substring(3, 5));
+      const day = parseInt(value.substring(5, 7));
+
+      // Check if birth date is valid
+      const birthDate = new Date(
+        year + (value[0] === "2" ? 1900 : 2000),
+        month - 1,
+        day
+      );
+      if (
+        birthDate.getFullYear() !== (value[0] === "2" ? 1900 : 2000) + year ||
+        birthDate.getMonth() !== month - 1 ||
+        birthDate.getDate() !== day
+      ) {
+        return false;
+      }
+
+      // Check governorate code (01-27)
+      const governorate = parseInt(value.substring(7, 9));
+      if (governorate < 1 || governorate > 27) {
+        return false;
+      }
+
+      return true;
+    }, "Invalid National ID format - please check birth date and governorate code"),
+  phone: z
+    .string()
+    .length(11, "Phone number must be 11 digits")
+    .regex(
+      /^01[0125]\d{8}$/,
+      "Invalid Egyptian phone number format - must start with '01' followed by 0, 1, 2, or 5"
+    ),
+  branch: z.string().min(1, "Branch is required"),
   addresses: z.string().min(5, "Address must be at least 5 characters"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional(),
 });
 
 type FormSchema = z.infer<typeof schema>;
@@ -69,6 +146,21 @@ export default function ReceptionistsPage() {
   const [deletingReceptionistId, setDeletingReceptionistId] = useState<
     string | null
   >(null);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [formValues, setFormValues] = useState<FormValues | null>(null);
+
+  const { data: branches } = useQuery<Branch[]>({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      try {
+        const response = await axiosInstance.get("/api/v1/branches/");
+        return response.data.data;
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+        return [];
+      }
+    },
+  });
 
   const {
     data: response,
@@ -122,6 +214,10 @@ export default function ReceptionistsPage() {
 
   const columns: ColumnDef<Receptionist>[] = [
     {
+      accessorKey: "nationalId",
+      header: "National ID",
+    },
+    {
       accessorKey: "name",
       header: "Name",
     },
@@ -134,12 +230,19 @@ export default function ReceptionistsPage() {
       header: "Phone",
     },
     {
-      accessorKey: "laboratory",
-      header: "Laboratory",
+      accessorKey: "branch",
+      header: "Branch",
+      cell: ({ row }) => {
+        const branch = row.getValue("branch");
+        if (branch && typeof branch === "object" && "name" in branch) {
+          return (branch as Branch).name;
+        }
+        return branch;
+      },
     },
     {
-      accessorKey: "experience",
-      header: "Experience (years)",
+      accessorKey: "age",
+      header: "Age",
     },
     {
       accessorKey: "addresses",
@@ -197,6 +300,10 @@ export default function ReceptionistsPage() {
     label: string;
     type?: string;
     placeholder?: string;
+    component?: React.ReactElement<{
+      value?: string;
+      onValueChange?: (value: string) => void;
+    }>;
   }> = [
     { name: "name", label: "Name", placeholder: "Enter name" },
     {
@@ -205,44 +312,171 @@ export default function ReceptionistsPage() {
       type: "email",
       placeholder: "Enter email",
     },
-    { name: "phone", label: "Phone", placeholder: "Enter phone number" },
     {
-      name: "laboratory",
-      label: "Laboratory",
-      placeholder: "Enter laboratory",
+      name: "nationalId",
+      label: "National ID",
+      placeholder: "Enter 14-digit national ID",
     },
     {
-      name: "experience",
-      label: "Experience",
-      type: "number",
-      placeholder: "Enter years of experience",
+      name: "phone",
+      label: "Phone",
+      placeholder: "Enter phone number",
+    },
+    {
+      name: "branch",
+      label: "Branch",
+      component: (
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="Select branch" />
+          </SelectTrigger>
+          <SelectContent>
+            {branches?.map((branch) => (
+              <SelectItem key={branch._id} value={branch._id}>
+                {branch.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
     },
     {
       name: "addresses",
       label: "Address",
       placeholder: "Enter address",
     },
+    {
+      name: "password",
+      label: "Password",
+      type: "password",
+      placeholder: "Enter password",
+    },
   ];
 
-  const handleSubmit = async (values: FormSchema) => {
+  const transformReceptionistForForm = (
+    receptionist: Receptionist | null
+  ): FormValues => {
+    if (!receptionist) {
+      return {
+        name: "",
+        email: "",
+        nationalId: "",
+        phone: "",
+        branch: "",
+        addresses: "",
+        password: "",
+      };
+    }
+
+    return {
+      name: receptionist.name,
+      email: receptionist.email,
+      nationalId: receptionist.nationalId,
+      phone: receptionist.phone,
+      branch:
+        typeof receptionist.branch === "string"
+          ? receptionist.branch
+          : receptionist.branch._id,
+      addresses: receptionist.addresses,
+      password: "",
+    };
+  };
+
+  const handleSubmit = async (values: FormValues) => {
     try {
+      // Clear previous errors and save current values
+      setFormErrors({});
+      setFormValues(values);
+
       if (editingReceptionist) {
         // Update existing receptionist
         await axiosInstance.put(`/api/v1/staff/${editingReceptionist._id}`, {
           ...values,
           role: "Receptionist",
         });
+        toast.success("Receptionist updated successfully");
+        setOpen(false);
+        setFormValues(null);
       } else {
         // Create new receptionist
-        await axiosInstance.post("/api/v1/staff", {
+        await axiosInstance.post("/api/v1/staff/", {
           ...values,
           role: "Receptionist",
         });
+        toast.success("Receptionist created successfully");
+        setOpen(false);
+        setFormValues(null);
       }
       refetch();
-      setOpen(false);
     } catch (error) {
-      console.error("Error saving receptionist:", error);
+      const axiosError = error as AxiosError<any>;
+      console.error("API Error Response:", axiosError.response?.data);
+
+      // Handle different error response formats
+      if (axiosError.response?.data) {
+        const errorData = axiosError.response.data;
+        const errors: { [key: string]: string } = {};
+
+        // Handle single error object format
+        if (errorData.errors && !Array.isArray(errorData.errors)) {
+          const error = errorData.errors;
+          if (error.path && error.msg) {
+            errors[error.path] = error.msg;
+          }
+        }
+        // Handle validation errors array format
+        else if (Array.isArray(errorData.errors)) {
+          errorData.errors.forEach((error: any) => {
+            if (error.path && error.msg) {
+              errors[error.path] = error.msg;
+            }
+          });
+        }
+        // Handle object format errors
+        else if (typeof errorData.errors === "object") {
+          Object.entries(errorData.errors).forEach(([key, value]) => {
+            errors[key] = value as string;
+          });
+        }
+        // Handle duplicate key errors from message
+        else if (errorData.message && typeof errorData.message === "string") {
+          const message = errorData.message.toLowerCase();
+
+          // Check for duplicate email
+          if (
+            message.includes("e-mail already in user") ||
+            message.includes("email already in use") ||
+            (message.includes("duplicate key") && message.includes("email"))
+          ) {
+            errors.email = "This email is already in use";
+          }
+
+          // Check for duplicate phone
+          if (
+            (message.includes("duplicate key") && message.includes("phone")) ||
+            (message.includes("phone") && message.includes("already"))
+          ) {
+            errors.phone = "This phone number is already in use";
+          }
+
+          // Check for duplicate National ID
+          if (
+            (message.includes("duplicate key") &&
+              message.includes("nationalid")) ||
+            (message.includes("national id") && message.includes("already"))
+          ) {
+            errors.nationalId = "This National ID is already in use";
+          }
+        }
+
+        // Set the errors and keep the form open with current values
+        setFormErrors(errors);
+        toast.error("Please fix the errors in the form");
+        return; // Return early to prevent form from closing
+      }
+
+      // For any other errors, show a generic error message but keep form values
+      toast.error("An error occurred while saving the receptionist");
     }
   };
 
@@ -284,8 +518,8 @@ export default function ReceptionistsPage() {
           <DataTable
             columns={columns}
             data={response?.data || []}
-            searchKey="name"
-            searchPlaceholder="Search receptionists..."
+            searchKey="nationalId"
+            searchPlaceholder="Search by national ID..."
             onAdd={() => {
               setEditingReceptionist(null);
               setOpen(true);
@@ -303,9 +537,12 @@ export default function ReceptionistsPage() {
               : "Add a new receptionist to the system."
           }
           schema={schema}
-          defaultValues={editingReceptionist || undefined}
+          defaultValues={
+            formValues || transformReceptionistForForm(editingReceptionist)
+          }
           onSubmit={handleSubmit}
           fields={formFields}
+          fieldErrors={formErrors}
         />
 
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
