@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PatientSearch } from "@/components/patient-search";
 import { ScanTypeSelection } from "@/components/scan-type-selection";
-import { ScanUpload } from "@/components/scan-upload";
+import { ScanUpload, ScanUploadRef } from "@/components/scan-upload";
 import { AnalysisSection } from "@/components/analysis-section";
 import { toast } from "sonner";
 import { Save, ArrowLeft } from "lucide-react";
@@ -30,6 +30,8 @@ export default function AddScanPage() {
   const [analysisResult, setAnalysisResult] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
+  const scanUploadRef = useRef<ScanUploadRef>(null);
+
   // Handle patient found
   const handlePatientFound = (patient: any) => {
     setPatientData(patient);
@@ -42,10 +44,13 @@ export default function AddScanPage() {
 
   // Handle scan type selection
   const handleScanTypeSelected = (scanTypeId: string) => {
+    // If the scan type is different from the current selection, clear the uploaded image
+    if (scanTypeId !== selectedScanType) {
+      scanUploadRef.current?.removeImage();
+    }
     setSelectedScanType(scanTypeId);
     setCurrentStep(3);
     // Clear subsequent steps data
-    setUploadedImage(null);
     setAnalysisResult("");
   };
 
@@ -63,29 +68,6 @@ export default function AddScanPage() {
   const handleAnalysisResult = (result: string) => {
     setAnalysisResult(result);
     setCurrentStep(5);
-  };
-
-  // Handle step navigation
-  const handleStepChange = (step: number) => {
-    if (step < currentStep) {
-      setCurrentStep(step);
-      // Clear data for steps after the target step
-      if (step < 2) {
-        setPatientData(null);
-        setSelectedScanType(null);
-        setUploadedImage(null);
-        setAnalysisResult("");
-      } else if (step < 3) {
-        setSelectedScanType(null);
-        setUploadedImage(null);
-        setAnalysisResult("");
-      } else if (step < 4) {
-        setUploadedImage(null);
-        setAnalysisResult("");
-      } else if (step < 5) {
-        setAnalysisResult("");
-      }
-    }
   };
 
   // Handle final submission
@@ -217,58 +199,62 @@ export default function AddScanPage() {
               </CardContent>
             </Card>
 
-            {/* Step 3: Scan Upload */}
-            <Card className={currentStep < 3 ? "opacity-60" : ""}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Step 3: Scan Upload</CardTitle>
-                    <CardDescription>
-                      {selectedScanTypeDetails
-                        ? `Upload ${selectedScanTypeDetails.name} scan image`
-                        : "Upload scan image"}
-                    </CardDescription>
+            {/* Steps 3 & 4: Scan Upload and Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Step 3: Scan Upload */}
+              <Card className={currentStep < 3 ? "opacity-60" : ""}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Step 3: Scan Upload</CardTitle>
+                      <CardDescription>
+                        {selectedScanTypeDetails
+                          ? `Upload ${selectedScanTypeDetails.name} scan image`
+                          : "Upload scan image"}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center justify-center rounded-full w-8 h-8 bg-primary text-primary-foreground font-medium">
+                      3
+                    </div>
                   </div>
-                  <div className="flex items-center justify-center rounded-full w-8 h-8 bg-primary text-primary-foreground font-medium">
-                    3
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScanUpload
-                  disabled={currentStep < 3}
-                  onFileUploaded={handleFileUploaded}
-                  scanType={selectedScanTypeDetails?.name || ""}
-                />
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <ScanUpload
+                    ref={scanUploadRef}
+                    disabled={currentStep < 3}
+                    onFileUploaded={handleFileUploaded}
+                    scanType={selectedScanTypeDetails?.name || ""}
+                  />
+                </CardContent>
+              </Card>
 
-            {/* Step 4: Analysis */}
-            <Card className={currentStep < 4 ? "opacity-60" : ""}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Step 4: Analysis</CardTitle>
-                    <CardDescription>
-                      Generate and review analysis results
-                    </CardDescription>
+              {/* Step 4: Analysis */}
+              <Card className={currentStep < 4 ? "opacity-60" : ""}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Step 4: Analysis</CardTitle>
+                      <CardDescription>
+                        Generate and review analysis results
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center justify-center rounded-full w-8 h-8 bg-primary text-primary-foreground font-medium">
+                      4
+                    </div>
                   </div>
-                  <div className="flex items-center justify-center rounded-full w-8 h-8 bg-primary text-primary-foreground font-medium">
-                    4
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <AnalysisSection
-                  disabled={currentStep < 4}
-                  uploadedImage={uploadedImage}
-                  analysisResult={analysisResult}
-                  setAnalysisResult={setAnalysisResult}
-                  onAnalysisGenerated={handleAnalysisResult}
-                  scanType={mappedScanType}
-                />
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <AnalysisSection
+                    disabled={currentStep < 4}
+                    uploadedImage={uploadedImage}
+                    analysisResult={analysisResult}
+                    setAnalysisResult={setAnalysisResult}
+                    onAnalysisGenerated={handleAnalysisResult}
+                    scanType={mappedScanType}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Submit Button */}
             <div className="flex justify-end mt-8">

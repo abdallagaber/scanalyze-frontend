@@ -17,18 +17,25 @@ interface ScanTypeSelectionProps {
   disabled: boolean;
   onScanTypeSelected: (scanTypeId: string) => void;
   selectedScanType: string | null;
+  onChange?: (scanTypeId: string) => void;
 }
 
 export function ScanTypeSelection({
   disabled,
   onScanTypeSelected,
   selectedScanType,
+  onChange,
 }: ScanTypeSelectionProps) {
   return (
     <div className={disabled ? "pointer-events-none opacity-50" : ""}>
       <RadioGroup
         value={selectedScanType || ""}
-        onValueChange={onScanTypeSelected}
+        onValueChange={(value) => {
+          if (onChange) {
+            onChange(value);
+          }
+          onScanTypeSelected(value);
+        }}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
         {SCAN_TYPES.map((scanType: ScanType) => (
