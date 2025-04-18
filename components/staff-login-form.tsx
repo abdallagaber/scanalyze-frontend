@@ -112,6 +112,9 @@ export default function StaffLoginForm() {
         case "LabTechnician":
           router.push("/dashboard/lab-technician");
           break;
+        case "ScanTechnician":
+          router.push("/dashboard/scan-technician");
+          break;
       }
 
       toast.success("Login successful!", {
@@ -159,6 +162,9 @@ export default function StaffLoginForm() {
           break;
         case "LabTechnician":
           router.push("/dashboard/lab-technician");
+          break;
+        case "ScanTechnician":
+          router.push("/dashboard/scan-technician");
           break;
       }
 

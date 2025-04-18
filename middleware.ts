@@ -9,6 +9,7 @@ const protectedPaths = {
     "/dashboard/admin/patients",
     "/dashboard/admin/lab-technicians",
     "/dashboard/admin/receptionists",
+    "/dashboard/admin/scan-technicians",
   ],
   LabTechnician: [
     "/dashboard/lab-technician",
@@ -24,6 +25,11 @@ const protectedPaths = {
     "/dashboard/receptionist/patients",
     "/dashboard/receptionist/reports",
   ],
+  ScanTechnician: [
+    "/dashboard/scan-technician",
+    "/dashboard/scan-technician/add-scan",
+    "/dashboard/scan-technician/patients",
+  ],
 };
 
 // Define public paths that don't require authentication
@@ -38,13 +44,15 @@ export function middleware(request: NextRequest) {
   // Handle /dashboard route
   if (pathname === "/dashboard") {
     if (!role || !token) {
-      return NextResponse.redirect(new URL("/not-found", request.url));
+      return NextResponse.redirect(new URL("/login/staff", request.url));
     }
     const redirectPath =
       role === "Admin"
         ? "/dashboard/admin"
         : role === "LabTechnician"
         ? "/dashboard/lab-technician"
+        : role === "ScanTechnician"
+        ? "/dashboard/scan-technician"
         : "/dashboard/receptionist";
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
@@ -57,6 +65,8 @@ export function middleware(request: NextRequest) {
         ? "/dashboard/admin"
         : role === "LabTechnician"
         ? "/dashboard/lab-technician"
+        : role === "ScanTechnician"
+        ? "/dashboard/scan-technician"
         : "/dashboard/receptionist";
 
     return NextResponse.redirect(new URL(redirectPath, request.url));
@@ -81,6 +91,7 @@ export function middleware(request: NextRequest) {
       admin: "Admin",
       "lab-technician": "LabTechnician",
       receptionist: "Receptionist",
+      "scan-technician": "ScanTechnician",
     };
 
     // Get the backend role for the requested path
@@ -93,6 +104,8 @@ export function middleware(request: NextRequest) {
           ? "/dashboard/admin"
           : role === "LabTechnician"
           ? "/dashboard/lab-technician"
+          : role === "ScanTechnician"
+          ? "/dashboard/scan-technician"
           : "/dashboard/receptionist";
 
       return NextResponse.redirect(new URL(redirectPath, request.url));
