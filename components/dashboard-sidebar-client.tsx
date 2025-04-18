@@ -22,7 +22,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-type Role = "admin" | "lab-technician" | "receptionist";
+type Role = "admin" | "lab-technician" | "receptionist" | "scan-technician";
 
 const navigationConfig: Record<
   Role,
@@ -113,18 +113,37 @@ const navigationConfig: Record<
       icon: FileText,
     },
   ],
+  "scan-technician": [
+    {
+      title: "Overview",
+      url: "/dashboard/scan-technician",
+      icon: Home,
+    },
+    {
+      title: "Add Scan",
+      url: "/dashboard/scan-technician/add-scan",
+      icon: Scan,
+    },
+    {
+      title: "Patients",
+      url: "/dashboard/scan-technician/patients",
+      icon: Users,
+    },
+  ],
 };
 
 const roleIcons: Record<Role, typeof Home> = {
   admin: Home,
   "lab-technician": Microscope,
   receptionist: ClipboardList,
+  "scan-technician": Scan,
 };
 
 const roleTitles: Record<Role, string> = {
   admin: "Admin Dashboard",
   "lab-technician": "Lab Dashboard",
   receptionist: "Reception",
+  "scan-technician": "Scan Dashboard",
 };
 
 interface DashboardSidebarClientProps
