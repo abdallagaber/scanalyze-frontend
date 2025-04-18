@@ -149,11 +149,6 @@ export default function AddScanPage() {
         </div>
 
         <Tabs defaultValue="workflow" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="workflow">Workflow</TabsTrigger>
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-          </TabsList>
-
           <TabsContent value="workflow" className="space-y-6 mt-6">
             {/* Step 1: Patient Search */}
             <Card>
@@ -274,65 +269,6 @@ export default function AddScanPage() {
                 )}
               </Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="summary" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Scan Summary</CardTitle>
-                <CardDescription>
-                  Review the information before submission
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {patientData ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Patient
-                      </h3>
-                      <p className="font-medium">{patientData.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ID: {patientData.id}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Age / Gender
-                      </h3>
-                      <p>
-                        {patientData.age} years / {patientData.gender}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Scan Type
-                      </h3>
-                      <p>{selectedScanTypeDetails?.name || "Not selected"}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Date
-                      </h3>
-                      <p>{new Date().toLocaleDateString()}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Analysis
-                      </h3>
-                      <p className="text-sm whitespace-pre-wrap">
-                        {analysisResult || "No analysis generated yet"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No patient selected yet. Please search for a patient in the
-                    workflow tab.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
