@@ -9,6 +9,7 @@ import {
   FileText,
   Calendar,
   Settings,
+  Scan,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
@@ -46,6 +47,11 @@ const navigationConfig: Record<
       title: "Lab Technicians",
       url: "/dashboard/admin/lab-technicians",
       icon: Microscope,
+    },
+    {
+      title: "Scan Technicians",
+      url: "/dashboard/admin/scan-technicians",
+      icon: Scan,
     },
     {
       title: "Receptionists",
