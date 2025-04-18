@@ -15,7 +15,7 @@ import { ScanTypeSelection } from "@/components/scan-type-selection";
 import { ScanUpload } from "@/components/scan-upload";
 import { AnalysisSection } from "@/components/analysis-section";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, ArrowLeft } from "lucide-react";
 import { SCAN_TYPES } from "@/lib/scan-types";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 
@@ -34,12 +34,19 @@ export default function AddScanPage() {
   const handlePatientFound = (patient: any) => {
     setPatientData(patient);
     setCurrentStep(2);
+    // Clear subsequent steps data
+    setSelectedScanType(null);
+    setUploadedImage(null);
+    setAnalysisResult("");
   };
 
   // Handle scan type selection
   const handleScanTypeSelected = (scanTypeId: string) => {
     setSelectedScanType(scanTypeId);
     setCurrentStep(3);
+    // Clear subsequent steps data
+    setUploadedImage(null);
+    setAnalysisResult("");
   };
 
   // Handle file uploaded
@@ -47,6 +54,8 @@ export default function AddScanPage() {
     setUploadedImage(fileUrl);
     if (fileUrl) {
       setCurrentStep(4);
+      // Clear subsequent steps data
+      setAnalysisResult("");
     }
   };
 
@@ -54,6 +63,29 @@ export default function AddScanPage() {
   const handleAnalysisResult = (result: string) => {
     setAnalysisResult(result);
     setCurrentStep(5);
+  };
+
+  // Handle step navigation
+  const handleStepChange = (step: number) => {
+    if (step < currentStep) {
+      setCurrentStep(step);
+      // Clear data for steps after the target step
+      if (step < 2) {
+        setPatientData(null);
+        setSelectedScanType(null);
+        setUploadedImage(null);
+        setAnalysisResult("");
+      } else if (step < 3) {
+        setSelectedScanType(null);
+        setUploadedImage(null);
+        setAnalysisResult("");
+      } else if (step < 4) {
+        setUploadedImage(null);
+        setAnalysisResult("");
+      } else if (step < 5) {
+        setAnalysisResult("");
+      }
+    }
   };
 
   // Handle final submission

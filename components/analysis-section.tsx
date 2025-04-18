@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Zap } from "lucide-react";
@@ -57,6 +57,14 @@ export function AnalysisSection({
 }: AnalysisSectionProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear analysis when image is removed
+  useEffect(() => {
+    if (!uploadedImage && analysisResult) {
+      setAnalysisResult("");
+      onAnalysisGenerated("");
+    }
+  }, [uploadedImage, analysisResult, setAnalysisResult, onAnalysisGenerated]);
 
   const handleAnalyze = async () => {
     if (!uploadedImage || !scanType) {
