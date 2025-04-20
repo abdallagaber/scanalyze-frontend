@@ -1,15 +1,26 @@
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Card, CardContent } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { registerPatient, PatientRegistrationData } from "@/lib/services/auth";
+import { useToast } from "@/hooks/use-toast";
+import { RefreshCw } from "lucide-react";
 
 // Update the form schema to fix validation issues
 const formSchema = z.object({
@@ -24,14 +35,17 @@ const formSchema = z.object({
         // Only validate if "yes" is selected
         if (data.has === "yes") {
           // Either specified array must have items OR other must have content
-          return (data.specified && data.specified.length > 0) || (data.other && data.other.length > 0)
+          return (
+            (data.specified && data.specified.length > 0) ||
+            (data.other && data.other.length > 0)
+          );
         }
-        return true
+        return true;
       },
       {
         message: "Please select at least one option or specify other",
         path: ["specified"],
-      },
+      }
     ),
   allergies: z
     .object({
@@ -42,14 +56,14 @@ const formSchema = z.object({
       (data) => {
         // Only validate if "yes" is selected
         if (data.has === "yes") {
-          return data.specified && data.specified.length > 0
+          return data.specified && data.specified.length > 0;
         }
-        return true
+        return true;
       },
       {
         message: "Please specify your allergies",
         path: ["specified"],
-      },
+      }
     ),
   medications: z
     .object({
@@ -60,7 +74,7 @@ const formSchema = z.object({
             name: z.string().optional(),
             dosage: z.string().optional(),
             reason: z.string().optional(),
-          }),
+          })
         )
         .optional(),
     })
@@ -69,14 +83,18 @@ const formSchema = z.object({
         // Only validate if "yes" is selected
         if (data.taking === "yes") {
           // Check if there's at least one medication with name filled
-          return data.items && data.items.length > 0 && data.items.some((item) => item.name && item.name.length > 0)
+          return (
+            data.items &&
+            data.items.length > 0 &&
+            data.items.some((item) => item.name && item.name.length > 0)
+          );
         }
-        return true
+        return true;
       },
       {
         message: "Please add at least one medication",
         path: ["items"],
-      },
+      }
     ),
   surgeries: z
     .object({
@@ -87,14 +105,14 @@ const formSchema = z.object({
       (data) => {
         // Only validate if "yes" is selected
         if (data.had === "yes") {
-          return data.specified && data.specified.length > 0
+          return data.specified && data.specified.length > 0;
         }
-        return true
+        return true;
       },
       {
         message: "Please specify your surgeries",
         path: ["specified"],
-      },
+      }
     ),
   symptoms: z
     .object({
@@ -105,29 +123,37 @@ const formSchema = z.object({
       (data) => {
         // Only validate if "yes" is selected
         if (data.has === "yes") {
-          return data.specified && data.specified.length > 0
+          return data.specified && data.specified.length > 0;
         }
-        return true
+        return true;
       },
       {
         message: "Please specify your symptoms",
         path: ["specified"],
-      },
+      }
     ),
   lifestyle: z.object({
     smoking: z.enum(["yes", "no"]),
     alcohol: z.enum(["yes", "no"]),
   }),
-})
+});
 
 type MedicalHistoryFormProps = {
-  formData: any
-  updateFormData: (data: any) => void
-  onNext: () => void
-  onPrev: () => void
-}
+  formData: any;
+  updateFormData: (data: any) => void;
+  onNext: () => void;
+  onPrev: () => void;
+};
 
-export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }: MedicalHistoryFormProps) {
+export function MedicalHistoryForm({
+  formData,
+  updateFormData,
+  onNext,
+  onPrev,
+}: MedicalHistoryFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
   // Update the form default values to match the new structure
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -148,18 +174,188 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
       symptoms: formData.medicalHistory.symptoms,
       lifestyle: formData.medicalHistory.lifestyle,
     },
-  })
+  });
 
-  const watchChronicDiseases = form.watch("chronicDiseases.has")
-  const watchAllergies = form.watch("allergies.has")
-  const watchMedications = form.watch("medications.taking")
-  const watchSurgeries = form.watch("surgeries.had")
-  const watchSymptoms = form.watch("symptoms.has")
+  const watchChronicDiseases = form.watch("chronicDiseases.has");
+  const watchAllergies = form.watch("allergies.has");
+  const watchMedications = form.watch("medications.taking");
+  const watchSurgeries = form.watch("surgeries.had");
+  const watchSymptoms = form.watch("symptoms.has");
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    updateFormData({ medicalHistory: values })
-    onNext()
-  }
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+
+    try {
+      console.log("=== FORM SUBMISSION STARTED ===");
+      // Log the current form data and values
+      console.log("Form data (personal info):", {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        nationalId: formData.nationalId,
+        gender: formData.gender,
+        hasIdImage: !!formData.idImagePreview,
+        hasOtp: !!formData.otp,
+      });
+
+      console.log("Medical history form values:", values);
+
+      // Prepare medications list with required fields
+      const medications =
+        values.medications.taking === "yes"
+          ? (values.medications.items || []).map((item) => ({
+              name: item.name || "", // Ensure name is a string
+              dosage: item.dosage || "", // Ensure dosage is a string
+              reason: item.reason || "", // Ensure reason is a string
+            }))
+          : [];
+
+      console.log("Formatted medications list:", medications);
+
+      // Format phone number to ensure it has the correct format
+      const formatPhoneNumber = (phone: string): string => {
+        // Remove any non-digit characters
+        const digitsOnly = phone.replace(/\D/g, "");
+
+        // If it already starts with "2", return as is
+        if (digitsOnly.startsWith("2")) {
+          return digitsOnly;
+        }
+
+        // If it starts with "01", add "2" prefix
+        if (digitsOnly.startsWith("01")) {
+          return "2" + digitsOnly;
+        }
+
+        // Default case: return as is (backend will validate)
+        return digitsOnly;
+      };
+
+      // Format the phone number for the API
+      const formattedPhone = formatPhoneNumber(formData.phone);
+      console.log("Original phone:", formData.phone);
+      console.log("Formatted phone for API:", formattedPhone);
+
+      // Map frontend form data to match backend schema
+      const patientData: PatientRegistrationData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formattedPhone, // Use the formatted phone number
+        nationalID: formData.nationalId,
+        password: formData.password,
+        gender: formData.gender,
+        otp: formData.otp,
+        nationalIDImg: formData.idImagePreview, // Send base64 image
+
+        // Map medical history to match backend schema
+        medicalHistory: {
+          chronicDiseases: {
+            hasChronicDiseases: values.chronicDiseases.has === "yes",
+            diseasesList: values.chronicDiseases.specified || [],
+            otherDiseases: values.chronicDiseases.other || "",
+          },
+          allergies: {
+            hasAllergies: values.allergies.has === "yes",
+            allergyDetails: values.allergies.specified || "",
+          },
+          medications: {
+            takesMedications: values.medications.taking === "yes",
+            list: medications,
+          },
+          surgeries: {
+            hadSurgeries: values.surgeries.had === "yes",
+            surgeryDetails: values.surgeries.specified || "",
+          },
+          currentSymptoms: {
+            hasSymptoms: values.symptoms.has === "yes",
+            symptomsDetails: values.symptoms.specified || "",
+          },
+          lifestyle: {
+            smokes: values.lifestyle.smoking === "yes",
+            consumesAlcohol: values.lifestyle.alcohol === "yes",
+          },
+        },
+      };
+
+      console.log("Mapped patient data ready for API - structure:", {
+        personalFields: Object.keys(patientData).filter(
+          (k) => k !== "medicalHistory"
+        ),
+        medicalHistoryStructure: {
+          sections: Object.keys(patientData.medicalHistory),
+          chronicDiseasesFields: Object.keys(
+            patientData.medicalHistory.chronicDiseases
+          ),
+          medicationsFields: Object.keys(
+            patientData.medicalHistory.medications
+          ),
+          medicationListLength: patientData.medicalHistory.medications.list
+            .length,
+        },
+      });
+
+      // Check if environment variables are set correctly
+      console.log("Environment:", {
+        NODE_ENV: process.env.NODE_ENV,
+        API_BASE_URL: process.env.NEXT_PUBLIC_API_URL,
+      });
+
+      // Log axios config from browser
+      console.log("Making API call to registerPatient...");
+
+      // Call register API
+      await registerPatient(patientData);
+
+      console.log("Registration API call successful!");
+
+      // Update form data with medical history
+      updateFormData({ medicalHistory: values });
+
+      // Show success toast
+      toast({
+        title: "Registration successful",
+        description:
+          "Your account has been created and is now pending activation",
+        variant: "default",
+      });
+
+      // Move to the complete step
+      onNext();
+    } catch (error: any) {
+      console.error("Registration error:", error);
+
+      // Extract more detailed error information if available
+      let errorDetails =
+        "An error occurred during registration. Please try again.";
+
+      if (error.response) {
+        console.error("Error response:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+
+        // Try to extract meaningful error message
+        if (error.response.data?.message) {
+          errorDetails = error.response.data.message;
+        } else if (typeof error.response.data === "string") {
+          errorDetails = error.response.data.substring(0, 100); // Limit length
+        }
+      }
+
+      // Show error toast
+      toast({
+        title: "Registration failed",
+        description: errorDetails,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      console.log("=== FORM SUBMISSION ENDED ===");
+    }
+  };
 
   const chronicDiseaseOptions = [
     { id: "diabetes", label: "Diabetes" },
@@ -168,12 +364,14 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
     { id: "kidneyDiseases", label: "Kidney diseases" },
     { id: "liverDiseases", label: "Liver diseases" },
     { id: "respiratoryDiseases", label: "Respiratory diseases (e.g., asthma)" },
-  ]
+  ];
 
   return (
     <Card className="scanalyze-card">
       <CardContent className="pt-6">
-        <h2 className="text-xl font-semibold mb-4 scanalyze-heading">Medical History</h2>
+        <h2 className="text-xl font-semibold mb-4 scanalyze-heading">
+          Medical History
+        </h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Chronic Diseases */}
@@ -219,21 +417,33 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                         name="chronicDiseases.specified"
                         render={({ field }) => {
                           return (
-                            <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormItem
+                              key={option.id}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(option.id)}
                                   onCheckedChange={(checked) => {
-                                    const currentValue = field.value || []
+                                    const currentValue = field.value || [];
                                     return checked
-                                      ? field.onChange([...currentValue, option.id])
-                                      : field.onChange(currentValue.filter((value) => value !== option.id))
+                                      ? field.onChange([
+                                          ...currentValue,
+                                          option.id,
+                                        ])
+                                      : field.onChange(
+                                          currentValue.filter(
+                                            (value) => value !== option.id
+                                          )
+                                        );
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="font-normal">{option.label}</FormLabel>
+                              <FormLabel className="font-normal">
+                                {option.label}
+                              </FormLabel>
                             </FormItem>
-                          )
+                          );
                         }}
                       />
                     ))}
@@ -246,7 +456,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                       <FormItem>
                         <FormLabel>Other (please specify)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter other chronic diseases" {...field} />
+                          <Input
+                            placeholder="Enter other chronic diseases"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -264,7 +477,9 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
 
             {/* Allergies */}
             <div className="space-y-4">
-              <h3 className="font-medium">Do you have any allergies to medications or other substances?</h3>
+              <h3 className="font-medium">
+                Do you have any allergies to medications or other substances?
+              </h3>
               <FormField
                 control={form.control}
                 name="allergies.has"
@@ -303,7 +518,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                     <FormItem>
                       <FormLabel>Please specify</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Enter your allergies" {...field} />
+                        <Textarea
+                          placeholder="Enter your allergies"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -314,7 +532,9 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
 
             {/* Current Medications */}
             <div className="space-y-4">
-              <h3 className="font-medium">Are you taking any medications regularly?</h3>
+              <h3 className="font-medium">
+                Are you taking any medications regularly?
+              </h3>
               <FormField
                 control={form.control}
                 name="medications.taking"
@@ -348,7 +568,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
               {watchMedications === "yes" && (
                 <div className="pl-6 space-y-4">
                   {form.watch("medications.items")?.map((_, index) => (
-                    <div key={index} className="border border-gray-200 rounded-md p-4 space-y-4">
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-md p-4 space-y-4"
+                    >
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium">Medication {index + 1}</h4>
                         {index > 0 && (
@@ -357,11 +580,12 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              const currentItems = form.getValues("medications.items")
+                              const currentItems =
+                                form.getValues("medications.items") || [];
                               form.setValue(
                                 "medications.items",
-                                currentItems.filter((_, i) => i !== index),
-                              )
+                                currentItems.filter((_, i) => i !== index)
+                              );
                             }}
                           >
                             Remove
@@ -376,7 +600,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                           <FormItem>
                             <FormLabel>Medication name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter medication name" {...field} />
+                              <Input
+                                placeholder="Enter medication name"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -404,7 +631,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                           <FormItem>
                             <FormLabel>Reason for use</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter reason for use" {...field} />
+                              <Input
+                                placeholder="Enter reason for use"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -418,8 +648,12 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      const currentItems = form.getValues("medications.items") || []
-                      form.setValue("medications.items", [...currentItems, { name: "", dosage: "", reason: "" }])
+                      const currentItems =
+                        form.getValues("medications.items") || [];
+                      form.setValue("medications.items", [
+                        ...currentItems,
+                        { name: "", dosage: "", reason: "" },
+                      ]);
                     }}
                   >
                     Add Another Medication
@@ -436,7 +670,9 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
 
             {/* Surgical History */}
             <div className="space-y-4">
-              <h3 className="font-medium">Have you undergone any surgeries in the past?</h3>
+              <h3 className="font-medium">
+                Have you undergone any surgeries in the past?
+              </h3>
               <FormField
                 control={form.control}
                 name="surgeries.had"
@@ -475,7 +711,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                     <FormItem>
                       <FormLabel>Please specify</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Enter details about your surgeries" {...field} />
+                        <Textarea
+                          placeholder="Enter details about your surgeries"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -486,7 +725,9 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
 
             {/* Current Symptoms */}
             <div className="space-y-4">
-              <h3 className="font-medium">Are you experiencing any symptoms currently?</h3>
+              <h3 className="font-medium">
+                Are you experiencing any symptoms currently?
+              </h3>
               <FormField
                 control={form.control}
                 name="symptoms.has"
@@ -525,7 +766,10 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
                     <FormItem>
                       <FormLabel>Please specify</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Enter your current symptoms" {...field} />
+                        <Textarea
+                          placeholder="Enter your current symptoms"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -603,17 +847,32 @@ export function MedicalHistoryForm({ formData, updateFormData, onNext, onPrev }:
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onPrev} className="flex-1 scanalyze-button-outline">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onPrev}
+                className="flex-1 scanalyze-button-outline"
+              >
                 Back
               </Button>
-              <Button type="submit" className="flex-1 scanalyze-button-primary">
-                Submit
+              <Button
+                type="submit"
+                className="flex-1 scanalyze-button-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }
-

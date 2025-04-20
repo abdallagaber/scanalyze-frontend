@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import imageCompression from "browser-image-compression";
+import { sendOtp } from "@/lib/services/auth";
+import { useToast } from "@/hooks/use-toast";
 
 // Update the form schema to include password
 const formSchema = z.object({
@@ -131,6 +133,8 @@ export function UserInfoForm({
         }
       : null
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     console.log("UserInfoForm mounted/updated");
@@ -270,48 +274,6 @@ export function UserInfoForm({
     }
   };
 
-  // Function to retry verification
-  const retryVerification = async () => {
-    if (!idImage) return;
-
-    setIsVerifying(true);
-    setVerificationResult(null);
-    setVerificationAttempts((prev) => prev + 1);
-
-    try {
-      const result = await verifyEgyptianID(idImage);
-      setVerificationResult(result);
-
-      // Update parent form data with verification result
-      updateFormData({
-        idImageVerified: result.isValid,
-      });
-    } catch (error) {
-      console.error("Error during ID verification retry:", error);
-      setVerificationResult({
-        isValid: false,
-        confidence: 0,
-        message: "Error verifying ID. Please try again.",
-      });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  // Function to manually override verification
-  const manuallyApproveID = () => {
-    setVerificationResult({
-      isValid: true,
-      confidence: 1.0,
-      message: "ID manually approved",
-    });
-
-    // Update parent form data
-    updateFormData({
-      idImageVerified: true,
-    });
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const originalFile = e.target.files[0];
@@ -360,7 +322,7 @@ export function UserInfoForm({
     }
   };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Check if we have either a file or a preview (from previous upload)
     if (!idImage && !previewUrl) {
       form.setError("root", {
@@ -382,23 +344,43 @@ export function UserInfoForm({
       return;
     }
 
-    // Update form data with all values
-    updateFormData({
-      ...values,
-      // Only update image-related fields if we have new values
-      ...(idImage && { idFrontImage: idImage }),
-      ...(previewUrl && { idImagePreview: previewUrl }),
-      // If verification failed but we've tried multiple times, allow to proceed
-      idImageVerified: verificationResult?.isValid || verificationAttempts >= 2,
-    });
+    // Set submitting state to true
+    setIsSubmitting(true);
 
-    console.log(
-      "Form submitted with image:",
-      idImage ? "yes" : "no",
-      "and preview:",
-      previewUrl ? "yes" : "no"
-    );
-    onNext();
+    try {
+      // Send OTP to user's phone
+      await sendOtp(values.phone);
+
+      // Update form data with all values
+      updateFormData({
+        ...values,
+        // Only update image-related fields if we have new values
+        ...(idImage && { idFrontImage: idImage }),
+        ...(previewUrl && { idImagePreview: previewUrl }),
+        // If verification failed but we've tried multiple times, allow to proceed
+        idImageVerified:
+          verificationResult?.isValid || verificationAttempts >= 2,
+      });
+
+      // Show success toast
+      toast({
+        title: "Verification code sent",
+        description: `We've sent a verification code to your WhatsApp number ${values.phone}`,
+        variant: "default",
+      });
+
+      // Move to next step
+      onNext();
+    } catch (error: any) {
+      // Show error toast
+      toast({
+        title: "Failed to send verification code",
+        description: error.response?.data?.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -681,8 +663,19 @@ export function UserInfoForm({
               )}
             </div>
 
-            <Button type="submit" className="w-full scanalyze-button-primary">
-              Continue
+            <Button
+              type="submit"
+              className="w-full scanalyze-button-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Sending verification code...
+                </span>
+              ) : (
+                "Continue"
+              )}
             </Button>
           </form>
         </Form>
