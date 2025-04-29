@@ -10,6 +10,9 @@ import {
   Calendar,
   Settings,
   Scan,
+  User,
+  Activity,
+  History,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
@@ -22,7 +25,12 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-type Role = "admin" | "lab-technician" | "receptionist" | "scan-technician";
+type Role =
+  | "admin"
+  | "lab-technician"
+  | "receptionist"
+  | "scan-technician"
+  | "patient";
 
 const navigationConfig: Record<
   Role,
@@ -130,6 +138,38 @@ const navigationConfig: Record<
       icon: Users,
     },
   ],
+  patient: [
+    {
+      title: "Overview",
+      url: "/dashboard/patient",
+      icon: Home,
+    },
+    {
+      title: "Appointments",
+      url: "/dashboard/patient/appointments",
+      icon: Calendar,
+    },
+    {
+      title: "Medical Records",
+      url: "/dashboard/patient/records",
+      icon: FileText,
+    },
+    {
+      title: "Scan Results",
+      url: "/dashboard/patient/scans",
+      icon: Activity,
+    },
+    {
+      title: "Medical History",
+      url: "/dashboard/patient/history",
+      icon: History,
+    },
+    {
+      title: "Profile",
+      url: "/dashboard/patient/profile",
+      icon: User,
+    },
+  ],
 };
 
 const roleIcons: Record<Role, typeof Home> = {
@@ -137,6 +177,7 @@ const roleIcons: Record<Role, typeof Home> = {
   "lab-technician": Microscope,
   receptionist: ClipboardList,
   "scan-technician": Scan,
+  patient: User,
 };
 
 const roleTitles: Record<Role, string> = {
@@ -144,6 +185,7 @@ const roleTitles: Record<Role, string> = {
   "lab-technician": "Lab Dashboard",
   receptionist: "Reception",
   "scan-technician": "Scan Dashboard",
+  patient: "Patient Portal",
 };
 
 interface DashboardSidebarClientProps

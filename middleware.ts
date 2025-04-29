@@ -30,6 +30,14 @@ const protectedPaths = {
     "/dashboard/scan-technician/add-scan",
     "/dashboard/scan-technician/patients",
   ],
+  Patient: [
+    "/dashboard/patient",
+    "/dashboard/patient/appointments",
+    "/dashboard/patient/records",
+    "/dashboard/patient/scans",
+    "/dashboard/patient/history",
+    "/dashboard/patient/profile",
+  ],
 };
 
 // Define public paths that don't require authentication
@@ -44,8 +52,9 @@ export function middleware(request: NextRequest) {
   // Handle /dashboard route
   if (pathname === "/dashboard") {
     if (!role || !token) {
-      return NextResponse.redirect(new URL("/login/staff", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
+
     const redirectPath =
       role === "Admin"
         ? "/dashboard/admin"
@@ -53,7 +62,10 @@ export function middleware(request: NextRequest) {
         ? "/dashboard/lab-technician"
         : role === "ScanTechnician"
         ? "/dashboard/scan-technician"
+        : role === "Patient"
+        ? "/dashboard/patient"
         : "/dashboard/receptionist";
+
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
@@ -67,6 +79,8 @@ export function middleware(request: NextRequest) {
         ? "/dashboard/lab-technician"
         : role === "ScanTechnician"
         ? "/dashboard/scan-technician"
+        : role === "Patient"
+        ? "/dashboard/patient"
         : "/dashboard/receptionist";
 
     return NextResponse.redirect(new URL(redirectPath, request.url));
@@ -78,9 +92,13 @@ export function middleware(request: NextRequest) {
   );
 
   if (isProtectedPath) {
-    // If no role or token, redirect to staff login
+    // If no role or token, redirect to the appropriate login page
     if (!role || !token) {
-      return NextResponse.redirect(new URL("/login/staff", request.url));
+      // For patient paths, redirect to patient login, otherwise to staff login
+      const loginPath = pathname.startsWith("/dashboard/patient")
+        ? "/login"
+        : "/login/staff";
+      return NextResponse.redirect(new URL(loginPath, request.url));
     }
 
     // Get the requested role from the path
@@ -92,6 +110,7 @@ export function middleware(request: NextRequest) {
       "lab-technician": "LabTechnician",
       receptionist: "Receptionist",
       "scan-technician": "ScanTechnician",
+      patient: "Patient",
     };
 
     // Get the backend role for the requested path
@@ -106,6 +125,8 @@ export function middleware(request: NextRequest) {
           ? "/dashboard/lab-technician"
           : role === "ScanTechnician"
           ? "/dashboard/scan-technician"
+          : role === "Patient"
+          ? "/dashboard/patient"
           : "/dashboard/receptionist";
 
       return NextResponse.redirect(new URL(redirectPath, request.url));
@@ -122,6 +143,7 @@ export const config = {
     "/dashboard/admin/:path*",
     "/dashboard/lab-technician/:path*",
     "/dashboard/receptionist/:path*",
+    "/dashboard/patient/:path*",
     "/login/staff",
     "/login",
     "/register",

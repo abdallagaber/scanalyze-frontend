@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { DashboardSidebarClient } from "@/components/dashboard-sidebar-client";
 
-type Role = "admin" | "lab-technician" | "receptionist" | "scan-technician";
+type Role =
+  | "admin"
+  | "lab-technician"
+  | "receptionist"
+  | "scan-technician"
+  | "patient";
 
 interface DashboardSidebarServerProps {
   role: Role;

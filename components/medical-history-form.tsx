@@ -291,8 +291,8 @@ export function MedicalHistoryForm({
           medicationsFields: Object.keys(
             patientData.medicalHistory.medications
           ),
-          medicationListLength: patientData.medicalHistory.medications.list
-            .length,
+          medicationListLength:
+            patientData.medicalHistory.medications.list.length,
         },
       });
 

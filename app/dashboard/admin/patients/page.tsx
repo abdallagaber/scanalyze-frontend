@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Metadata } from "next";
+import { useState, useEffect } from "react";
 import * as z from "zod";
 import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { EntityDialog } from "@/components/dialogs/entity-dialog";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
+import axiosInstance from "@/lib/axios";
 
 import {
   DropdownMenu,
@@ -28,40 +29,66 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// This would come from your API/database
-interface Patient {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: string;
-  bloodType: string;
-  address: string;
+// API response interfaces
+interface PatientMedicalHistory {
+  chronicDiseases: {
+    hasChronicDiseases: boolean;
+    diseasesList: string[];
+    otherDiseases?: string;
+  };
+  allergies: {
+    hasAllergies: boolean;
+    allergyDetails?: string;
+  };
+  medications: {
+    takesMedications: boolean;
+    list: any[];
+  };
+  surgeries: {
+    hadSurgeries: boolean;
+    surgeryDetails?: string;
+  };
+  currentSymptoms: {
+    hasSymptoms: boolean;
+    symptomsDetails?: string;
+  };
+  lifestyle: {
+    smokes: boolean;
+    consumesAlcohol: boolean;
+  };
 }
 
-const patients: Patient[] = [
-  {
-    id: "1",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    phone: "+1234567890",
-    dateOfBirth: "1990-05-15",
-    gender: "Female",
-    bloodType: "O+",
-    address: "123 Main St, City, Country",
-  },
-  // Add more mock data as needed
-];
+interface Patient {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone: string;
+  nationalID?: string;
+  gender?: string;
+  nationalIDImg?: string;
+  createdAt: string;
+  isPhoneVerified: boolean;
+  medicalHistory: PatientMedicalHistory;
+}
+
+interface PatientsResponse {
+  results: number;
+  paginationResult: {
+    currentPage: number;
+    limit: number;
+    numberOfPages: number;
+  };
+  data: Patient[];
+}
 
 const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Invalid email address").optional(),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  dateOfBirth: z.string(),
-  gender: z.string().min(1, "Gender is required"),
-  bloodType: z.string().min(1, "Blood type is required"),
-  address: z.string().min(5, "Address must be at least 5 characters"),
+  nationalID: z.string().optional(),
+  gender: z.string().optional(),
 });
 
 type FormSchema = z.infer<typeof schema>;
@@ -74,9 +101,35 @@ export default function PatientsPage() {
     null
   );
 
+  // Replace the useEffect with React Query for data fetching
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<PatientsResponse>({
+    queryKey: ["patients"],
+    queryFn: async () => {
+      try {
+        console.log("Fetching patients data...");
+        const response = await axiosInstance.get<PatientsResponse>(
+          "/api/v1/patients"
+        );
+        return response.data;
+      } catch (err) {
+        console.error("Error fetching patients:", err);
+        throw err;
+      }
+    },
+  });
+
+  // Transform the response data
+  const patients = response?.data || [];
+
   const columns: ColumnDef<Patient>[] = [
     {
-      accessorKey: "name",
+      accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+      id: "name",
       header: "Name",
     },
     {
@@ -86,21 +139,40 @@ export default function PatientsPage() {
     {
       accessorKey: "phone",
       header: "Phone",
+      cell: ({ row }) => {
+        const phone = row.getValue("phone") as string;
+        return phone
+          ? phone.replace(/(\d{3})(\d{3})(\d+)/, "+$1 $2 $3")
+          : "N/A";
+      },
     },
     {
-      accessorKey: "dateOfBirth",
-      header: "Date of Birth",
-      cell: ({ row }) => {
-        return new Date(row.getValue("dateOfBirth")).toLocaleDateString();
-      },
+      accessorKey: "nationalID",
+      header: "National ID",
     },
     {
       accessorKey: "gender",
       header: "Gender",
+      cell: ({ row }) => {
+        const gender = row.getValue("gender") as string;
+        return gender
+          ? gender.charAt(0).toUpperCase() + gender.slice(1)
+          : "Not specified";
+      },
     },
     {
-      accessorKey: "bloodType",
-      header: "Blood Type",
+      accessorKey: "createdAt",
+      header: "Registered On",
+      cell: ({ row }) => {
+        return new Date(row.getValue("createdAt")).toLocaleDateString();
+      },
+    },
+    {
+      accessorKey: "isPhoneVerified",
+      header: "Verified",
+      cell: ({ row }) => {
+        return row.getValue("isPhoneVerified") ? "Yes" : "No";
+      },
     },
     {
       id: "actions",
@@ -127,7 +199,7 @@ export default function PatientsPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  setDeletingPatientId(patient.id);
+                  setDeletingPatientId(patient._id);
                   setDeleteOpen(true);
                 }}
                 className="text-destructive"
@@ -148,7 +220,8 @@ export default function PatientsPage() {
     type?: string;
     placeholder?: string;
   }> = [
-    { name: "name", label: "Name", placeholder: "Enter name" },
+    { name: "firstName", label: "First Name", placeholder: "Enter first name" },
+    { name: "lastName", label: "Last Name", placeholder: "Enter last name" },
     {
       name: "email",
       label: "Email",
@@ -156,28 +229,58 @@ export default function PatientsPage() {
       placeholder: "Enter email",
     },
     { name: "phone", label: "Phone", placeholder: "Enter phone number" },
-    { name: "dateOfBirth", label: "Date of Birth", type: "date" },
-    { name: "gender", label: "Gender", placeholder: "Enter gender" },
-    { name: "bloodType", label: "Blood Type", placeholder: "Enter blood type" },
-    { name: "address", label: "Address", placeholder: "Enter address" },
+    {
+      name: "nationalID",
+      label: "National ID",
+      placeholder: "Enter national ID",
+    },
+    {
+      name: "gender",
+      label: "Gender",
+      placeholder: "Enter gender (male/female)",
+    },
   ];
 
-  const handleSubmit = (values: FormSchema) => {
-    if (editingPatient) {
-      // Update existing patient
-      console.log("Updating patient:", values);
-    } else {
-      // Create new patient
-      console.log("Creating new patient:", values);
+  const handleSubmit = async (values: FormSchema) => {
+    try {
+      if (editingPatient) {
+        // Update existing patient
+        await axiosInstance.put(
+          `/api/v1/patients/${editingPatient._id}`,
+          values
+        );
+        console.log("Updating patient:", values);
+
+        // Refresh the patient list using refetch
+        refetch();
+      } else {
+        // Create new patient - might not be needed in admin interface
+        console.log("Creating new patient:", values);
+      }
+
+      setOpen(false);
+    } catch (err) {
+      console.error("Error submitting patient data:", err);
+      // Could show an error toast here
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingPatientId) {
-      // Delete patient
-      console.log("Deleting patient:", deletingPatientId);
-      setDeleteOpen(false);
-      setDeletingPatientId(null);
+      try {
+        // Delete patient
+        await axiosInstance.delete(`/api/v1/patients/${deletingPatientId}`);
+        console.log("Deleting patient:", deletingPatientId);
+
+        // Refresh the patient list using refetch
+        refetch();
+
+        setDeleteOpen(false);
+        setDeletingPatientId(null);
+      } catch (err) {
+        console.error("Error deleting patient:", err);
+        // Could show an error toast here
+      }
     }
   };
 
@@ -188,16 +291,27 @@ export default function PatientsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Patients</h2>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={patients}
-          searchKey="name"
-          searchPlaceholder="Search patients..."
-          onAdd={() => {
-            setEditingPatient(null);
-            setOpen(true);
-          }}
-        />
+        {/* Handle loading and error states similar to lab-technicians page */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading...</div>
+          </div>
+        ) : error ? (
+          <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+            Failed to load patients data. Please try again later.
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={patients}
+            searchKey="name"
+            searchPlaceholder="Search patients..."
+            onAdd={() => {
+              setEditingPatient(null);
+              setOpen(true);
+            }}
+          />
+        )}
 
         <EntityDialog
           open={open}
@@ -209,7 +323,18 @@ export default function PatientsPage() {
               : "Add a new patient to the system."
           }
           schema={schema}
-          defaultValues={editingPatient || undefined}
+          defaultValues={
+            editingPatient
+              ? {
+                  firstName: editingPatient.firstName,
+                  lastName: editingPatient.lastName,
+                  email: editingPatient.email || "",
+                  phone: editingPatient.phone,
+                  nationalID: editingPatient.nationalID || "",
+                  gender: editingPatient.gender || "",
+                }
+              : undefined
+          }
           onSubmit={handleSubmit}
           fields={formFields}
         />
