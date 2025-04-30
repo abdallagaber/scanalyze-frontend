@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "Scanalyze",
   description:
     "Advanced laboratory testing and medical scans with fast, accurate results",
+  icons: {
+    icon: "/images/icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -69,6 +69,7 @@ interface Patient {
   nationalIDImg?: string;
   createdAt: string;
   isPhoneVerified: boolean;
+  verifyAccount: boolean;
   medicalHistory: PatientMedicalHistory;
 }
 
@@ -128,6 +129,10 @@ export default function PatientsPage() {
 
   const columns: ColumnDef<Patient>[] = [
     {
+      accessorKey: "nationalID",
+      header: "National ID",
+    },
+    {
       accessorFn: (row) => `${row.firstName} ${row.lastName}`,
       id: "name",
       header: "Name",
@@ -147,10 +152,6 @@ export default function PatientsPage() {
       },
     },
     {
-      accessorKey: "nationalID",
-      header: "National ID",
-    },
-    {
       accessorKey: "gender",
       header: "Gender",
       cell: ({ row }) => {
@@ -168,10 +169,10 @@ export default function PatientsPage() {
       },
     },
     {
-      accessorKey: "isPhoneVerified",
+      accessorKey: "verifyAccount",
       header: "Verified",
       cell: ({ row }) => {
-        return row.getValue("isPhoneVerified") ? "Yes" : "No";
+        return row.getValue("verifyAccount") ? "Yes" : "No";
       },
     },
     {
@@ -304,7 +305,7 @@ export default function PatientsPage() {
           <DataTable
             columns={columns}
             data={patients}
-            searchKey="name"
+            searchKey="nationalID"
             searchPlaceholder="Search patients..."
             onAdd={() => {
               setEditingPatient(null);
