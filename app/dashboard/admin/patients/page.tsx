@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import * as z from "zod";
+import { useState } from "react";
 import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { DataTable } from "@/components/data-table/data-table";
-import { EntityDialog } from "@/components/dialogs/entity-dialog";
+import { PatientDialog } from "@/components/dialogs/patient-dialog";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
-import axiosInstance from "@/lib/axios";
+import { patientService } from "@/lib/services/patient";
 
 import {
   DropdownMenu,
@@ -28,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 // API response interfaces
 interface PatientMedicalHistory {
@@ -83,17 +83,6 @@ interface PatientsResponse {
   data: Patient[];
 }
 
-const schema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Invalid email address").optional(),
-  phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  nationalID: z.string().optional(),
-  gender: z.string().optional(),
-});
-
-type FormSchema = z.infer<typeof schema>;
-
 export default function PatientsPage() {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -101,26 +90,201 @@ export default function PatientsPage() {
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(
     null
   );
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
-  // Replace the useEffect with React Query for data fetching
+  // Use React Query for data operations
+  const queryClient = useQueryClient();
+
+  // Query: Fetch patients
   const {
     data: response,
     isLoading,
     error,
-    refetch,
   } = useQuery<PatientsResponse>({
     queryKey: ["patients"],
     queryFn: async () => {
       try {
-        console.log("Fetching patients data...");
-        const response = await axiosInstance.get<PatientsResponse>(
-          "/api/v1/patients"
-        );
-        return response.data;
+        const data = await patientService.getAllPatients();
+        return data;
       } catch (err) {
         console.error("Error fetching patients:", err);
         throw err;
       }
+    },
+  });
+
+  // Mutation: Create patient
+  const createPatientMutation = useMutation({
+    mutationFn: (patientData: any) => patientService.createPatient(patientData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setOpen(false);
+      toast({
+        title: "Success",
+        description: "Patient added successfully",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating patient:", error);
+      // Extract and set form errors
+      if (error.response?.data?.errors) {
+        const apiErrors = error.response.data.errors;
+        const formattedErrors: { [key: string]: string } = {};
+
+        // Handle both array and single object error formats
+        if (Array.isArray(apiErrors)) {
+          apiErrors.forEach((err) => {
+            if (err.path) {
+              formattedErrors[err.path] = err.msg || "Invalid value";
+            }
+          });
+        } else if (apiErrors.path) {
+          // Handle single error object format
+          formattedErrors[apiErrors.path] = apiErrors.msg || "Invalid value";
+        } else {
+          // Handle object with key-value pairs
+          Object.entries(apiErrors).forEach(([key, value]) => {
+            formattedErrors[key] = Array.isArray(value)
+              ? value[0]
+              : String(value);
+          });
+        }
+
+        // Add more user-friendly error messages for common issues
+        if (
+          formattedErrors.nationalID &&
+          formattedErrors.nationalID.includes("already in user")
+        ) {
+          formattedErrors.nationalID =
+            "This National ID is already registered. Please use a different one.";
+        }
+        if (
+          formattedErrors.phone &&
+          formattedErrors.phone.includes("already in user")
+        ) {
+          formattedErrors.phone =
+            "This phone number is already registered. Please use a different one.";
+        }
+        if (
+          formattedErrors.email &&
+          formattedErrors.email.includes("already in user")
+        ) {
+          formattedErrors.email =
+            "This email is already registered. Please use a different one.";
+        }
+
+        setFormErrors(formattedErrors);
+
+        // Keep the form open so user can correct errors
+        // Don't close the dialog
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add patient. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  // Mutation: Update patient
+  const updatePatientMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      patientService.updatePatient(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setOpen(false);
+      setEditingPatient(null);
+      toast({
+        title: "Success",
+        description: "Patient updated successfully",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating patient:", error);
+      // Extract and set form errors
+      if (error.response?.data?.errors) {
+        const apiErrors = error.response.data.errors;
+        const formattedErrors: { [key: string]: string } = {};
+
+        // Handle both array and single object error formats
+        if (Array.isArray(apiErrors)) {
+          apiErrors.forEach((err) => {
+            if (err.path) {
+              formattedErrors[err.path] = err.msg || "Invalid value";
+            }
+          });
+        } else if (apiErrors.path) {
+          // Handle single error object format
+          formattedErrors[apiErrors.path] = apiErrors.msg || "Invalid value";
+        } else {
+          // Handle object with key-value pairs
+          Object.entries(apiErrors).forEach(([key, value]) => {
+            formattedErrors[key] = Array.isArray(value)
+              ? value[0]
+              : String(value);
+          });
+        }
+
+        // Add more user-friendly error messages for common issues
+        if (
+          formattedErrors.nationalID &&
+          formattedErrors.nationalID.includes("already in user")
+        ) {
+          formattedErrors.nationalID =
+            "This National ID is already registered. Please use a different one.";
+        }
+        if (
+          formattedErrors.phone &&
+          formattedErrors.phone.includes("already in user")
+        ) {
+          formattedErrors.phone =
+            "This phone number is already registered. Please use a different one.";
+        }
+        if (
+          formattedErrors.email &&
+          formattedErrors.email.includes("already in user")
+        ) {
+          formattedErrors.email =
+            "This email is already registered. Please use a different one.";
+        }
+
+        setFormErrors(formattedErrors);
+
+        // Keep the form open so user can correct errors
+        // Don't close the dialog
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update patient. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  // Mutation: Delete patient
+  const deletePatientMutation = useMutation({
+    mutationFn: (id: string) => patientService.deletePatient(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setDeleteOpen(false);
+      setDeletingPatientId(null);
+      toast({
+        title: "Success",
+        description: "Patient deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting patient:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete patient. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -215,74 +379,93 @@ export default function PatientsPage() {
     },
   ];
 
-  const formFields: Array<{
-    name: keyof FormSchema;
-    label: string;
-    type?: string;
-    placeholder?: string;
-  }> = [
-    { name: "firstName", label: "First Name", placeholder: "Enter first name" },
-    { name: "lastName", label: "Last Name", placeholder: "Enter last name" },
-    {
-      name: "email",
-      label: "Email",
-      type: "email",
-      placeholder: "Enter email",
-    },
-    { name: "phone", label: "Phone", placeholder: "Enter phone number" },
-    {
-      name: "nationalID",
-      label: "National ID",
-      placeholder: "Enter national ID",
-    },
-    {
-      name: "gender",
-      label: "Gender",
-      placeholder: "Enter gender (male/female)",
-    },
-  ];
-
-  const handleSubmit = async (values: FormSchema) => {
+  const handleSubmit = async (values: any) => {
     try {
+      setFormErrors({});
+
       if (editingPatient) {
         // Update existing patient
-        await axiosInstance.put(
-          `/api/v1/patients/${editingPatient._id}`,
-          values
-        );
-        console.log("Updating patient:", values);
-
-        // Refresh the patient list using refetch
-        refetch();
+        updatePatientMutation.mutate({ id: editingPatient._id, data: values });
       } else {
-        // Create new patient - might not be needed in admin interface
-        console.log("Creating new patient:", values);
+        // Create new patient
+        createPatientMutation.mutate(values);
       }
-
-      setOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting patient data:", err);
-      // Could show an error toast here
     }
   };
 
   const handleDelete = async () => {
     if (deletingPatientId) {
-      try {
-        // Delete patient
-        await axiosInstance.delete(`/api/v1/patients/${deletingPatientId}`);
-        console.log("Deleting patient:", deletingPatientId);
-
-        // Refresh the patient list using refetch
-        refetch();
-
-        setDeleteOpen(false);
-        setDeletingPatientId(null);
-      } catch (err) {
-        console.error("Error deleting patient:", err);
-        // Could show an error toast here
-      }
+      deletePatientMutation.mutate(deletingPatientId);
     }
+  };
+
+  const transformPatientForForm = (patient: Patient | null) => {
+    if (!patient) return undefined;
+
+    // Prepare medications list in the right format
+    const medicationsList = patient.medicalHistory.medications.list.map(
+      (med) => ({
+        name: med.name || "",
+        dosage: med.dosage || "",
+        reason: med.reason || "",
+      })
+    );
+
+    // Format phone number - remove leading "2" for display in form
+    let formattedPhone = patient.phone;
+    if (formattedPhone && formattedPhone.startsWith("2")) {
+      formattedPhone = formattedPhone.substring(1); // Remove the leading "2"
+    }
+
+    // Ensure gender value is one of the allowed enum values
+    let gender: "male" | "female" = "male";
+    if (patient.gender && patient.gender.toLowerCase() === "female") {
+      gender = "female";
+    }
+
+    // Transform patient data to match the form structure - medical history fields at top level
+    return {
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      email: patient.email || "",
+      phone: formattedPhone,
+      nationalID: patient.nationalID || "",
+      nationalIDImg: patient.nationalIDImg || "",
+      gender: gender,
+      // Medical history fields at top level
+      chronicDiseases: {
+        hasChronicDiseases:
+          patient.medicalHistory.chronicDiseases.hasChronicDiseases,
+        diseasesList: patient.medicalHistory.chronicDiseases.diseasesList || [],
+        otherDiseases:
+          patient.medicalHistory.chronicDiseases.otherDiseases || "",
+      },
+      allergies: {
+        hasAllergies: patient.medicalHistory.allergies.hasAllergies,
+        allergyDetails: patient.medicalHistory.allergies.allergyDetails || "",
+      },
+      medications: {
+        takesMedications: patient.medicalHistory.medications.takesMedications,
+        list: medicationsList.length
+          ? medicationsList
+          : [{ name: "", dosage: "", reason: "" }],
+      },
+      surgeries: {
+        hadSurgeries: patient.medicalHistory.surgeries.hadSurgeries,
+        surgeryDetails: patient.medicalHistory.surgeries.surgeryDetails || "",
+      },
+      symptoms: {
+        hasSymptoms: patient.medicalHistory.currentSymptoms.hasSymptoms,
+        symptomsDetails:
+          patient.medicalHistory.currentSymptoms.symptomsDetails || "",
+      },
+      lifestyle: {
+        smokes: patient.medicalHistory.lifestyle.smokes,
+        consumesAlcohol: patient.medicalHistory.lifestyle.consumesAlcohol,
+      },
+    };
   };
 
   return (
@@ -292,7 +475,6 @@ export default function PatientsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Patients</h2>
         </div>
 
-        {/* Handle loading and error states similar to lab-technicians page */}
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-lg">Loading...</div>
@@ -314,7 +496,7 @@ export default function PatientsPage() {
           />
         )}
 
-        <EntityDialog
+        <PatientDialog
           open={open}
           onOpenChange={setOpen}
           title={editingPatient ? "Edit Patient" : "Add Patient"}
@@ -323,21 +505,10 @@ export default function PatientsPage() {
               ? "Edit the patient details."
               : "Add a new patient to the system."
           }
-          schema={schema}
-          defaultValues={
-            editingPatient
-              ? {
-                  firstName: editingPatient.firstName,
-                  lastName: editingPatient.lastName,
-                  email: editingPatient.email || "",
-                  phone: editingPatient.phone,
-                  nationalID: editingPatient.nationalID || "",
-                  gender: editingPatient.gender || "",
-                }
-              : undefined
-          }
+          defaultValues={transformPatientForForm(editingPatient)}
           onSubmit={handleSubmit}
-          fields={formFields}
+          fieldErrors={formErrors}
+          isAdmin={true}
         />
 
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
