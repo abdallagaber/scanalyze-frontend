@@ -638,12 +638,16 @@ export function UserInfoForm({
                   variant={
                     verificationResult.isValid ? "default" : "destructive"
                   }
-                  className="mt-2"
+                  className={
+                    verificationResult.isValid
+                      ? "mt-2 border-green-500/50 bg-green-50 text-green-700 dark:border-green-500 dark:bg-green-900/20 dark:text-green-400 [&>svg]:text-green-500"
+                      : "mt-2 border-red-500/50 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-900/20 dark:text-red-400 [&>svg]:text-red-500"
+                  }
                 >
                   {verificationResult.isValid ? (
-                    <CheckCircle className="h-4 w-4" />
+                    <CheckCircle className="h-4 w-4" stroke="#15803d" />
                   ) : (
-                    <AlertCircle className="h-4 w-4" />
+                    <AlertCircle className="h-4 w-4" stroke="#b91c1c" />
                   )}
                   <AlertTitle>
                     {verificationResult.isValid
