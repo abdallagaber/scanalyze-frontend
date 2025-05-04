@@ -43,18 +43,27 @@ export function NavUser({
   const router = useRouter();
 
   const handleLogout = () => {
+    // Get role before clearing cookies
+    const userRole = Cookies.get("role")?.toLowerCase();
+
     // Clear cookies
     Cookies.remove("role");
     Cookies.remove("token");
     Cookies.remove("user");
+    Cookies.remove("userData");
 
     // Show success message
     toast.success("Logged out successfully!", {
-      className: "bg-green-500 text-white",
+      style: { backgroundColor: "#10B981", color: "white" },
     });
 
-    // Redirect to staff login page
-    router.push("/login/staff");
+    // Redirect based on user role
+    if (userRole === "patient") {
+      router.push("/login");
+    } else {
+      // For all staff roles (admin, lab-technician, receptionist, scan-technician)
+      router.push("/login/staff");
+    }
   };
 
   const initials = user.name
