@@ -27,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 // API response interfaces
 interface PatientMedicalHistory {
@@ -119,11 +119,7 @@ export default function PatientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setOpen(false);
-      toast({
-        title: "Success",
-        description: "Patient added successfully",
-        variant: "default",
-      });
+      toast.success("Patient added successfully");
     },
     onError: (error: any) => {
       console.error("Error creating patient:", error);
@@ -179,11 +175,7 @@ export default function PatientsPage() {
         // Keep the form open so user can correct errors
         // Don't close the dialog
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to add patient. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to add patient. Please try again.");
       }
     },
   });
@@ -196,11 +188,7 @@ export default function PatientsPage() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setOpen(false);
       setEditingPatient(null);
-      toast({
-        title: "Success",
-        description: "Patient updated successfully",
-        variant: "default",
-      });
+      toast.success("Patient updated successfully");
     },
     onError: (error: any) => {
       console.error("Error updating patient:", error);
@@ -256,11 +244,7 @@ export default function PatientsPage() {
         // Keep the form open so user can correct errors
         // Don't close the dialog
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to update patient. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to update patient. Please try again.");
       }
     },
   });
@@ -272,19 +256,11 @@ export default function PatientsPage() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setDeleteOpen(false);
       setDeletingPatientId(null);
-      toast({
-        title: "Success",
-        description: "Patient deleted successfully",
-        variant: "default",
-      });
+      toast.success("Patient deleted successfully");
     },
     onError: (error) => {
       console.error("Error deleting patient:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete patient. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete patient. Please try again.");
     },
   });
 
@@ -383,12 +359,33 @@ export default function PatientsPage() {
     try {
       setFormErrors({});
 
+      console.log("Submitting patient data:", values);
+
+      // Reorganize the medical history structure to match backend expectations
+      const patientData = {
+        ...values,
+        // Convert form structure to expected backend medicalHistory structure
+        medicalHistory: {
+          chronicDiseases: values.chronicDiseases,
+          allergies: values.allergies,
+          medications: values.medications,
+          surgeries: values.surgeries,
+          currentSymptoms: values.symptoms, // Map to backend expected structure
+          lifestyle: values.lifestyle,
+        },
+      };
+
+      console.log("Transformed patient data for submission:", patientData);
+
       if (editingPatient) {
         // Update existing patient
-        updatePatientMutation.mutate({ id: editingPatient._id, data: values });
+        updatePatientMutation.mutate({
+          id: editingPatient._id,
+          data: patientData,
+        });
       } else {
         // Create new patient
-        createPatientMutation.mutate(values);
+        createPatientMutation.mutate(patientData);
       }
     } catch (err: any) {
       console.error("Error submitting patient data:", err);
@@ -404,14 +401,11 @@ export default function PatientsPage() {
   const transformPatientForForm = (patient: Patient | null) => {
     if (!patient) return undefined;
 
-    // Prepare medications list in the right format
-    const medicationsList = patient.medicalHistory.medications.list.map(
-      (med) => ({
-        name: med.name || "",
-        dosage: med.dosage || "",
-        reason: med.reason || "",
-      })
-    );
+    console.log("Transforming patient for form:", patient);
+
+    // The medicalHistory should already be normalized by the patient service
+    // This ensures we're dealing with an object, not a string
+    const medicalHistory = patient.medicalHistory;
 
     // Format phone number - remove leading "2" for display in form
     let formattedPhone = patient.phone;
@@ -425,8 +419,21 @@ export default function PatientsPage() {
       gender = "female";
     }
 
-    // Transform patient data to match the form structure - medical history fields at top level
-    return {
+    // Extract the medications list
+    const medications = medicalHistory.medications || {
+      takesMedications: false,
+      list: [],
+    };
+
+    // Prepare medications list with fallback defaults
+    const medicationsList = (medications.list || []).map((med: any) => ({
+      name: med?.name || "",
+      dosage: med?.dosage || "",
+      reason: med?.reason || "",
+    }));
+
+    // Transform patient data to match the form structure
+    const result = {
       firstName: patient.firstName,
       lastName: patient.lastName,
       email: patient.email || "",
@@ -437,35 +444,37 @@ export default function PatientsPage() {
       // Medical history fields at top level
       chronicDiseases: {
         hasChronicDiseases:
-          patient.medicalHistory.chronicDiseases.hasChronicDiseases,
-        diseasesList: patient.medicalHistory.chronicDiseases.diseasesList || [],
-        otherDiseases:
-          patient.medicalHistory.chronicDiseases.otherDiseases || "",
+          medicalHistory.chronicDiseases?.hasChronicDiseases || false,
+        diseasesList: medicalHistory.chronicDiseases?.diseasesList || [],
+        otherDiseases: medicalHistory.chronicDiseases?.otherDiseases || "",
       },
       allergies: {
-        hasAllergies: patient.medicalHistory.allergies.hasAllergies,
-        allergyDetails: patient.medicalHistory.allergies.allergyDetails || "",
+        hasAllergies: medicalHistory.allergies?.hasAllergies || false,
+        allergyDetails: medicalHistory.allergies?.allergyDetails || "",
       },
       medications: {
-        takesMedications: patient.medicalHistory.medications.takesMedications,
-        list: medicationsList.length
-          ? medicationsList
-          : [{ name: "", dosage: "", reason: "" }],
+        takesMedications: medications.takesMedications || false,
+        list:
+          medicationsList.length > 0
+            ? medicationsList
+            : [{ name: "", dosage: "", reason: "" }],
       },
       surgeries: {
-        hadSurgeries: patient.medicalHistory.surgeries.hadSurgeries,
-        surgeryDetails: patient.medicalHistory.surgeries.surgeryDetails || "",
+        hadSurgeries: medicalHistory.surgeries?.hadSurgeries || false,
+        surgeryDetails: medicalHistory.surgeries?.surgeryDetails || "",
       },
       symptoms: {
-        hasSymptoms: patient.medicalHistory.currentSymptoms.hasSymptoms,
-        symptomsDetails:
-          patient.medicalHistory.currentSymptoms.symptomsDetails || "",
+        hasSymptoms: medicalHistory.currentSymptoms?.hasSymptoms || false,
+        symptomsDetails: medicalHistory.currentSymptoms?.symptomsDetails || "",
       },
       lifestyle: {
-        smokes: patient.medicalHistory.lifestyle.smokes,
-        consumesAlcohol: patient.medicalHistory.lifestyle.consumesAlcohol,
+        smokes: medicalHistory.lifestyle?.smokes || false,
+        consumesAlcohol: medicalHistory.lifestyle?.consumesAlcohol || false,
       },
     };
+
+    console.log("Final form data:", result);
+    return result;
   };
 
   return (

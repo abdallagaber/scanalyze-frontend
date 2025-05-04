@@ -41,6 +41,47 @@ export function PatientOverview() {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData as string);
+
+        // Normalize the medical history if needed
+        if (parsedUser.medicalHistory) {
+          // If it's a string, parse it
+          if (typeof parsedUser.medicalHistory === "string") {
+            try {
+              parsedUser.medicalHistory = JSON.parse(parsedUser.medicalHistory);
+              console.log(
+                "Parsed medical history from string in patient overview"
+              );
+            } catch (error) {
+              console.error(
+                "Error parsing medical history in patient overview:",
+                error
+              );
+              // Provide default structure if parsing fails
+              parsedUser.medicalHistory = {
+                chronicDiseases: {
+                  hasChronicDiseases: false,
+                  diseasesList: [],
+                },
+                allergies: { hasAllergies: false },
+                medications: { takesMedications: false, list: [] },
+                surgeries: { hadSurgeries: false },
+                currentSymptoms: { hasSymptoms: false },
+                lifestyle: { smokes: false, consumesAlcohol: false },
+              };
+            }
+          }
+        } else {
+          // If medical history is missing, add an empty one
+          parsedUser.medicalHistory = {
+            chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+            allergies: { hasAllergies: false },
+            medications: { takesMedications: false, list: [] },
+            surgeries: { hadSurgeries: false },
+            currentSymptoms: { hasSymptoms: false },
+            lifestyle: { smokes: false, consumesAlcohol: false },
+          };
+        }
+
         setPatientData(parsedUser);
       } catch (error) {
         console.error("Error parsing user data:", error);

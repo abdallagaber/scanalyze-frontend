@@ -131,20 +131,48 @@ export default function LoginForm() {
       if (response.data.status === "success") {
         const { token, user } = response.data;
 
+        // Normalize user data - handle medical history that can be string or object
+        const normalizedUser = { ...user };
+
+        // Check if medicalHistory exists and is a string
+        if (
+          normalizedUser.medicalHistory &&
+          typeof normalizedUser.medicalHistory === "string"
+        ) {
+          try {
+            console.log("Parsing medical history from string");
+            normalizedUser.medicalHistory = JSON.parse(
+              normalizedUser.medicalHistory
+            );
+            console.log("Successfully parsed medical history");
+          } catch (error) {
+            console.error("Failed to parse medical history string:", error);
+            // Provide default structure if parsing fails
+            normalizedUser.medicalHistory = {
+              chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+              allergies: { hasAllergies: false },
+              medications: { takesMedications: false, list: [] },
+              surgeries: { hadSurgeries: false },
+              currentSymptoms: { hasSymptoms: false },
+              lifestyle: { smokes: false, consumesAlcohol: false },
+            };
+          }
+        }
+
         // Set token in cookie
         Cookies.set("token", token, { expires: 7 });
         Cookies.set("role", "Patient", { expires: 7 });
 
-        // Save the complete user data in cookies
-        Cookies.set("userData", JSON.stringify(user), { expires: 7 });
+        // Save the normalized user data in cookies
+        Cookies.set("userData", JSON.stringify(normalizedUser), { expires: 7 });
 
         // Set user info for header/sidebar display
         const userData = {
-          name: `${user.firstName} ${user.lastName}`,
-          email: user.email || "",
-          imageProfile: user.nationalIDImg || "/placeholder-user.jpg",
-          id: user.nationalID,
-          userId: user._id,
+          name: `${normalizedUser.firstName} ${normalizedUser.lastName}`,
+          email: normalizedUser.email || "",
+          imageProfile: normalizedUser.nationalIDImg || "/placeholder-user.jpg",
+          id: normalizedUser.nationalID,
+          userId: normalizedUser._id,
         };
 
         Cookies.set("user", encodeURIComponent(JSON.stringify(userData)), {
@@ -198,20 +226,48 @@ export default function LoginForm() {
       if (response.data.status === "success") {
         const { token, user } = response.data;
 
+        // Normalize user data - handle medical history that can be string or object
+        const normalizedUser = { ...user };
+
+        // Check if medicalHistory exists and is a string
+        if (
+          normalizedUser.medicalHistory &&
+          typeof normalizedUser.medicalHistory === "string"
+        ) {
+          try {
+            console.log("Parsing medical history from string");
+            normalizedUser.medicalHistory = JSON.parse(
+              normalizedUser.medicalHistory
+            );
+            console.log("Successfully parsed medical history");
+          } catch (error) {
+            console.error("Failed to parse medical history string:", error);
+            // Provide default structure if parsing fails
+            normalizedUser.medicalHistory = {
+              chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+              allergies: { hasAllergies: false },
+              medications: { takesMedications: false, list: [] },
+              surgeries: { hadSurgeries: false },
+              currentSymptoms: { hasSymptoms: false },
+              lifestyle: { smokes: false, consumesAlcohol: false },
+            };
+          }
+        }
+
         // Set token in cookie
         Cookies.set("token", token, { expires: 7 });
         Cookies.set("role", "Patient", { expires: 7 });
 
-        // Save the complete user data in cookies
-        Cookies.set("userData", JSON.stringify(user), { expires: 7 });
+        // Save the normalized user data in cookies
+        Cookies.set("userData", JSON.stringify(normalizedUser), { expires: 7 });
 
         // Set user info for header/sidebar display
         const userData = {
-          name: `${user.firstName} ${user.lastName}`,
-          email: user.email || "",
-          imageProfile: user.nationalIDImg || "/placeholder-user.jpg",
-          phone: user.phone,
-          userId: user._id,
+          name: `${normalizedUser.firstName} ${normalizedUser.lastName}`,
+          email: normalizedUser.email || "",
+          imageProfile: normalizedUser.nationalIDImg || "/placeholder-user.jpg",
+          phone: normalizedUser.phone,
+          userId: normalizedUser._id,
         };
 
         Cookies.set("user", encodeURIComponent(JSON.stringify(userData)), {

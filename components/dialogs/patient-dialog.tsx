@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Upload } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -91,34 +91,116 @@ const patientSchema = z.object({
       }
     ),
 
-  // Medical History - Required
-  chronicDiseases: z.object({
-    hasChronicDiseases: z.boolean(),
-    diseasesList: z.array(z.string()),
-    otherDiseases: z.string().optional(),
-  }),
-  allergies: z.object({
-    hasAllergies: z.boolean(),
-    allergyDetails: z.string().optional(),
-  }),
-  medications: z.object({
-    takesMedications: z.boolean(),
-    list: z.array(
-      z.object({
-        name: z.string().min(1, "Medication name is required"),
-        dosage: z.string().optional(),
-        reason: z.string().optional(),
-      })
+  // Medical History - Updated with improved validations
+  chronicDiseases: z
+    .object({
+      hasChronicDiseases: z.boolean(),
+      diseasesList: z.array(z.string()),
+      otherDiseases: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        // Only validate if user has chronic diseases
+        if (data.hasChronicDiseases) {
+          // Either diseasesList must have items OR otherDiseases must have content
+          return (
+            (data.diseasesList && data.diseasesList.length > 0) ||
+            (data.otherDiseases && data.otherDiseases.length > 0)
+          );
+        }
+        return true;
+      },
+      {
+        message:
+          "Please select at least one disease or specify other conditions",
+        path: ["diseasesList"],
+      }
     ),
-  }),
-  surgeries: z.object({
-    hadSurgeries: z.boolean(),
-    surgeryDetails: z.string().optional(),
-  }),
-  symptoms: z.object({
-    hasSymptoms: z.boolean(),
-    symptomsDetails: z.string().optional(),
-  }),
+  allergies: z
+    .object({
+      hasAllergies: z.boolean(),
+      allergyDetails: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        // Only validate if user has allergies
+        if (data.hasAllergies) {
+          return data.allergyDetails && data.allergyDetails.length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Please specify your allergies",
+        path: ["allergyDetails"],
+      }
+    ),
+  medications: z
+    .object({
+      takesMedications: z.boolean(),
+      list: z
+        .array(
+          z.object({
+            name: z.string().optional(),
+            dosage: z.string().optional(),
+            reason: z.string().optional(),
+          })
+        )
+        .optional(),
+    })
+    .refine(
+      (data) => {
+        // Only validate if user takes medications
+        if (data.takesMedications) {
+          // Check if there's at least one medication with name filled
+          return (
+            data.list &&
+            data.list.length > 0 &&
+            data.list.some((item) => item.name && item.name.length > 0)
+          );
+        }
+        return true;
+      },
+      {
+        message: "Please add at least one medication",
+        path: ["list"],
+      }
+    ),
+  surgeries: z
+    .object({
+      hadSurgeries: z.boolean(),
+      surgeryDetails: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        // Only validate if user had surgeries
+        if (data.hadSurgeries) {
+          return data.surgeryDetails && data.surgeryDetails.length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Please specify your surgeries",
+        path: ["surgeryDetails"],
+      }
+    ),
+  symptoms: z
+    .object({
+      hasSymptoms: z.boolean(),
+      symptomsDetails: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        // Only validate if user has symptoms
+        if (data.hasSymptoms) {
+          return data.symptomsDetails && data.symptomsDetails.length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Please specify your symptoms",
+        path: ["symptomsDetails"],
+      }
+    ),
   lifestyle: z.object({
     smokes: z.boolean(),
     consumesAlcohol: z.boolean(),
@@ -216,32 +298,201 @@ export function PatientDialog({
   // Set form values and image preview when editing
   useEffect(() => {
     if (open && defaultValues) {
+      console.log("Setting form with default values:", defaultValues);
+
       // Make sure all values have proper defaults even when coming from the server
-      const cleanedValues = Object.entries(defaultValues).reduce(
-        (acc, [key, value]) => {
-          // For string fields, ensure they're never undefined
-          if (typeof value === "string" || value === undefined) {
-            acc[key] = value || "";
-          } else {
-            acc[key] = value;
-          }
-          return acc;
-        },
-        {} as Record<string, any>
+      const cleanedValues: any = { ...defaultValues };
+
+      // Check for medicalHistory as a separate property or in the top-level object
+      console.log("Medical history type:", typeof cleanedValues.medicalHistory);
+      console.log(
+        "Looking for medical history in:",
+        Object.keys(cleanedValues)
       );
 
-      // Ensure nested objects have proper defaults
-      if (cleanedValues.medications && cleanedValues.medications.list) {
-        // Make sure each medication item has proper defaults for all fields
-        cleanedValues.medications.list = cleanedValues.medications.list.map(
-          (item: any) => ({
-            name: item.name || "",
-            dosage: item.dosage || "",
-            reason: item.reason || "",
-          })
-        );
+      // Handle medical history if it's included as a string (from database)
+      if (typeof cleanedValues.medicalHistory === "string") {
+        try {
+          console.log(
+            "Parsing medical history from string:",
+            cleanedValues.medicalHistory.substring(0, 100) + "..."
+          );
+          const parsedMedicalHistory = JSON.parse(cleanedValues.medicalHistory);
+          console.log("Parsed medical history:", parsedMedicalHistory);
+
+          // Check if the parsed data contains medications with list
+          if (parsedMedicalHistory && parsedMedicalHistory.medications) {
+            console.log(
+              "Found medications in parsed medical history:",
+              parsedMedicalHistory.medications
+            );
+
+            // Remove the medicalHistory string property
+            delete cleanedValues.medicalHistory;
+
+            // Extract medication list from parsed medical history
+            const medicationsList = parsedMedicalHistory.medications.list || [];
+            console.log("Medications list:", medicationsList);
+
+            // Set medications properties directly on cleanedValues
+            cleanedValues.medications = {
+              takesMedications:
+                parsedMedicalHistory.medications.takesMedications,
+              list:
+                medicationsList.length > 0
+                  ? medicationsList.map((med: any) => ({
+                      name: med.name || "",
+                      dosage: med.dosage || "",
+                      reason: med.reason || "",
+                    }))
+                  : [{ name: "", dosage: "", reason: "" }],
+            };
+
+            // Set other medical history fields
+            cleanedValues.chronicDiseases =
+              parsedMedicalHistory.chronicDiseases || {
+                hasChronicDiseases: false,
+                diseasesList: [],
+                otherDiseases: "",
+              };
+
+            cleanedValues.allergies = parsedMedicalHistory.allergies || {
+              hasAllergies: false,
+              allergyDetails: "",
+            };
+
+            cleanedValues.surgeries = parsedMedicalHistory.surgeries || {
+              hadSurgeries: false,
+              surgeryDetails: "",
+            };
+
+            // Fix the symptom naming difference (backend uses currentSymptoms, form uses symptoms)
+            cleanedValues.symptoms = {
+              hasSymptoms:
+                parsedMedicalHistory.currentSymptoms?.hasSymptoms || false,
+              symptomsDetails:
+                parsedMedicalHistory.currentSymptoms?.symptomsDetails || "",
+            };
+
+            cleanedValues.lifestyle = parsedMedicalHistory.lifestyle || {
+              smokes: false,
+              consumesAlcohol: false,
+            };
+
+            console.log("Updated cleanedValues with parsed medical history:", {
+              medications: cleanedValues.medications,
+              chronicDiseases: cleanedValues.chronicDiseases,
+              allergies: cleanedValues.allergies,
+              surgeries: cleanedValues.surgeries,
+              symptoms: cleanedValues.symptoms,
+              lifestyle: cleanedValues.lifestyle,
+            });
+          }
+        } catch (error) {
+          console.error("Error parsing medical history string:", error);
+        }
+      } else {
+        // Try to find medical history directly in the patient data structure
+        console.log("Checking for medical history in object");
+
+        // Check if medical history might be directly at the top level
+        if (
+          typeof cleanedValues.medicalHistory === "object" &&
+          cleanedValues.medicalHistory !== null &&
+          cleanedValues.medicalHistory.medications
+        ) {
+          console.log(
+            "Found medical history object:",
+            cleanedValues.medicalHistory
+          );
+
+          // Medical history is already an object, ensure medications list is properly formatted
+          const medicationsList =
+            cleanedValues.medicalHistory.medications.list || [];
+          console.log("Found medications list in object:", medicationsList);
+
+          // Set medications directly
+          cleanedValues.medications = {
+            takesMedications:
+              cleanedValues.medicalHistory.medications.takesMedications,
+            list:
+              medicationsList.length > 0
+                ? medicationsList.map((med: any) => ({
+                    name: med.name || "",
+                    dosage: med.dosage || "",
+                    reason: med.reason || "",
+                  }))
+                : [{ name: "", dosage: "", reason: "" }],
+          };
+
+          delete cleanedValues.medicalHistory;
+        }
+        // Check if we might have medical history properties directly at the top level
+        else if (cleanedValues.medications) {
+          console.log(
+            "Found medications directly at top level:",
+            cleanedValues.medications
+          );
+        }
       }
 
+      // Ensure medications list is properly initialized
+      if (!cleanedValues.medications) {
+        cleanedValues.medications = {
+          takesMedications: false,
+          list: [{ name: "", dosage: "", reason: "" }],
+        };
+      } else {
+        // Make sure medications has a list property
+        if (
+          !cleanedValues.medications.list ||
+          !Array.isArray(cleanedValues.medications.list)
+        ) {
+          cleanedValues.medications.list = [
+            { name: "", dosage: "", reason: "" },
+          ];
+        } else if (cleanedValues.medications.list.length === 0) {
+          // If list is empty, add a default empty item
+          cleanedValues.medications.list = [
+            { name: "", dosage: "", reason: "" },
+          ];
+        } else {
+          // Ensure each medication item has proper defaults for all fields
+          cleanedValues.medications.list = cleanedValues.medications.list.map(
+            (item: any) => ({
+              name: item?.name || "",
+              dosage: item?.dosage || "",
+              reason: item?.reason || "",
+            })
+          );
+        }
+      }
+
+      // Handle string fields at top level and ensure they're never undefined
+      Object.keys(cleanedValues).forEach((key) => {
+        const value = cleanedValues[key as keyof typeof cleanedValues];
+
+        // If it's a string or undefined, ensure it's never undefined
+        if (typeof value === "string" || value === undefined) {
+          (cleanedValues as any)[key] = value || "";
+        }
+        // Handle nested objects recursively (but not arrays)
+        else if (
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
+          // Recursively clean nested objects
+          Object.keys(value).forEach((nestedKey) => {
+            const nestedValue = (value as any)[nestedKey];
+            if (typeof nestedValue === "string" || nestedValue === undefined) {
+              (value as any)[nestedKey] = nestedValue || "";
+            }
+          });
+        }
+      });
+
+      console.log("Reset form with cleaned values:", cleanedValues);
       form.reset(cleanedValues);
 
       // Set the image preview if nationalIDImg exists in defaultValues
@@ -285,12 +536,10 @@ export function PatientDialog({
         .map(([field]) => field);
 
       if (duplicateErrors.length > 0) {
-        toast({
-          title: "Validation Error",
+        toast.error("Validation Error", {
           description: `Please correct the highlighted fields with duplicate information: ${duplicateErrors.join(
             ", "
           )}`,
-          variant: "destructive",
         });
 
         // If errors are present, scroll to the first error field
@@ -324,6 +573,20 @@ export function PatientDialog({
 
   const handleSubmit = (values: z.infer<typeof patientSchema>) => {
     form.clearErrors();
+
+    // Log the values being submitted to help with debugging
+    console.log("Submitting patient form with values:", {
+      ...values,
+      medicalHistory: {
+        chronicDiseases: values.chronicDiseases,
+        allergies: values.allergies,
+        medications: values.medications,
+        surgeries: values.surgeries,
+        currentSymptoms: values.symptoms, // Map to backend expected structure
+        lifestyle: values.lifestyle,
+      },
+    });
+
     // Include the image in the submission, ensuring it's either a string or undefined
     onSubmit({
       ...values,
