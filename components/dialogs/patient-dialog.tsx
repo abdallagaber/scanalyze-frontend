@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { FullScreenLoading } from "@/components/ui/loading-spinner";
 
 import {
   Dialog,
@@ -224,6 +225,7 @@ interface PatientDialogProps {
   onSubmit: (values: z.infer<typeof patientSchema>) => void;
   fieldErrors?: { [key: string]: string };
   isAdmin?: boolean;
+  isLoading?: boolean;
 }
 
 export function PatientDialog({
@@ -235,6 +237,7 @@ export function PatientDialog({
   onSubmit,
   fieldErrors = {},
   isAdmin = false,
+  isLoading = false,
 }: PatientDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [idImagePreview, setIdImagePreview] = useState<string | null>(null);
@@ -536,11 +539,14 @@ export function PatientDialog({
         .map(([field]) => field);
 
       if (duplicateErrors.length > 0) {
-        toast.error("Validation Error", {
-          description: `Please correct the highlighted fields with duplicate information: ${duplicateErrors.join(
+        toast.error(
+          `Please correct the highlighted fields with duplicate information: ${duplicateErrors.join(
             ", "
           )}`,
-        });
+          {
+            style: { backgroundColor: "#EF4444", color: "white" },
+          }
+        );
 
         // If errors are present, scroll to the first error field
         const firstErrorField = duplicateErrors[0];
@@ -609,6 +615,13 @@ export function PatientDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
+      {/* Full-screen loading overlay with blur */}
+      <FullScreenLoading
+        show={isLoading}
+        message={defaultValues ? "Updating patient..." : "Creating patient..."}
+        blur={true}
+      />
+
       <DialogContent className="max-w-[900px] h-[90vh] p-0 flex flex-col overflow-hidden">
         <div className="px-6 py-4 border-b shrink-0">
           <DialogHeader className="text-left">
@@ -1233,10 +1246,39 @@ export function PatientDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Patient</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    {defaultValues ? "Updating..." : "Saving..."}
+                  </>
+                ) : (
+                  "Save Patient"
+                )}
+              </Button>
             </div>
           </form>
         </Form>

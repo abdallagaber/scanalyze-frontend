@@ -26,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import Cookies from "js-cookie";
 import axiosInstance from "@/lib/axios";
 
@@ -93,7 +93,6 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
 
   // Form for National ID login
   const nationalIdForm = useForm<z.infer<typeof nationalIdSchema>>({
@@ -179,10 +178,8 @@ export default function LoginForm() {
           expires: 7,
         });
 
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${user.firstName}!`,
-          variant: "default",
+        toast.success(`Welcome back, ${user.firstName}!`, {
+          style: { backgroundColor: "#10B981", color: "white" },
         });
 
         // Redirect to patient dashboard
@@ -193,13 +190,13 @@ export default function LoginForm() {
     } catch (error: any) {
       console.error("Login error:", error);
 
-      toast({
-        title: "Login failed",
-        description:
-          error.response?.data?.message ||
+      toast.error(
+        error.response?.data?.message ||
           "Please check your credentials and try again.",
-        variant: "destructive",
-      });
+        {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        }
+      );
     } finally {
       setIsLoading(false);
     }
@@ -274,10 +271,8 @@ export default function LoginForm() {
           expires: 7,
         });
 
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${user.firstName}!`,
-          variant: "default",
+        toast.success(`Welcome back, ${user.firstName}!`, {
+          style: { backgroundColor: "#10B981", color: "white" },
         });
 
         // Redirect to patient dashboard
@@ -288,13 +283,13 @@ export default function LoginForm() {
     } catch (error: any) {
       console.error("Login error:", error);
 
-      toast({
-        title: "Login failed",
-        description:
-          error.response?.data?.message ||
+      toast.error(
+        error.response?.data?.message ||
           "Please check your credentials and try again.",
-        variant: "destructive",
-      });
+        {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        }
+      );
     } finally {
       setIsLoading(false);
     }

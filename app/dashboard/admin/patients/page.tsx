@@ -98,7 +98,7 @@ export default function PatientsPage() {
   // Query: Fetch patients
   const {
     data: response,
-    isLoading,
+    isLoading: isFetchingPatients,
     error,
   } = useQuery<PatientsResponse>({
     queryKey: ["patients"],
@@ -119,7 +119,9 @@ export default function PatientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setOpen(false);
-      toast.success("Patient added successfully");
+      toast.success("Patient added successfully", {
+        style: { backgroundColor: "#10B981", color: "white" },
+      });
     },
     onError: (error: any) => {
       console.error("Error creating patient:", error);
@@ -148,12 +150,20 @@ export default function PatientsPage() {
         }
 
         // Add more user-friendly error messages for common issues
+        const duplicateFields = [];
+
         if (
           formattedErrors.nationalID &&
           formattedErrors.nationalID.includes("already in user")
         ) {
           formattedErrors.nationalID =
             "This National ID is already registered. Please use a different one.";
+          duplicateFields.push("National ID");
+          toast.error("National ID already registered", {
+            description:
+              "This National ID is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
         if (
           formattedErrors.phone &&
@@ -161,6 +171,12 @@ export default function PatientsPage() {
         ) {
           formattedErrors.phone =
             "This phone number is already registered. Please use a different one.";
+          duplicateFields.push("Phone number");
+          toast.error("Phone number already registered", {
+            description:
+              "This phone number is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
         if (
           formattedErrors.email &&
@@ -168,6 +184,12 @@ export default function PatientsPage() {
         ) {
           formattedErrors.email =
             "This email is already registered. Please use a different one.";
+          duplicateFields.push("Email");
+          toast.error("Email already registered", {
+            description:
+              "This email is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
 
         setFormErrors(formattedErrors);
@@ -175,7 +197,9 @@ export default function PatientsPage() {
         // Keep the form open so user can correct errors
         // Don't close the dialog
       } else {
-        toast.error("Failed to add patient. Please try again.");
+        toast.error("Failed to add patient. Please try again.", {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        });
       }
     },
   });
@@ -188,7 +212,9 @@ export default function PatientsPage() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setOpen(false);
       setEditingPatient(null);
-      toast.success("Patient updated successfully");
+      toast.success("Patient updated successfully", {
+        style: { backgroundColor: "#10B981", color: "white" },
+      });
     },
     onError: (error: any) => {
       console.error("Error updating patient:", error);
@@ -217,12 +243,20 @@ export default function PatientsPage() {
         }
 
         // Add more user-friendly error messages for common issues
+        const duplicateFields = [];
+
         if (
           formattedErrors.nationalID &&
           formattedErrors.nationalID.includes("already in user")
         ) {
           formattedErrors.nationalID =
             "This National ID is already registered. Please use a different one.";
+          duplicateFields.push("National ID");
+          toast.error("National ID already registered", {
+            description:
+              "This National ID is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
         if (
           formattedErrors.phone &&
@@ -230,6 +264,12 @@ export default function PatientsPage() {
         ) {
           formattedErrors.phone =
             "This phone number is already registered. Please use a different one.";
+          duplicateFields.push("Phone number");
+          toast.error("Phone number already registered", {
+            description:
+              "This phone number is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
         if (
           formattedErrors.email &&
@@ -237,6 +277,12 @@ export default function PatientsPage() {
         ) {
           formattedErrors.email =
             "This email is already registered. Please use a different one.";
+          duplicateFields.push("Email");
+          toast.error("Email already registered", {
+            description:
+              "This email is already registered. Please use a different one.",
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
         }
 
         setFormErrors(formattedErrors);
@@ -244,7 +290,9 @@ export default function PatientsPage() {
         // Keep the form open so user can correct errors
         // Don't close the dialog
       } else {
-        toast.error("Failed to update patient. Please try again.");
+        toast.error("Failed to update patient. Please try again.", {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        });
       }
     },
   });
@@ -256,11 +304,15 @@ export default function PatientsPage() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setDeleteOpen(false);
       setDeletingPatientId(null);
-      toast.success("Patient deleted successfully");
+      toast.success("Patient deleted successfully", {
+        style: { backgroundColor: "#10B981", color: "white" },
+      });
     },
     onError: (error) => {
       console.error("Error deleting patient:", error);
-      toast.error("Failed to delete patient. Please try again.");
+      toast.error("Failed to delete patient. Please try again.", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
     },
   });
 
@@ -484,7 +536,7 @@ export default function PatientsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Patients</h2>
         </div>
 
-        {isLoading ? (
+        {isFetchingPatients ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-lg">Loading...</div>
           </div>
@@ -518,6 +570,9 @@ export default function PatientsPage() {
           onSubmit={handleSubmit}
           fieldErrors={formErrors}
           isAdmin={true}
+          isLoading={
+            createPatientMutation.isPending || updatePatientMutation.isPending
+          }
         />
 
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -530,12 +585,41 @@ export default function PatientsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={deletePatientMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 className="bg-destructive text-destructive-foreground"
+                disabled={deletePatientMutation.isPending}
               >
-                Delete
+                {deletePatientMutation.isPending ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
