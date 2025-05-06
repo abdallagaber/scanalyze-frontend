@@ -74,14 +74,14 @@ const navigationConfig: Record<
       icon: Home,
     },
     {
+      title: "Tests",
+      url: "/dashboard/lab-technician/tests",
+      icon: Microscope,
+    },
+    {
       title: "Patients",
       url: "/dashboard/lab-technician/patients",
       icon: Users,
-    },
-    {
-      title: "Tests & Scans",
-      url: "/dashboard/lab-technician/tests",
-      icon: Microscope,
     },
     {
       title: "Reports",

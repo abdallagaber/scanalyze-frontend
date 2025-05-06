@@ -1,0 +1,486 @@
+{
+  "Diabetes Test": [
+    {
+      "Test Name": "Fasting Blood Glucose",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "<100",
+        "Pre-diabetic": "100-125",
+        "Diabetic": "≥126"
+      }
+    },
+    {
+      "Test Name": "Random Blood Glucose",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Reference Range": {
+          "Normal": "<200",
+          "Diabetic": "≥200 (with symptoms)"
+        }
+      }
+    },
+    {
+      "Test Name": "Oral Glucose Tolerance Test (OGTT)",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "<140",
+        "Pre-diabetic": "140-199",
+        "Diabetic": "≥200"
+      }
+    },
+    {
+      "Test Name": "HbA1c",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "<5.7",
+        "Pre-diabetic": "5.7-6.4",
+        "Diabetic": "≥6.5"
+      }
+    },
+    {
+      "Test Name": "Estimated Average Glucose (eAG)",
+      "Unit": "mg/dL",
+      "Formula": "eAG = (28.7 × HbA1c) - 46.7",
+      "Depends On": ["HbA1c"]
+    },
+    {
+      "Test Name": "Fasting Insulin",
+      "Unit": "µIU/mL",
+      "Reference Range": {
+        "Normal": "2-25"
+      }
+    },
+    {
+      "Test Name": "HOMA-IR",
+      "Unit": "-",
+      "Formula": "(Fasting Glucose × Fasting Insulin) / 405",
+      "Depends On": ["Fasting Blood Glucose", "Fasting Insulin"]
+    },
+    {
+      "Test Name": "C-Peptide",
+      "Unit": "ng/mL",
+      "Reference Range": {
+        "Normal": "0.5-2.0"
+      }
+    }
+  ],
+  "Kidney Function Test": [
+    {
+      "Test Name": "Creatinine",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "0.6-1.2"
+      }
+    },
+    {
+      "Test Name": "Blood Urea Nitrogen (BUN)",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "7-20"
+      }
+    },
+    {
+      "Test Name": "eGFR",
+      "Unit": "mL/min/1.73m²",
+      "Reference Range": {
+        "Normal": ">90"
+      },
+      "Formula": "CKD-EPI or MDRD",
+      "Depends On": ["Creatinine", "Age", "Gender", "Race"]
+    },
+    {
+      "Test Name": "Uric Acid",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "3.5-7.2"
+      }
+    },
+    {
+      "Test Name": "Cystatin C",
+      "Unit": "mg/L",
+      "Reference Range": {
+        "Normal": "0.6-1.0"
+      }
+    },
+    {
+      "Test Name": "Urinalysis",
+      "Unit": "-",
+      "Reference Range": {
+        "Normal": "Normal"
+      }
+    },
+    {
+      "Test Name": "UACR (Albumin/Creatinine Ratio)",
+      "Unit": "mg/g",
+      "Reference Range": {
+        "Normal": "<30"
+      }
+    },
+    {
+      "Test Name": "Creatinine Clearance",
+      "Unit": "mL/min",
+      "Reference Range": {
+        "Normal": "90-120"
+      },
+      "Formula": "(Urine Creatinine × Volume) / Plasma Creatinine",
+      "Depends On": ["Urine Creatinine", "Urine Volume", "Plasma Creatinine"]
+    },
+    {
+      "Test Name": "Electrolytes (Na, K, Cl, HCO3)",
+      "Unit": "mmol/L",
+      "Reference Range": {
+        "Varies": "Varies"
+      }
+    }
+  ],
+  "Liver": [
+    {
+      "Test Name": "ALT (SGPT)",
+      "Unit": "U/L",
+      "Reference Range": {
+        "Normal": "10-40"
+      }
+    },
+    {
+      "Test Name": "AST (SGOT)",
+      "Unit": "U/L",
+      "Reference Range": {
+        "Normal": "10-40"
+      }
+    },
+    {
+      "Test Name": "ALP",
+      "Unit": "U/L",
+      "Reference Range": {
+        "Normal": "44-147"
+      }
+    },
+    {
+      "Test Name": "GGT",
+      "Unit": "U/L",
+      "Reference Range": {
+        "Normal": "0-51"
+      }
+    },
+    {
+      "Test Name": "Total Bilirubin",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "0.1-1.2"
+      }
+    },
+    {
+      "Test Name": "Direct Bilirubin",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "0.0-0.3"
+      }
+    },
+    {
+      "Test Name": "Indirect Bilirubin",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "0.2-0.9"
+      },
+      "Formula": "Indirect = Total - Direct",
+      "Depends On": ["Total Bilirubin", "Direct Bilirubin"]
+    },
+    {
+      "Test Name": "Albumin",
+      "Unit": "g/dL",
+      "Reference Range": {
+        "Normal": "3.5-5.0"
+      }
+    },
+    {
+      "Test Name": "Prothrombin Time (PT)",
+      "Unit": "seconds",
+      "Reference Range": {
+        "Normal": "11-13.5"
+      }
+    },
+    {
+      "Test Name": "Total Protein",
+      "Unit": "g/dL",
+      "Reference Range": {
+        "Normal": "6.0-8.3"
+      }
+    },
+    {
+      "Test Name": "Albumin/Globulin Ratio",
+      "Unit": "-",
+      "Reference Range": {
+        "Normal": "0.8-2.0"
+      },
+      "Formula": "Albumin / (Total Protein - Albumin)",
+      "Depends On": ["Albumin", "Total Protein"]
+    },
+    {
+      "Test Name": "HBsAg (Hepatitis B Surface Antigen)",
+      "Unit": "-",
+      "Reference Range": {
+        "Normal": "Negative"
+      }
+    },
+    {
+      "Test Name": "Anti-HCV (Hepatitis C Antibody)",
+      "Unit": "-",
+      "Reference Range": {
+        "Normal": "Negative"
+      }
+    },
+    {
+      "Test Name": "AST/ALT Ratio",
+      "Unit": "-",
+      "Formula": "AST/ALT Ratio = AST / ALT",
+      "Depends On": ["AST (SGOT)", "ALT (SGPT)"]
+    },
+    {
+      "Test Name": "FIB-4 (Fibrosis Index)",
+      "Unit": "-",
+      "Formula": "FIB-4 = (Age × AST) / (Platelet × √ALT)",
+      "Depends On": ["Age", "AST (SGOT)", "PLT", "ALT (SGPT)"]
+    }
+  ],
+  "Lung": [
+    {
+      "Test Name": "Arterial Blood Gases (ABG)",
+      "Unit": "Varies",
+      "Reference Range": {
+        "Normal": "Normal Range"
+      }
+    },
+    {
+      "Test Name": "CRP",
+      "Unit": "mg/L",
+      "Reference Range": {
+        "Normal": "<10"
+      }
+    },
+    {
+      "Test Name": "ESR",
+      "Unit": "mm/hr",
+      "Reference Range": {
+        "Normal Male": "0-20",
+        "Normal Female": "0-30"
+      }
+    },
+    {
+      "Test Name": "D-Dimer",
+      "Unit": "ng/mL",
+      "Reference Range": {
+        "Normal": "<500"
+      }
+    },
+    {
+      "Test Name": "Sputum Culture",
+      "Unit": "Qualitative",
+      "Reference Range": {
+        "Normal": "No Growth"
+      }
+    },
+    {
+      "Test Name": "Tuberculosis Test (IGRA or Mantoux)",
+      "Unit": "Qualitative",
+      "Reference Range": {
+        "Normal": "Negative"
+      }
+    },
+    {
+      "Test Name": "Total IgE",
+      "Unit": "IU/mL",
+      "Reference Range": {
+        "Normal": "<100"
+      }
+    },
+    {
+      "Test Name": "Alpha-1 Antitrypsin",
+      "Unit": "mg/dL",
+      "Reference Range": {
+        "Normal": "90-200"
+      }
+    },
+    {
+      "Test Name": "FEV1",
+      "Unit": "% predicted",
+      "Reference Range": {
+        "Normal": ">80%"
+      }
+    },
+    {
+      "Test Name": "FVC",
+      "Unit": "% predicted",
+      "Reference Range": {
+        "Normal": ">80%"
+      }
+    },
+    {
+      "Test Name": "FEV1/FVC Ratio",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": ">70%",
+        "Obstructive": "<70%",
+        "Restrictive": ">80%"
+      },
+      "Formula": "FEV1 ÷ FVC",
+      "Depends On": ["FEV1", "FVC"]
+    },
+    {
+      "Test Name": "A–a Gradient",
+      "Unit": "mmHg",
+      "Reference Range": {
+        "Young": "<10",
+        "Older": "<20"
+      },
+      "Formula": "PAO₂ - PaO₂",
+      "Depends On": ["PAO₂", "PaO₂"]
+    },
+    {
+      "Test Name": "Alveolar Gas Equation",
+      "Unit": "-",
+      "Formula": "PAO₂ = FiO₂ × (Pb - PH₂O) - PaCO₂/RQ",
+      "Depends On": ["FiO₂", "Pb", "PH₂O", "PaCO₂", "RQ"]
+    }
+  ],
+  "CBC": [
+    {
+      "Test Name": "WBCs",
+      "Unit": "10³/µL",
+      "Reference Range": {
+        "Normal": "4.0-11.0"
+      }
+    },
+    {
+      "Test Name": "RBCs",
+      "Unit": "10⁶/µL",
+      "Reference Range": {
+        "Normal Male": "4.5-5.9",
+        "Normal Female": "4.1-5.1"
+      }
+    },
+    {
+      "Test Name": "Hb",
+      "Unit": "g/dL",
+      "Reference Range": {
+        "Normal Male": "13.5-17.5",
+        "Normal Female": "12-15.5"
+      }
+    },
+    {
+      "Test Name": "HCT",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal Male": "41-50",
+        "Normal Female": "36-44"
+      },
+      "Formula": "≈ RBC × MCV / 10",
+      "Depends On": ["RBCs", "MCV"]
+    },
+    {
+      "Test Name": "MCV",
+      "Unit": "fL",
+      "Reference Range": {
+        "Normal": "80-100"
+      }
+    },
+    {
+      "Test Name": "MCH",
+      "Unit": "pg",
+      "Reference Range": {
+        "Normal": "27-33"
+      },
+      "Formula": "(Hb × 10) ÷ RBC",
+      "Depends On": ["Hb", "RBCs"]
+    },
+    {
+      "Test Name": "MCHC",
+      "Unit": "g/dL",
+      "Reference Range": {
+        "Normal": "33-36"
+      },
+      "Formula": "(Hb × 100) ÷ HCT",
+      "Depends On": ["Hb", "HCT"]
+    },
+    {
+      "Test Name": "RDW-SD",
+      "Unit": "fL",
+      "Reference Range": {
+        "Normal": "39-46"
+      }
+    },
+    {
+      "Test Name": "RDW-CV",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "11.5-14.5"
+      },
+      "Formula": "(SD of RBC volume ÷ MCV) × 100",
+      "Depends On": ["RBC Volume SD", "MCV"]
+    },
+    {
+      "Test Name": "PLT",
+      "Unit": "10³/µL",
+      "Reference Range": {
+        "Normal": "150-450"
+      }
+    },
+    {
+      "Test Name": "P-LCR",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "15-35"
+      }
+    },
+    {
+      "Test Name": "PCT",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "0.22-0.24"
+      },
+      "Formula": "(MPV × PLT) ÷ 10,000",
+      "Depends On": ["MPV", "PLT"]
+    },
+    {
+      "Test Name": "PDW",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "10-17"
+      }
+    },
+    {
+      "Test Name": "MPV",
+      "Unit": "fL",
+      "Reference Range": {
+        "Normal": "7.5-11.5"
+      }
+    },
+    {
+      "Test Name": "NRBC%",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "0"
+      }
+    },
+    {
+      "Test Name": "RET%",
+      "Unit": "%",
+      "Reference Range": {
+        "Normal": "0.5-2.5"
+      }
+    },
+    {
+      "Test Name": "IFR",
+      "Unit": "%",
+      "Reference Range": {
+        "Varies": "Varies by instrument"
+      }
+    },
+    {
+      "Test Name": "LFR",
+      "Unit": "%",
+      "Reference Range": {
+        "Varies": "Varies by instrument"
+      }
+    }
+  ]
+}
