@@ -1,11 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Zap } from "lucide-react";
+import {
+  Loader2,
+  Zap,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Heading2,
+  Heading1,
+  Undo,
+  Redo,
+  Link,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
+import { Separator } from "@/components/ui/separator";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import LinkExtension from "@tiptap/extension-link";
 
 interface AnalysisSectionProps {
   disabled: boolean;
@@ -47,6 +64,97 @@ const mockAnalysisResults = {
     "Chest X-ray demonstrates bilateral peripheral ground-glass opacities predominantly in the lower lobes with patchy consolidation. No pleural effusion or pneumothorax is identified. Heart size is normal. Findings are highly suggestive of COVID-19 pneumonia with moderate severity. Recommend correlation with RT-PCR results and clinical monitoring of oxygen saturation levels.",
 };
 
+// Menu bar component for the rich text editor
+const MenuBar = ({ editor }: { editor: Editor | null }) => {
+  if (!editor) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 border-b p-1 mb-2">
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("bold")}
+        onPressedChange={() => editor.chain().focus().toggleBold().run()}
+        aria-label="Bold"
+      >
+        <Bold className="h-4 w-4" />
+      </Toggle>
+
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("italic")}
+        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+        aria-label="Italic"
+      >
+        <Italic className="h-4 w-4" />
+      </Toggle>
+
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("heading", { level: 1 })}
+        onPressedChange={() =>
+          editor.chain().focus().toggleHeading({ level: 1 }).run()
+        }
+        aria-label="Heading 1"
+      >
+        <Heading1 className="h-4 w-4" />
+      </Toggle>
+
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("heading", { level: 2 })}
+        onPressedChange={() =>
+          editor.chain().focus().toggleHeading({ level: 2 }).run()
+        }
+        aria-label="Heading 2"
+      >
+        <Heading2 className="h-4 w-4" />
+      </Toggle>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("bulletList")}
+        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+        aria-label="Bullet List"
+      >
+        <List className="h-4 w-4" />
+      </Toggle>
+
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("orderedList")}
+        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+        aria-label="Ordered List"
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Toggle>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      <Toggle
+        size="sm"
+        onPressedChange={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+        aria-label="Undo"
+      >
+        <Undo className="h-4 w-4" />
+      </Toggle>
+
+      <Toggle
+        size="sm"
+        onPressedChange={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+        aria-label="Redo"
+      >
+        <Redo className="h-4 w-4" />
+      </Toggle>
+    </div>
+  );
+};
+
 export function AnalysisSection({
   disabled,
   uploadedImage,
@@ -57,6 +165,13 @@ export function AnalysisSection({
 }: AnalysisSectionProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [localContent, setLocalContent] = useState(analysisResult);
+
+  // Memoize the update handler to prevent unnecessary re-renders
+  const handleUpdate = useCallback(({ editor }: { editor: Editor }) => {
+    const html = editor.getHTML();
+    setLocalContent(html);
+  }, []);
 
   // Clear analysis when image is removed
   useEffect(() => {
@@ -65,6 +180,61 @@ export function AnalysisSection({
       onAnalysisGenerated("");
     }
   }, [uploadedImage, analysisResult, setAnalysisResult, onAnalysisGenerated]);
+
+  // Only update the parent state when the user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localContent !== analysisResult) {
+        setAnalysisResult(localContent);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [localContent, setAnalysisResult, analysisResult]);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: true,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: true,
+        },
+      }),
+      Placeholder.configure({
+        placeholder:
+          "AI analysis results will appear here. You can review and edit the results before submitting.",
+      }),
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline",
+        },
+      }),
+    ],
+    content: analysisResult,
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-[200px] p-3 rounded-md border border-input bg-transparent text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 font-mono prose prose-sm max-w-none",
+      },
+    },
+    onUpdate: handleUpdate,
+  });
+
+  // Update editor content when analysisResult changes externally
+  useEffect(() => {
+    if (editor && editor.getHTML() !== analysisResult) {
+      editor.commands.setContent(analysisResult, false);
+      setLocalContent(analysisResult);
+    }
+  }, [analysisResult, editor]);
 
   const handleAnalyze = async () => {
     if (!uploadedImage || !scanType) {
@@ -100,8 +270,13 @@ export function AnalysisSection({
 
       const result = data.prediction || "No prediction available";
 
-      setAnalysisResult(result);
-      onAnalysisGenerated(result);
+      const paragraphs = (typeof result === "string" ? result : "")
+        .split("\n")
+        .filter((p) => p.trim() !== "");
+      const htmlResult = paragraphs.map((p) => `<p>${p}</p>`).join("");
+      setLocalContent(htmlResult);
+      setAnalysisResult(htmlResult);
+      onAnalysisGenerated(htmlResult);
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -156,19 +331,16 @@ export function AnalysisSection({
         </Alert>
       )}
 
-      <div>
-        <Textarea
-          placeholder="AI analysis results will appear here. You can review and edit the results before submitting."
-          value={analysisResult}
-          onChange={(e) => setAnalysisResult(e.target.value)}
-          className="min-h-[200px] font-mono text-sm"
-          disabled={isAnalyzing}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          You can review and edit the analysis before submitting to the patient
-          record
-        </p>
+      <div className="border rounded-md overflow-hidden">
+        <MenuBar editor={editor} />
+        <div className="p-0">
+          <EditorContent editor={editor} disabled={isAnalyzing} />
+        </div>
       </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        You can review and edit the analysis before submitting to the patient
+        record
+      </p>
     </div>
   );
 }

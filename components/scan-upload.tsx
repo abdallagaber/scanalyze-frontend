@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 
 interface ScanUploadProps {
   disabled: boolean;
-  onFileUploaded: (fileUrl: string | null) => void;
+  onFileUploaded: (fileUrl: string | null, file?: File | null) => void;
   scanType: string;
 }
 
@@ -24,6 +24,7 @@ export const ScanUpload = forwardRef<ScanUploadRef, ScanUploadProps>(
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [fileName, setFileName] = useState("");
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
     const simulateUpload = async (file: File) => {
       setIsUploading(true);
@@ -36,6 +37,8 @@ export const ScanUpload = forwardRef<ScanUploadRef, ScanUploadProps>(
       }
 
       setIsUploading(false);
+      // Save the actual file for later use
+      setUploadedFile(file);
       return URL.createObjectURL(file);
     };
 
@@ -45,7 +48,7 @@ export const ScanUpload = forwardRef<ScanUploadRef, ScanUploadProps>(
         setFileName(file.name);
         const url = await simulateUpload(file);
         setPreviewUrl(url);
-        onFileUploaded(url);
+        onFileUploaded(url, file);
       }
     };
 
@@ -67,14 +70,15 @@ export const ScanUpload = forwardRef<ScanUploadRef, ScanUploadProps>(
         setFileName(file.name);
         const url = await simulateUpload(file);
         setPreviewUrl(url);
-        onFileUploaded(url);
+        onFileUploaded(url, file);
       }
     };
 
     const handleRemove = () => {
       setPreviewUrl(null);
       setFileName("");
-      onFileUploaded(null);
+      setUploadedFile(null);
+      onFileUploaded(null, null);
     };
 
     useImperativeHandle(ref, () => ({

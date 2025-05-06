@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PatientSearch } from "@/components/patient-search";
+import { PatientSearch, PatientSearchRef } from "@/components/patient-search";
 import { ScanTypeSelection } from "@/components/scan-type-selection";
 import { ScanUpload, ScanUploadRef } from "@/components/scan-upload";
 import { AnalysisSection } from "@/components/analysis-section";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Save, ArrowLeft } from "lucide-react";
 import { SCAN_TYPES } from "@/lib/scan-types";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
+import { scanService } from "@/lib/services/scan";
 
 export default function AddScanPage() {
   // Workflow state
@@ -27,19 +28,28 @@ export default function AddScanPage() {
   const [patientData, setPatientData] = useState<any>(null);
   const [selectedScanType, setSelectedScanType] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
   const scanUploadRef = useRef<ScanUploadRef>(null);
+  const patientSearchRef = useRef<PatientSearchRef>(null);
 
   // Handle patient found
   const handlePatientFound = (patient: any) => {
     setPatientData(patient);
-    setCurrentStep(2);
-    // Clear subsequent steps data
+
+    // Only advance to step 2 if a patient was actually found
+    if (patient) {
+      setCurrentStep(2);
+    } else {
+      // Stay on step 1 if no patient was found
+      setCurrentStep(1);
+    }
     setSelectedScanType(null);
     setUploadedImage(null);
     setAnalysisResult("");
+    scanUploadRef.current?.removeImage();
   };
 
   // Handle scan type selection
@@ -55,10 +65,12 @@ export default function AddScanPage() {
   };
 
   // Handle file uploaded
-  const handleFileUploaded = (fileUrl: string | null) => {
+  const handleFileUploaded = (fileUrl: string | null, file?: File | null) => {
     setUploadedImage(fileUrl);
+    setUploadedFile(file || null);
+
     if (fileUrl) {
-      setCurrentStep(4);
+      setCurrentStep(5); // Directly enable the submit button
       // Clear subsequent steps data
       setAnalysisResult("");
     }
@@ -87,33 +99,43 @@ export default function AddScanPage() {
       return;
     }
 
-    if (!analysisResult.trim()) {
-      toast.error("Please generate or enter an analysis result");
-      return;
-    }
-
     setIsSaving(true);
 
     try {
-      // TODO: Implement API call to save scan
-      console.log({
-        patientData,
-        selectedScanType,
-        uploadedImage,
-        analysisResult,
+      // Get the selected scan type name
+      const scanTypeObj = SCAN_TYPES.find(
+        (scan) => scan.id === selectedScanType
+      );
+      if (!scanTypeObj) {
+        throw new Error("Invalid scan type selected");
+      }
+
+      // Prepare scan data for API submission
+      await scanService.createScan({
+        type: scanTypeObj.name, // Send the scan type name as required by the API
+        scanImage: uploadedFile || uploadedImage, // Prefer the File over the URL
+        report: analysisResult, // The AI-generated or edited analysis
+        patient: patientData.id || patientData._id, // The patient ID
       });
 
       toast.success("Scan and analysis saved successfully");
 
-      // Reset form for new entry
+      // Reset the UI state completely
       setCurrentStep(1);
       setPatientData(null);
       setSelectedScanType(null);
       setUploadedImage(null);
+      setUploadedFile(null);
       setAnalysisResult("");
+
+      // Manually clear the scan upload reference
+      scanUploadRef.current?.removeImage();
+
+      // Force the PatientSearch component to clear by explicitly resetting related state
+      patientSearchRef.current?.reset();
     } catch (error) {
-      toast.error("Failed to save scan and analysis");
-      console.error(error);
+      console.error("Error saving scan:", error);
+      toast.error("Failed to save scan and analysis. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -166,7 +188,10 @@ export default function AddScanPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <PatientSearch onPatientFound={handlePatientFound} />
+                <PatientSearch
+                  ref={patientSearchRef}
+                  onPatientFound={handlePatientFound}
+                />
               </CardContent>
             </Card>
 
