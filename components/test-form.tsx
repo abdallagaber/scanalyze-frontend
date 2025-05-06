@@ -25,8 +25,10 @@ interface TestFormProps {
   patientInfo: {
     id: string;
     gender: "male" | "female";
-    birthDate: Date;
+    birthDate?: Date; // Making birthDate optional
     age: number;
+    name?: string; // Adding optional name field
+    nationalID?: string; // Adding nationalID field
   };
 }
 
@@ -205,10 +207,42 @@ export default function TestForm({
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Test Results</CardTitle>
-        <CardDescription>
-          Patient ID: {patientInfo.id} | Gender:{" "}
-          {patientInfo.gender === "male" ? "Male" : "Female"} | Age:{" "}
-          {patientInfo.age}
+        <CardDescription className="mt-2">
+          <div className="border rounded-lg p-3 bg-muted/30">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {patientInfo.name && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Patient
+                  </p>
+                  <p className="font-medium truncate">{patientInfo.name}</p>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  National ID
+                </p>
+                <p className="font-medium">
+                  {patientInfo.nationalID || patientInfo.id}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Gender
+                </p>
+                <p className="font-medium">
+                  {patientInfo.gender === "male" ? "Male" : "Female"}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Age</p>
+                <p className="font-medium">{patientInfo.age}</p>
+              </div>
+            </div>
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>

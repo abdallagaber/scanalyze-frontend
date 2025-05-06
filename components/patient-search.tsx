@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,14 +32,24 @@ export interface PatientSearchRef {
 
 interface PatientSearchProps {
   onPatientFound: (patient: Patient | null) => void;
+  initialPatient?: Patient | null;
 }
 
 export const PatientSearch = forwardRef<PatientSearchRef, PatientSearchProps>(
-  ({ onPatientFound }, ref) => {
+  ({ onPatientFound, initialPatient }, ref) => {
     const [nationalId, setNationalId] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [patient, setPatient] = useState<Patient | null>(null);
     const [error, setError] = useState("");
+
+    // Initialize component with initialPatient if provided
+    useEffect(() => {
+      if (initialPatient) {
+        setPatient(initialPatient);
+        // Set the nationalId field to match the patient's ID
+        setNationalId(initialPatient.nationalID || "");
+      }
+    }, [initialPatient]);
 
     // Expose methods to parent component
     useImperativeHandle(ref, () => ({
@@ -252,3 +262,5 @@ export const PatientSearch = forwardRef<PatientSearchRef, PatientSearchProps>(
     );
   }
 );
+
+PatientSearch.displayName = "PatientSearch";
