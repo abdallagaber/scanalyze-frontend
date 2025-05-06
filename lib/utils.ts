@@ -154,7 +154,9 @@ export function calculateDerivedValue(
   formula: string,
   dependencies: string[],
   values: Record<string, number>,
-  patientInfo: { age?: number; gender?: "male" | "female"; race?: string }
+  patientInfo: { age?: number; gender?: "male" | "female"; race?: string },
+  formulaDetails?: any,
+  variables?: any
 ): number | null {
   // Check if all dependencies have values
   const missingDependencies = dependencies.filter(
@@ -165,8 +167,80 @@ export function calculateDerivedValue(
     return null;
   }
 
-  // Handle specific formulas
-  if (formula.includes("eAG = (28.7 × HbA1c) - 46.7")) {
+  // Handle eGFR calculation with the CKD-EPI formula
+  if (
+    formula.includes(
+      "142 × min(Scr/κ, 1)^α × max(Scr/κ, 1)^-1.200 × 0.9938^Age"
+    )
+  ) {
+    // Make sure we have all the necessary values and variables
+    if (
+      !patientInfo.age ||
+      !patientInfo.gender ||
+      !values["Creatinine"] ||
+      !formulaDetails ||
+      !variables
+    ) {
+      return null;
+    }
+
+    const creatinine = values["Creatinine"];
+    const age = patientInfo.age;
+    const gender = patientInfo.gender;
+
+    // Get the κ and α values based on gender
+    const kappa = variables?.κ?.[gender === "male" ? "Male" : "Female"];
+    const alpha = variables?.α?.[gender === "male" ? "Male" : "Female"];
+
+    if (!kappa || !alpha) {
+      // Fallback to hardcoded values if variables are not in the right format
+      const kappaValue = gender === "male" ? 0.9 : 0.7;
+      const alphaValue = gender === "male" ? -0.302 : -0.241;
+
+      // Calculate min and max terms
+      const minTerm = Math.min(creatinine / kappaValue, 1);
+      const maxTerm = Math.max(creatinine / kappaValue, 1);
+
+      // Calculate each part of the formula
+      const minPart = Math.pow(minTerm, alphaValue);
+      const maxPart = Math.pow(maxTerm, -1.2);
+      const agePart = Math.pow(0.9938, age);
+      const genderPart = gender === "female" ? 1.012 : 1;
+
+      // Combine all parts
+      return 142 * minPart * maxPart * agePart * genderPart;
+    } else {
+      // Calculate using the provided variables
+      const kappaValue = parseFloat(kappa);
+      const alphaValue = parseFloat(alpha);
+
+      // Calculate min and max terms
+      const minTerm = Math.min(creatinine / kappaValue, 1);
+      const maxTerm = Math.max(creatinine / kappaValue, 1);
+
+      // Calculate each part of the formula
+      const minPart = Math.pow(minTerm, alphaValue);
+      const maxPart = Math.pow(maxTerm, -1.2);
+      const agePart = Math.pow(0.9938, age);
+      const genderPart = gender === "female" ? 1.012 : 1;
+
+      // Combine all parts
+      return 142 * minPart * maxPart * agePart * genderPart;
+    }
+  }
+
+  // Handle MCV calculation
+  else if (formula.includes("(Hct / RBC) * 10")) {
+    // Need hematocrit and RBC values
+    if (!values["Hematocrit (Hct)"] || !values["Red blood cells (RBC)"]) {
+      return null;
+    }
+
+    return (values["Hematocrit (Hct)"] / values["Red blood cells (RBC)"]) * 10;
+  }
+
+  // Handle other standard formulas
+  else if (formula.includes("eAG = (28.7 × HbA1c) - 46.7")) {
     return 28.7 * values["HbA1c"] - 46.7;
   } else if (formula.includes("(Fasting Glucose × Fasting Insulin) / 405")) {
     return (values["Fasting Blood Glucose"] * values["Fasting Insulin"]) / 405;
@@ -196,27 +270,7 @@ export function calculateDerivedValue(
     return (values["MPV"] * values["PLT"]) / 10000;
   }
 
-  // For eGFR, we'll use a simplified MDRD formula
-  if (
-    formula.includes("CKD-EPI or MDRD") &&
-    dependencies.includes("Creatinine")
-  ) {
-    if (!patientInfo.age || !patientInfo.gender) return null;
-
-    // Simplified MDRD formula
-    const creatinine = values["Creatinine"];
-    const age = patientInfo.age;
-    const genderFactor = patientInfo.gender === "female" ? 0.742 : 1;
-    const raceFactor = patientInfo.race === "black" ? 1.212 : 1;
-
-    return (
-      175 *
-      Math.pow(creatinine, -1.154) *
-      Math.pow(age, -0.203) *
-      genderFactor *
-      raceFactor
-    );
-  }
-
+  // For any other formula we don't recognize, return null
+  console.warn("Unrecognized formula:", formula);
   return null;
 }

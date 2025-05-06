@@ -110,6 +110,7 @@ export default function TestForm({
 
     // Add patient info
     numericValues["Age"] = patientInfo.age;
+    numericValues["Gender"] = patientInfo.gender === "male" ? 1 : 0; // 1 for male, 0 for female
 
     // Check all categories for tests that depend on the changed test
     selectedCategories.forEach((category) => {
@@ -131,7 +132,12 @@ export default function TestForm({
           const dependencies = test["Depends On"] as string[];
 
           // Check if this test depends on the changed test
-          if (dependencies.includes(changedTestName)) {
+          const hasDependency =
+            dependencies.includes(changedTestName) ||
+            (dependencies.includes("Age") && changedTestName === "Age") ||
+            (dependencies.includes("Gender") && changedTestName === "Gender");
+
+          if (hasDependency || changedTestName === "all") {
             // Calculate the derived value
             const derivedValue = calculateDerivedValue(
               test["Formula"],
@@ -141,7 +147,9 @@ export default function TestForm({
                 age: patientInfo.age,
                 gender: patientInfo.gender,
                 race: "unknown", // Default race
-              }
+              },
+              test["Formula Details"],
+              test["Variables"]
             );
 
             // If we could calculate a value, update the test result
@@ -293,6 +301,16 @@ export default function TestForm({
                         {isCalculated && (
                           <div className="text-xs text-gray-500">
                             Formula: {test["Formula"]}
+                            {test["Formula Details"] && (
+                              <span className="block mt-1 text-xs italic">
+                                {patientInfo.gender === "male"
+                                  ? "Male formula: "
+                                  : "Female formula: "}
+                                {patientInfo.gender === "male"
+                                  ? test["Formula Details"]["Male"]
+                                  : test["Formula Details"]["Female"]}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
