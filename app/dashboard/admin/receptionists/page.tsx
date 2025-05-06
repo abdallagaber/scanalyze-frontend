@@ -394,7 +394,9 @@ export default function ReceptionistsPage() {
           ...values,
           role: "Receptionist",
         });
-        toast.success("Receptionist updated successfully");
+        toast.success("Receptionist updated successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       } else {
@@ -403,7 +405,9 @@ export default function ReceptionistsPage() {
           ...values,
           role: "Receptionist",
         });
-        toast.success("Receptionist created successfully");
+        toast.success("Receptionist created successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       }
@@ -471,12 +475,16 @@ export default function ReceptionistsPage() {
 
         // Set the errors and keep the form open with current values
         setFormErrors(errors);
-        toast.error("Please fix the errors in the form");
+        toast.error("Please fix the errors in the form", {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        });
         return; // Return early to prevent form from closing
       }
 
       // For any other errors, show a generic error message but keep form values
-      toast.error("An error occurred while saving the receptionist");
+      toast.error("An error occurred while saving the receptionist", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
     }
   };
 

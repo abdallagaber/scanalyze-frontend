@@ -85,17 +85,30 @@ export default function AddScanPage() {
   // Handle final submission
   const handleSubmit = async () => {
     if (!patientData) {
-      toast.error("Please search for a patient first");
+      toast.error("Please search for a patient first", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
       return;
     }
 
     if (!selectedScanType) {
-      toast.error("Please select a scan type");
+      toast.error("Please select a scan type", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
       return;
     }
 
     if (!uploadedImage) {
-      toast.error("Please upload a scan image");
+      toast.error("Please upload a scan image", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
+      return;
+    }
+    
+    if (!analysisResult || analysisResult.trim() === "") {
+      toast.error("Please generate or enter an analysis report", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
       return;
     }
 
@@ -118,7 +131,9 @@ export default function AddScanPage() {
         patient: patientData.id || patientData._id, // The patient ID
       });
 
-      toast.success("Scan and analysis saved successfully");
+      toast.success("Scan and analysis saved successfully", {
+        style: { backgroundColor: "#10B981", color: "white" },
+      });
 
       // Reset the UI state completely
       setCurrentStep(1);
@@ -135,7 +150,9 @@ export default function AddScanPage() {
       patientSearchRef.current?.reset();
     } catch (error) {
       console.error("Error saving scan:", error);
-      toast.error("Failed to save scan and analysis. Please try again.");
+      toast.error("Failed to save scan and analysis. Please try again.", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
     } finally {
       setIsSaving(false);
     }

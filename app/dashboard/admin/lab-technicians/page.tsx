@@ -420,7 +420,9 @@ export default function LabTechniciansPage() {
           ...values,
           role: "LabTechnician",
         });
-        toast.success("Lab technician updated successfully");
+        toast.success("Lab technician updated successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       } else {
@@ -429,7 +431,9 @@ export default function LabTechniciansPage() {
           ...values,
           role: "LabTechnician",
         });
-        toast.success("Lab technician created successfully");
+        toast.success("Lab technician created successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       }
@@ -497,12 +501,16 @@ export default function LabTechniciansPage() {
 
         // Set the errors and keep the form open with current values
         setFormErrors(errors);
-        toast.error("Please fix the errors in the form");
+        toast.error("Please fix the errors in the form", {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        });
         return; // Return early to prevent form from closing
       }
 
       // For any other errors, show a generic error message but keep form values
-      toast.error("An error occurred while saving the lab technician");
+      toast.error("An error occurred while saving the lab technician", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
     }
   };
 

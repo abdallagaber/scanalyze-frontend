@@ -118,13 +118,13 @@ export default function StaffLoginForm() {
       }
 
       toast.success("Login successful!", {
-        className: "bg-green-500 text-white",
+        style: { backgroundColor: "#10B981", color: "white" },
       });
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Login failed. Please try again.",
         {
-          className: "bg-red-500 text-white",
+          style: { backgroundColor: "#EF4444", color: "white" },
         }
       );
     } finally {
@@ -169,13 +169,13 @@ export default function StaffLoginForm() {
       }
 
       toast.success("Login successful!", {
-        className: "bg-green-500 text-white",
+        style: { backgroundColor: "#10B981", color: "white" },
       });
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Login failed. Please try again.",
         {
-          className: "bg-red-500 text-white",
+          style: { backgroundColor: "#EF4444", color: "white" },
         }
       );
     } finally {

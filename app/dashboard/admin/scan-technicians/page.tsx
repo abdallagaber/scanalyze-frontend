@@ -420,7 +420,9 @@ export default function ScanTechniciansPage() {
           ...values,
           role: "ScanTechnician",
         });
-        toast.success("Scan technician updated successfully");
+        toast.success("Scan technician updated successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       } else {
@@ -429,7 +431,9 @@ export default function ScanTechniciansPage() {
           ...values,
           role: "ScanTechnician",
         });
-        toast.success("Scan technician created successfully");
+        toast.success("Scan technician created successfully", {
+          style: { backgroundColor: "#10B981", color: "white" },
+        });
         setOpen(false);
         setFormValues(null);
       }
@@ -497,12 +501,16 @@ export default function ScanTechniciansPage() {
 
         // Set the errors and keep the form open with current values
         setFormErrors(errors);
-        toast.error("Please fix the errors in the form");
+        toast.error("Please fix the errors in the form", {
+          style: { backgroundColor: "#EF4444", color: "white" },
+        });
         return; // Return early to prevent form from closing
       }
 
       // For any other errors, show a generic error message but keep form values
-      toast.error("An error occurred while saving the scan technician");
+      toast.error("An error occurred while saving the scan technician", {
+        style: { backgroundColor: "#EF4444", color: "white" },
+      });
     }
   };
 
