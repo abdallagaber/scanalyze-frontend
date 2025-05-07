@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   FileText,
   Calendar as CalendarIcon,
@@ -27,68 +27,14 @@ import {
   Download,
   User,
 } from "lucide-react";
-import { getCookie } from "cookies-next";
 import Image from "next/image";
 
-export function PatientOverview() {
+interface PatientOverviewProps {
+  patientData: any;
+}
+
+export function PatientOverview({ patientData }: PatientOverviewProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [patientData, setPatientData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Get user data from cookies
-    const userData = getCookie("userData");
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData as string);
-
-        // Normalize the medical history if needed
-        if (parsedUser.medicalHistory) {
-          // If it's a string, parse it
-          if (typeof parsedUser.medicalHistory === "string") {
-            try {
-              parsedUser.medicalHistory = JSON.parse(parsedUser.medicalHistory);
-              console.log(
-                "Parsed medical history from string in patient overview"
-              );
-            } catch (error) {
-              console.error(
-                "Error parsing medical history in patient overview:",
-                error
-              );
-              // Provide default structure if parsing fails
-              parsedUser.medicalHistory = {
-                chronicDiseases: {
-                  hasChronicDiseases: false,
-                  diseasesList: [],
-                },
-                allergies: { hasAllergies: false },
-                medications: { takesMedications: false, list: [] },
-                surgeries: { hadSurgeries: false },
-                currentSymptoms: { hasSymptoms: false },
-                lifestyle: { smokes: false, consumesAlcohol: false },
-              };
-            }
-          }
-        } else {
-          // If medical history is missing, add an empty one
-          parsedUser.medicalHistory = {
-            chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
-            allergies: { hasAllergies: false },
-            medications: { takesMedications: false, list: [] },
-            surgeries: { hadSurgeries: false },
-            currentSymptoms: { hasSymptoms: false },
-            lifestyle: { smokes: false, consumesAlcohol: false },
-          };
-        }
-
-        setPatientData(parsedUser);
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-      }
-    }
-    setLoading(false);
-  }, []);
 
   // Mock data for other sections - In a real application, these would come from an API
   const upcomingAppointments = [
@@ -131,14 +77,6 @@ export function PatientOverview() {
       status: "Analyzed",
     },
   ];
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        Loading patient data...
-      </div>
-    );
-  }
 
   if (!patientData) {
     return (
