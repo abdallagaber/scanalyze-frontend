@@ -157,23 +157,6 @@ export function PatientOverview() {
     });
   };
 
-  // Calculate age from national ID
-  const calculateAge = (nationalID: string) => {
-    if (!nationalID || nationalID.length < 7) return "N/A";
-
-    try {
-      const centuryMarker = nationalID.charAt(0);
-      const birthYear = nationalID.substring(1, 3);
-      const fullYear =
-        centuryMarker === "2" ? "19" + birthYear : "20" + birthYear;
-
-      const currentYear = new Date().getFullYear();
-      return currentYear - parseInt(fullYear);
-    } catch (e) {
-      return "N/A";
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Patient Information Card */}
@@ -224,9 +207,7 @@ export function PatientOverview() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Age:</span>
-                  <span className="font-medium">
-                    {calculateAge(patientData.nationalID)} years
-                  </span>
+                  <span className="font-medium">{patientData.age} years</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gender:</span>

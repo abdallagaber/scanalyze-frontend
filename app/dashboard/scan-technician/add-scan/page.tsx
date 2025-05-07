@@ -104,8 +104,12 @@ export default function AddScanPage() {
       });
       return;
     }
-    
-    if (!analysisResult || analysisResult.trim() === "") {
+
+    if (
+      !analysisResult ||
+      analysisResult.trim() === "" ||
+      analysisResult.length < 10
+    ) {
       toast.error("Please generate or enter an analysis report", {
         style: { backgroundColor: "#EF4444", color: "white" },
       });

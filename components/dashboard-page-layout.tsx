@@ -10,7 +10,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-type Role = "admin" | "lab-technician" | "receptionist" | "scan-technician";
+type Role =
+  | "admin"
+  | "lab-technician"
+  | "receptionist"
+  | "scan-technician"
+  | "patient";
 
 export interface DashboardPageLayoutProps {
   children: React.ReactNode;

@@ -13,7 +13,7 @@ import { patientService } from "@/lib/services/patient";
 interface Patient {
   id: string;
   name: string;
-  age: string;
+  age: number;
   gender: string;
   contactNumber: string;
   medicalHistory: string[];
@@ -80,9 +80,7 @@ export const PatientSearch = forwardRef<PatientSearchRef, PatientSearchProps>(
       return {
         id: apiPatient._id,
         name: `${apiPatient.firstName} ${apiPatient.lastName}`,
-        // Age is not included in the API response, would need calculation from birthdate
-        // For now, showing a placeholder
-        age: "N/A",
+        age: apiPatient.age,
         gender: apiPatient.gender || "Not specified",
         contactNumber: apiPatient.phone || "Not available",
         medicalHistory: conditions,

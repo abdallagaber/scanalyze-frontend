@@ -169,7 +169,7 @@ export default function LoginForm() {
         const userData = {
           name: `${normalizedUser.firstName} ${normalizedUser.lastName}`,
           email: normalizedUser.email || "",
-          imageProfile: normalizedUser.nationalIDImg || "/placeholder-user.jpg",
+          imageProfile: normalizedUser.nationalIDImg || "",
           id: normalizedUser.nationalID,
           userId: normalizedUser._id,
         };
@@ -262,7 +262,7 @@ export default function LoginForm() {
         const userData = {
           name: `${normalizedUser.firstName} ${normalizedUser.lastName}`,
           email: normalizedUser.email || "",
-          imageProfile: normalizedUser.nationalIDImg || "/placeholder-user.jpg",
+          imageProfile: normalizedUser.nationalIDImg || "",
           phone: normalizedUser.phone,
           userId: normalizedUser._id,
         };
