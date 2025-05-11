@@ -28,6 +28,7 @@ import {
   User,
 } from "lucide-react";
 import Image from "next/image";
+import { PatientScans } from "@/components/patient-scans";
 
 interface PatientOverviewProps {
   patientData: any;
@@ -287,67 +288,7 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
 
         {/* Scans Tab */}
         <TabsContent value="scans" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scan Reports</CardTitle>
-              <CardDescription>
-                View your scan history and reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentScans.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Scan ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Body Part</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentScans.map((scan) => (
-                      <TableRow key={scan.id}>
-                        <TableCell>{scan.id}</TableCell>
-                        <TableCell>{scan.date}</TableCell>
-                        <TableCell>{scan.type}</TableCell>
-                        <TableCell>{scan.bodyPart}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              scan.status === "Analyzed"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {scan.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" className="mr-2">
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  No scan records found.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <PatientScans patientId={patientData._id} />
         </TabsContent>
 
         {/* Medical History Tab */}

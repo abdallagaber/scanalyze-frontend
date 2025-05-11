@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Download } from "lucide-react";
 import {
   calculateDerivedValue,
   checkReferenceRange,
@@ -47,6 +49,31 @@ export default function TestForm({
   const [activeTab, setActiveTab] = useState<string>(
     selectedCategories[0] || ""
   );
+
+  // Add validation function
+  const validateForm = () => {
+    let isValid = true;
+    const missingTests: string[] = [];
+
+    selectedCategories.forEach((category) => {
+      const categoryTests = testData[
+        category as keyof typeof testData
+      ] as any[];
+      categoryTests.forEach((test) => {
+        const testKey = `${category}:${test["Test Name"]}`;
+        // Skip validation for calculated tests
+        if (!test["Formula"]) {
+          const result = testResults[testKey];
+          if (!result || !result.value.trim()) {
+            isValid = false;
+            missingTests.push(test["Test Name"]);
+          }
+        }
+      });
+    });
+
+    return { isValid, missingTests };
+  };
 
   // Update test results when a value changes
   const handleTestValueChange = (
@@ -182,11 +209,93 @@ export default function TestForm({
     });
   };
 
+  // Function to format test data for export
+  const formatTestDataForExport = () => {
+    const { isValid, missingTests } = validateForm();
+
+    if (!isValid) {
+      toast.error(
+        `Please fill in all required test values: ${missingTests.join(", ")}`
+      );
+      return null;
+    }
+
+    const formattedTestData = selectedCategories.map((category) => {
+      const categoryTests = testData[
+        category as keyof typeof testData
+      ] as any[];
+      return {
+        category: category,
+        tests: categoryTests.map((test) => {
+          const testKey = `${category}:${test["Test Name"]}`;
+          const result = testResults[testKey];
+
+          let normalRange = "";
+          if (test["Reference Range"]) {
+            if (test["Reference Range"]["Normal"]) {
+              normalRange = test["Reference Range"]["Normal"];
+            } else if (
+              test["Reference Range"]["Normal Male"] &&
+              test["Reference Range"]["Normal Female"]
+            ) {
+              normalRange =
+                patientInfo.gender === "male"
+                  ? test["Reference Range"]["Normal Male"]
+                  : test["Reference Range"]["Normal Female"];
+            }
+          }
+
+          return {
+            testName: test["Test Name"],
+            value: result?.value || "",
+            normalRange: normalRange,
+            unit: test["Unit"],
+            status: result?.status?.status || "Not Evaluated",
+          };
+        }),
+      };
+    });
+
+    return {
+      patientInfo: {
+        id: patientInfo.id,
+        name: patientInfo.name,
+        gender: patientInfo.gender,
+        age: patientInfo.age,
+        nationalID: patientInfo.nationalID,
+      },
+      testResults: formattedTestData,
+      timestamp: new Date().toISOString(),
+    };
+  };
+
+  // Function to handle export
+  const handleExport = () => {
+    const data = formatTestDataForExport();
+    if (!data) return;
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lab-test-results-${patientInfo.id}-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Test results exported successfully!");
+  };
+
   // Handle form submission
   const handleSubmit = () => {
-    console.log("Test results:", testResults);
-    // Here you would typically save the results to a database
-    alert("Test results submitted successfully!");
+    const data = formatTestDataForExport();
+    if (!data) return;
+
+    console.log("Test Results Data:", data);
+    toast.success("Test results submitted successfully!");
   };
 
   // Helper function to get badge color class
@@ -355,9 +464,24 @@ export default function TestForm({
             </TabsContent>
           ))}
 
-          <Button onClick={handleSubmit} className="w-full mt-6">
-            Submit Test Results
-          </Button>
+          <div className="flex gap-4 mt-6">
+            <Button
+              onClick={handleSubmit}
+              className="flex-1"
+              disabled={!validateForm().isValid}
+            >
+              Submit Test Results
+            </Button>
+            {/* <Button
+              onClick={handleExport}
+              variant="outline"
+              className="flex items-center gap-2"
+              disabled={!validateForm().isValid}
+            >
+              <Download className="h-4 w-4" />
+              Export JSON
+            </Button> */}
+          </div>
         </Tabs>
       </CardContent>
     </Card>
