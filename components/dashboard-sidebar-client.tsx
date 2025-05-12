@@ -70,34 +70,9 @@ const navigationConfig: Record<
   ],
   "lab-technician": [
     {
-      title: "Overview",
-      url: "/dashboard/lab-technician",
-      icon: Home,
-    },
-    {
-      title: "Tests",
+      title: "Add Test",
       url: "/dashboard/lab-technician/tests",
       icon: Microscope,
-    },
-    {
-      title: "Patients",
-      url: "/dashboard/lab-technician/patients",
-      icon: Users,
-    },
-    {
-      title: "Reports",
-      url: "/dashboard/lab-technician/reports",
-      icon: FileText,
-    },
-    {
-      title: "Schedule",
-      url: "/dashboard/lab-technician/schedule",
-      icon: Calendar,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/lab-technician/settings",
-      icon: Settings,
     },
   ],
   receptionist: [
@@ -105,11 +80,6 @@ const navigationConfig: Record<
       title: "Overview",
       url: "/dashboard/receptionist",
       icon: Home,
-    },
-    {
-      title: "Appointments",
-      url: "/dashboard/receptionist/appointments",
-      icon: Calendar,
     },
     {
       title: "Patients",
@@ -124,19 +94,9 @@ const navigationConfig: Record<
   ],
   "scan-technician": [
     {
-      title: "Overview",
-      url: "/dashboard/scan-technician",
-      icon: Home,
-    },
-    {
       title: "Add Scan",
       url: "/dashboard/scan-technician/add-scan",
       icon: Scan,
-    },
-    {
-      title: "Patients",
-      url: "/dashboard/scan-technician/patients",
-      icon: Users,
     },
   ],
   patient: [

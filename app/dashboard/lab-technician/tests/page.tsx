@@ -84,7 +84,7 @@ export default function LabTestsPage() {
   };
 
   return (
-    <DashboardPageLayout title="Lab Tests" role="lab-technician">
+    <DashboardPageLayout title="Add Test" role="lab-technician">
       <div className="mx-auto space-y-8">
         {step !== "patient-search" && (
           <Button
