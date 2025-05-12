@@ -47,14 +47,7 @@ export default async function PatientProfile() {
   }
 
   return (
-    <DashboardPageLayout
-      title="My Profile"
-      role="patient"
-      breadcrumbItems={[
-        { title: "Dashboard", href: "/dashboard/patient" },
-        { title: "Profile", href: "/dashboard/patient/profile" },
-      ]}
-    >
+    <DashboardPageLayout title="My Profile" role="patient" breadcrumbItems={[]}>
       <PatientProfilePage patientData={userData} />
     </DashboardPageLayout>
   );

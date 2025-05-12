@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Card,
@@ -37,14 +37,20 @@ interface PatientProfilePageProps {
 export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
   const [shareUrl, setShareUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  // References for QR codes
+  const dialogQrRef = useRef<SVGSVGElement>(null);
+  const mainQrRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     // Generate the share URL based on the patient's ID
     if (patientData?._id) {
       // Use window.location to get the domain dynamically
+      setIsLoading(true);
       const domain =
         typeof window !== "undefined" ? window.location.origin : "";
       setShareUrl(`${domain}/patient/${patientData._id}`);
+      setIsLoading(false);
     }
   }, [patientData]);
 
@@ -60,9 +66,8 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
     });
   };
 
-  const downloadQRCode = () => {
-    const svg = document.getElementById("patient-profile-qr");
-    if (!svg) return;
+  const downloadQRCode = (svgElement: SVGSVGElement | null) => {
+    if (!svgElement) return;
 
     // Create a canvas element
     const canvas = document.createElement("canvas");
@@ -94,12 +99,21 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
     };
 
     // Convert SVG to data URL
-    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgData = new XMLSerializer().serializeToString(svgElement);
     const svgBlob = new Blob([svgData], {
       type: "image/svg+xml;charset=utf-8",
     });
     const url = URL.createObjectURL(svgBlob);
     img.src = url;
+  };
+
+  // Legacy function for backward compatibility
+  const downloadQRCodeById = () => {
+    const svg = document.getElementById(
+      "patient-profile-qr"
+    ) as unknown as SVGSVGElement;
+    if (!svg) return;
+    downloadQRCode(svg);
   };
 
   // Format date
@@ -150,20 +164,27 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                     <div className="flex flex-col space-y-4 py-4">
                       <div className="flex flex-col items-center gap-3 mb-2">
                         <div className="bg-white p-3 rounded-lg border">
-                          <QRCodeSVG
-                            id="patient-profile-qr"
-                            value={shareUrl}
-                            size={200}
-                            bgColor="#FFFFFF"
-                            fgColor="#000000"
-                            level="H"
-                            includeMargin={false}
-                          />
+                          {isLoading ? (
+                            <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-100 animate-pulse">
+                              <span className="text-gray-400">Loading...</span>
+                            </div>
+                          ) : (
+                            <QRCodeSVG
+                              id="patient-profile-qr"
+                              ref={dialogQrRef}
+                              value={shareUrl}
+                              size={200}
+                              bgColor="#FFFFFF"
+                              fgColor="#000000"
+                              level="H"
+                              includeMargin={false}
+                            />
+                          )}
                         </div>
                         <Button
                           variant="outline"
                           className="gap-2"
-                          onClick={downloadQRCode}
+                          onClick={() => downloadQRCode(dialogQrRef.current)}
                         >
                           <Download className="h-4 w-4" />
                           Download QR Code
@@ -174,15 +195,18 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                         <div className="flex items-center gap-2">
                           <Input
                             id="share-link"
-                            value={shareUrl}
+                            value={isLoading ? "Loading..." : shareUrl}
                             readOnly
-                            className="flex-1"
+                            className={`flex-1 ${
+                              isLoading ? "bg-gray-100 animate-pulse" : ""
+                            }`}
                           />
                           <Button
                             size="icon"
                             variant="outline"
                             onClick={handleCopyToClipboard}
                             className="shrink-0"
+                            disabled={isLoading}
                           >
                             {copied ? (
                               <Check className="h-4 w-4" />
@@ -295,19 +319,26 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                 providers. They can scan it to view your information.
               </p>
               <div className="bg-white p-4 rounded-lg border self-center">
-                <QRCodeSVG
-                  value={shareUrl}
-                  size={220}
-                  bgColor="#FFFFFF"
-                  fgColor="#000000"
-                  level="H"
-                  includeMargin={false}
-                />
+                {isLoading ? (
+                  <div className="w-[220px] h-[220px] flex items-center justify-center bg-gray-100 animate-pulse">
+                    <span className="text-gray-400">Loading...</span>
+                  </div>
+                ) : (
+                  <QRCodeSVG
+                    ref={mainQrRef}
+                    value={shareUrl}
+                    size={220}
+                    bgColor="#FFFFFF"
+                    fgColor="#000000"
+                    level="H"
+                    includeMargin={false}
+                  />
+                )}
               </div>
               <Button
                 variant="outline"
                 className="gap-2 self-center mt-2"
-                onClick={downloadQRCode}
+                onClick={() => downloadQRCode(mainQrRef.current)}
               >
                 <Download className="h-4 w-4" />
                 Download QR Code
@@ -325,15 +356,18 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                 <div className="flex items-center gap-2">
                   <Input
                     id="profile-link"
-                    value={shareUrl}
+                    value={isLoading ? "Loading..." : shareUrl}
                     readOnly
-                    className="flex-1"
+                    className={`flex-1 ${
+                      isLoading ? "bg-gray-100 animate-pulse" : ""
+                    }`}
                   />
                   <Button
                     size="icon"
                     variant="outline"
                     onClick={handleCopyToClipboard}
                     className="shrink-0"
+                    disabled={isLoading}
                   >
                     {copied ? (
                       <Check className="h-4 w-4" />

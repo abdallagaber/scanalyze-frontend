@@ -56,10 +56,7 @@ export default async function PatientMedicalHistoryPage() {
     <DashboardPageLayout
       title="Medical History"
       role="patient"
-      breadcrumbItems={[
-        { title: "Dashboard", href: "/dashboard/patient" },
-        { title: "Medical History", href: "/dashboard/patient/history" },
-      ]}
+      breadcrumbItems={[]}
     >
       {userData ? (
         <div className="space-y-4">
