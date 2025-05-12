@@ -21,6 +21,8 @@ import {
   formatReferenceRange,
 } from "@/lib/utils";
 import testData from "@/lib/test-data.json";
+import { testService } from "@/lib/services/test";
+import Cookies from "js-cookie";
 
 interface TestFormProps {
   selectedCategories: string[];
@@ -32,6 +34,7 @@ interface TestFormProps {
     name?: string; // Adding optional name field
     nationalID?: string; // Adding nationalID field
   };
+  onTestComplete?: () => void; // Add callback for when test is completed
 }
 
 type TestResult = {
@@ -42,6 +45,7 @@ type TestResult = {
 export default function TestForm({
   selectedCategories,
   patientInfo,
+  onTestComplete,
 }: TestFormProps) {
   const [testResults, setTestResults] = useState<Record<string, TestResult>>(
     {}
@@ -289,13 +293,61 @@ export default function TestForm({
     toast.success("Test results exported successfully!");
   };
 
+  // Reset form function
+  const resetForm = () => {
+    setTestResults({});
+    setActiveTab(selectedCategories[0] || "");
+  };
+
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const data = formatTestDataForExport();
     if (!data) return;
 
-    console.log("Test Results Data:", data);
-    toast.success("Test results submitted successfully!");
+    try {
+      // Get user data from cookie
+      const userCookie = Cookies.get("user");
+      let labTechnicianId = undefined;
+      let branchId = undefined;
+
+      if (userCookie) {
+        try {
+          const parsed = JSON.parse(userCookie);
+          if (parsed._id) {
+            labTechnicianId = parsed._id;
+          }
+          if (parsed.branch) {
+            branchId = parsed.branch;
+          }
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+
+      // Transform test data to match the API expected format
+      const labTestData = {
+        patient: patientInfo.id,
+        testResults: data.testResults,
+        labTechnician: labTechnicianId,
+        branch: branchId,
+      };
+
+      // Submit test results to the backend
+      const response = await testService.submitLabTest(labTestData);
+      console.log("Test Results Response:", response);
+      toast.success("Test results submitted successfully!");
+
+      // Reset the form
+      resetForm();
+
+      // Call the onTestComplete callback to notify parent component
+      if (onTestComplete) {
+        onTestComplete();
+      }
+    } catch (error) {
+      console.error("Error submitting test results:", error);
+      toast.error("Failed to submit test results. Please try again.");
+    }
   };
 
   // Helper function to get badge color class

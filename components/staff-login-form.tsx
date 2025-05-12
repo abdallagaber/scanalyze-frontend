@@ -97,6 +97,8 @@ export default function StaffLoginForm() {
         JSON.stringify({
           name: response.data.user.name,
           email: response.data.user.email,
+          _id: response.data.user._id,
+          branch: response.data.user.branch,
           imageProfile: response.data.user.imageProfile || "",
         })
       );
@@ -148,6 +150,8 @@ export default function StaffLoginForm() {
         JSON.stringify({
           name: response.data.user.name,
           email: response.data.user.email,
+          _id: response.data.user._id,
+          branch: response.data.user.branch,
           imageProfile: response.data.user.imageProfile || "",
         })
       );

@@ -127,6 +127,18 @@ export default function LabTestsPage() {
           <TestForm
             selectedCategories={selectedCategories}
             patientInfo={patientInfo}
+            onTestComplete={() => {
+              // Clear cached patient and reset state
+              setCachedPatient(null);
+              setPatientInfo(null);
+              setSelectedCategories([]);
+              // Go back to patient search step
+              setStep("patient-search");
+              // Reset patient search form if ref is available
+              if (patientSearchRef.current) {
+                patientSearchRef.current.reset();
+              }
+            }}
           />
         )}
       </div>

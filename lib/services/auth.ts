@@ -203,3 +203,20 @@ const formatPhoneNumber = (phone: string): string => {
   // Default case: return as is (backend will validate)
   return digitsOnly;
 };
+
+// Get patient profile by ID
+export const getPatientProfile = async (patientId: string) => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/v1/auth/patient/getProfile/${patientId}`
+    );
+    return response.data;
+  } catch (error: any) {
+    // Log the error details
+    console.error("Error fetching patient profile:", error);
+
+    // Keep the original error with its status code and response details
+    // This allows the calling code to check for specific status codes
+    throw error;
+  }
+};

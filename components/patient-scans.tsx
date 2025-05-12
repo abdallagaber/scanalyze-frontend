@@ -10,7 +10,16 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Filter, Search, Loader2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  FileText,
+  Filter,
+  Search,
+  Loader2,
+  Calendar as CalendarIcon,
+  X,
+} from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import {
   Dialog,
@@ -30,10 +39,24 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
-import { format } from "date-fns";
+import {
+  format,
+  isAfter,
+  isBefore,
+  isEqual,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface Scan {
   _id: string;
@@ -69,6 +92,11 @@ export function PatientScans({ patientId }: PatientScansProps) {
   );
   const reportTemplateRef = useRef<HTMLDivElement>(null);
 
+  // Date range filter
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
   useEffect(() => {
     const fetchScans = async () => {
       try {
@@ -94,7 +122,7 @@ export function PatientScans({ patientId }: PatientScansProps) {
     fetchScans();
   }, [patientId]);
 
-  // Filter scans when type or search query changes
+  // Filter scans when type, search query, or date range changes
   useEffect(() => {
     let filtered = [...scans];
 
@@ -113,6 +141,20 @@ export function PatientScans({ patientId }: PatientScansProps) {
       );
     }
 
+    // Filter by date range
+    if (isDateFilterActive && startDate && endDate) {
+      filtered = filtered.filter((scan) => {
+        const scanDate = new Date(scan.createdAt);
+        // Use startOfDay and endOfDay to include the entire days in the range
+        return (
+          (isAfter(scanDate, startOfDay(startDate)) ||
+            isEqual(scanDate, startOfDay(startDate))) &&
+          (isBefore(scanDate, endOfDay(endDate)) ||
+            isEqual(scanDate, endOfDay(endDate)))
+        );
+      });
+    }
+
     // Sort by date (newest first)
     filtered.sort(
       (a, b) =>
@@ -120,7 +162,28 @@ export function PatientScans({ patientId }: PatientScansProps) {
     );
 
     setFilteredScans(filtered);
-  }, [scans, selectedType, searchQuery]);
+  }, [
+    scans,
+    selectedType,
+    searchQuery,
+    startDate,
+    endDate,
+    isDateFilterActive,
+  ]);
+
+  // Reset date filter function
+  const resetDateFilter = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setIsDateFilterActive(false);
+  };
+
+  // Apply date filter function
+  const applyDateFilter = () => {
+    if (startDate && endDate) {
+      setIsDateFilterActive(true);
+    }
+  };
 
   const handleViewScan = (scan: Scan) => {
     // Set a default report if none exists
@@ -217,7 +280,7 @@ export function PatientScans({ patientId }: PatientScansProps) {
               ctx.drawImage(img, 0, 0, width, height);
 
               // Get compressed image as JPEG with reduced quality
-              resolve(canvas.toDataURL("image/jpeg", 0.7)); // 70% quality JPEG
+              resolve(canvas.toDataURL("image/jpeg", 0.9)); // Increase from 70% to 90% quality
             } catch (err) {
               reject(`Error compressing image: ${err}`);
             }
@@ -467,10 +530,12 @@ export function PatientScans({ patientId }: PatientScansProps) {
 
         // Optimize html2canvas options to reduce size
         const canvasOptions = {
-          scale: 1.5, // Reduce scale for smaller file size (was 2)
+          scale: 2.5, // Increase from 1.5 for higher resolution
           useCORS: true,
           logging: false,
           backgroundColor: "#FFFFFF",
+          imageTimeout: 0, // No timeout to ensure all images are loaded
+          allowTaint: false, // Prevent tainting
         };
 
         // Capture page 1 with optimized settings
@@ -482,7 +547,7 @@ export function PatientScans({ patientId }: PatientScansProps) {
         const imgWidth = 210; // A4 width in mm
         const imgHeight = (canvas1.height * imgWidth) / canvas1.width;
         pdf.addImage(
-          canvas1.toDataURL("image/jpeg", 0.7), // Use JPEG with 70% quality
+          canvas1.toDataURL("image/jpeg", 0.95), // Increase from 70% to 95% quality
           "JPEG",
           0,
           0,
@@ -503,7 +568,7 @@ export function PatientScans({ patientId }: PatientScansProps) {
         pdf.addPage();
         const img2Height = (canvas2.height * imgWidth) / canvas2.width;
         pdf.addImage(
-          canvas2.toDataURL("image/jpeg", 0.7), // Use JPEG with 70% quality
+          canvas2.toDataURL("image/jpeg", 0.95), // Increase from 70% to 95% quality
           "JPEG",
           0,
           0,
@@ -547,31 +612,135 @@ export function PatientScans({ patientId }: PatientScansProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search scans..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            {/* First row: Search and type filter */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search scans..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="w-full sm:w-[200px]">
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {scanTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="w-full sm:w-[200px]">
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {scanTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Second row: Date range filter */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Date Range:</span>
+              </div>
+
+              {/* Start date picker */}
+              <div className="flex-1 min-w-[140px] max-w-[180px]">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      {startDate ? format(startDate, "PPP") : "Start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <span className="text-sm">to</span>
+
+              {/* End date picker */}
+              <div className="flex-1 min-w-[140px] max-w-[180px]">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      {endDate ? format(endDate, "PPP") : "End date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                      disabled={(date) =>
+                        startDate ? isBefore(date, startDate) : false
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Filter buttons */}
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetDateFilter}
+                  disabled={!startDate && !endDate && !isDateFilterActive}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={applyDateFilter}
+                  disabled={!startDate || !endDate}
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Apply
+                </Button>
+              </div>
             </div>
+
+            {/* Active filter indicators */}
+            {isDateFilterActive && startDate && endDate && (
+              <div className="flex items-center">
+                <Badge variant="secondary" className="rounded-sm">
+                  Date: {format(startDate, "MMM d, yyyy")} -{" "}
+                  {format(endDate, "MMM d, yyyy")}
+                  <button
+                    className="ml-1 hover:text-destructive focus:outline-none"
+                    onClick={resetDateFilter}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              </div>
+            )}
           </div>
 
           {filteredScans.length > 0 ? (

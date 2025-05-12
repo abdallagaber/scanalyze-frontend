@@ -13,6 +13,7 @@ import {
   User,
   Activity,
   History,
+  TestTube,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
@@ -145,19 +146,14 @@ const navigationConfig: Record<
       icon: Home,
     },
     {
-      title: "Appointments",
-      url: "/dashboard/patient/appointments",
-      icon: Calendar,
-    },
-    {
-      title: "Medical Records",
-      url: "/dashboard/patient/records",
-      icon: FileText,
-    },
-    {
       title: "Scan Results",
       url: "/dashboard/patient/scans",
       icon: Activity,
+    },
+    {
+      title: "Laboratory Tests",
+      url: "/dashboard/patient/tests",
+      icon: TestTube,
     },
     {
       title: "Medical History",
