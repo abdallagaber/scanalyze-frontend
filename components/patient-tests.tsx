@@ -262,9 +262,12 @@ export function PatientTests({ patientId }: PatientTestsProps) {
       // Create a div for the PDF content
       const pdfDiv = document.createElement("div");
       pdfDiv.style.padding = "20px";
-      pdfDiv.style.maxWidth = "800px";
+      pdfDiv.style.width = "800px"; // Fixed width regardless of screen size
       pdfDiv.style.margin = "0 auto";
       pdfDiv.style.fontFamily = "Arial, sans-serif";
+      pdfDiv.style.position = "absolute";
+      pdfDiv.style.left = "-9999px"; // Position off-screen
+      pdfDiv.style.top = "0";
 
       // Format gender correctly with null/undefined checks
       const formatGender = (gender: string | undefined): string => {
@@ -421,7 +424,10 @@ export function PatientTests({ patientId }: PatientTestsProps) {
       });
 
       try {
-        // Generate PDF
+        // Append the div to the body but keep it hidden
+        document.body.appendChild(pdfDiv);
+
+        // Generate PDF with a consistent size
         const pdf = new jsPDF("p", "mm", "a4");
 
         // Optimize html2canvas options
@@ -432,10 +438,11 @@ export function PatientTests({ patientId }: PatientTestsProps) {
           backgroundColor: "#FFFFFF",
           imageTimeout: 0,
           allowTaint: false,
+          // Force the canvas to use the fixed dimensions
+          width: 800,
+          height: pdfDiv.offsetHeight,
         };
 
-        // Append the div to the body, capture it, then remove it
-        document.body.appendChild(pdfDiv);
         const canvas = await html2canvas(pdfDiv, canvasOptions);
         document.body.removeChild(pdfDiv);
 
@@ -891,8 +898,8 @@ export function PatientTests({ patientId }: PatientTestsProps) {
       </Card>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] p-4 md:p-6 pb-2 md:pb-4 overflow-y-auto max-h-[90vh]">
-          <DialogHeader className="mb-4">
+        <DialogContent className="max-w-5xl w-[95vw] p-0 md:p-6 overflow-y-auto max-h-[90vh]">
+          <DialogHeader className="p-4 md:p-0 mb-2 md:mb-4">
             <DialogTitle className="text-xl">
               Laboratory Test Results
             </DialogTitle>
@@ -902,50 +909,50 @@ export function PatientTests({ patientId }: PatientTestsProps) {
           </DialogHeader>
 
           {selectedTest && (
-            <div className="space-y-6">
+            <div className="space-y-4 px-4 md:px-0">
               {/* Patient Information */}
-              <Card>
-                <CardHeader className="pb-2">
+              <Card className="border-0 md:border shadow-none md:shadow">
+                <CardHeader className="pb-2 px-0 md:px-6">
                   <CardTitle className="text-base">
                     Patient Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <CardContent className="px-0 md:px-6">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                     <div>
                       <p className="text-muted-foreground">Name</p>
-                      <p className="font-medium">
+                      <p className="font-medium truncate">
                         {selectedTest.patientSnapshot?.firstName}{" "}
                         {selectedTest.patientSnapshot?.lastName}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">ID</p>
-                      <p className="font-medium">
+                      <p className="font-medium truncate">
                         {selectedTest.patientSnapshot?.nationalID || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Gender</p>
-                      <p className="font-medium capitalize">
+                      <p className="font-medium capitalize truncate">
                         {selectedTest.patientSnapshot?.gender || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Phone</p>
-                      <p className="font-medium">
+                      <p className="font-medium truncate">
                         {selectedTest.patientSnapshot?.phone || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Email</p>
-                      <p className="font-medium">
+                      <p className="font-medium truncate">
                         {selectedTest.patientSnapshot?.email || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Test Date</p>
-                      <p className="font-medium">
+                      <p className="font-medium truncate">
                         {format(new Date(selectedTest.createdAt), "PPP")}
                       </p>
                     </div>
@@ -955,58 +962,65 @@ export function PatientTests({ patientId }: PatientTestsProps) {
 
               {/* Test Results by Category */}
               {selectedTest.testResults.map((category) => (
-                <Card key={category.category}>
-                  <CardHeader className="pb-2">
+                <Card
+                  key={category.category}
+                  className="border-0 md:border shadow-none md:shadow overflow-hidden"
+                >
+                  <CardHeader className="pb-2 px-0 md:px-6">
                     <CardTitle className="text-base">
                       {category.category}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40%]">Test Name</TableHead>
-                          <TableHead className="text-center">Value</TableHead>
-                          <TableHead className="text-center">Unit</TableHead>
-                          <TableHead className="text-center">
-                            Normal Range
-                          </TableHead>
-                          <TableHead className="text-center">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {category.tests.map((test, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{test.testName}</TableCell>
-                            <TableCell className="text-center">
-                              {test.value}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {test.unit}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {test.normalRange}
-                            </TableCell>
-                            <TableCell
-                              className={`text-center ${getStatusColor(
-                                test.status,
-                                test.testName,
-                                category.category
-                              )}`}
-                            >
-                              {test.status !== "Normal" ? test.status : ""}
-                            </TableCell>
+                  <div className="overflow-x-auto -mx-4 md:mx-0">
+                    <div className="min-w-[640px] px-4 md:px-6 pb-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Test Name</TableHead>
+                            <TableHead className="text-center">Value</TableHead>
+                            <TableHead className="text-center">Unit</TableHead>
+                            <TableHead className="text-center">
+                              Normal Range
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Status
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
+                        </TableHeader>
+                        <TableBody>
+                          {category.tests.map((test, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{test.testName}</TableCell>
+                              <TableCell className="text-center">
+                                {test.value}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {test.unit}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {test.normalRange}
+                              </TableCell>
+                              <TableCell
+                                className={`text-center ${getStatusColor(
+                                  test.status,
+                                  test.testName,
+                                  category.category
+                                )}`}
+                              >
+                                {test.status !== "Normal" ? test.status : ""}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
           )}
 
-          <div className="flex justify-end pt-3 mt-3 md:pt-4 md:mt-6 border-t">
+          <div className="flex justify-end p-4 mt-2 border-t">
             <Button
               variant="outline"
               onClick={() => selectedTest && handleDownloadPDF(selectedTest)}

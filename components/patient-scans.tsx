@@ -306,9 +306,12 @@ export function PatientScans({ patientId }: PatientScansProps) {
       // Create page 1 - Patient details and scan image
       const page1Div = document.createElement("div");
       page1Div.style.padding = "20px";
-      page1Div.style.maxWidth = "800px";
+      page1Div.style.width = "800px"; // Fixed width regardless of screen size
       page1Div.style.margin = "0 auto";
       page1Div.style.fontFamily = "Arial, sans-serif";
+      page1Div.style.position = "absolute";
+      page1Div.style.left = "-9999px"; // Position off-screen
+      page1Div.style.top = "0";
 
       // Format gender correctly with null/undefined checks
       const formatGender = (gender: string | undefined): string => {
@@ -374,9 +377,12 @@ export function PatientScans({ patientId }: PatientScansProps) {
       // Create page 2 - Report content with ProseMirror styles
       const page2Div = document.createElement("div");
       page2Div.style.padding = "20px";
-      page2Div.style.maxWidth = "800px";
+      page2Div.style.width = "800px"; // Fixed width regardless of screen size
       page2Div.style.margin = "0 auto";
       page2Div.style.fontFamily = "Arial, sans-serif";
+      page2Div.style.position = "absolute";
+      page2Div.style.left = "-9999px"; // Position off-screen
+      page2Div.style.top = "0";
 
       // Add the HTML content for page 2 with embedded styles for the report
       page2Div.innerHTML = `
@@ -536,6 +542,7 @@ export function PatientScans({ patientId }: PatientScansProps) {
           backgroundColor: "#FFFFFF",
           imageTimeout: 0, // No timeout to ensure all images are loaded
           allowTaint: false, // Prevent tainting
+          width: 800, // Force consistent width
         };
 
         // Capture page 1 with optimized settings
