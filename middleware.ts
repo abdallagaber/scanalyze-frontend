@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import Cookies from "js-cookie";
 
 // Define the paths that need role-based protection
 const protectedPaths = {
@@ -55,34 +54,14 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    const redirectPath =
-      role === "Admin"
-        ? "/dashboard/admin"
-        : role === "LabTechnician"
-        ? "/dashboard/lab-technician"
-        : role === "ScanTechnician"
-        ? "/dashboard/scan-technician"
-        : role === "Patient"
-        ? "/dashboard/patient"
-        : "/dashboard/receptionist";
-
+    const redirectPath = getRedirectPathByRole(role);
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
   // Check if user is trying to access a public path while authenticated
   if (publicPaths.includes(pathname) && role && token) {
     // Redirect to appropriate dashboard based on role
-    const redirectPath =
-      role === "Admin"
-        ? "/dashboard/admin"
-        : role === "LabTechnician"
-        ? "/dashboard/lab-technician"
-        : role === "ScanTechnician"
-        ? "/dashboard/scan-technician"
-        : role === "Patient"
-        ? "/dashboard/patient"
-        : "/dashboard/receptionist";
-
+    const redirectPath = getRedirectPathByRole(role);
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
@@ -118,22 +97,29 @@ export function middleware(request: NextRequest) {
 
     // If the roles don't match, redirect to the user's dashboard
     if (role !== requestedBackendRole) {
-      const redirectPath =
-        role === "Admin"
-          ? "/dashboard/admin"
-          : role === "LabTechnician"
-          ? "/dashboard/lab-technician"
-          : role === "ScanTechnician"
-          ? "/dashboard/scan-technician"
-          : role === "Patient"
-          ? "/dashboard/patient"
-          : "/dashboard/receptionist";
-
+      const redirectPath = getRedirectPathByRole(role);
       return NextResponse.redirect(new URL(redirectPath, request.url));
     }
   }
 
   return NextResponse.next();
+}
+
+// Helper function to get redirect path based on role
+function getRedirectPathByRole(role: string): string {
+  switch (role) {
+    case "Admin":
+      return "/dashboard/admin";
+    case "LabTechnician":
+      return "/dashboard/lab-technician";
+    case "ScanTechnician":
+      return "/dashboard/scan-technician";
+    case "Patient":
+      return "/dashboard/patient";
+    case "Receptionist":
+    default:
+      return "/dashboard/receptionist";
+  }
 }
 
 // Configure which paths the middleware should run on
@@ -143,6 +129,7 @@ export const config = {
     "/dashboard/admin/:path*",
     "/dashboard/lab-technician/:path*",
     "/dashboard/receptionist/:path*",
+    "/dashboard/scan-technician/:path*",
     "/dashboard/patient/:path*",
     "/login/staff",
     "/login",
