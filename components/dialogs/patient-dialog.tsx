@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Upload } from "lucide-react";
+import { Eye, EyeOff, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { FullScreenLoading } from "@/components/ui/loading-spinner";
 
@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 // Define the schema for patient information
 const patientSchema = z.object({
@@ -241,6 +242,31 @@ export function PatientDialog({
 }: PatientDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [idImagePreview, setIdImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const firstInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Add states to preserve medical history data
+  const [preservedChronicDiseases, setPreservedChronicDiseases] = useState<{
+    diseasesList: string[];
+    otherDiseases: string;
+  }>({ diseasesList: [], otherDiseases: "" });
+
+  const [preservedAllergies, setPreservedAllergies] = useState<{
+    allergyDetails: string;
+  }>({ allergyDetails: "" });
+
+  const [preservedMedications, setPreservedMedications] = useState<{
+    list: any[];
+  }>({ list: [{ name: "", dosage: "", reason: "" }] });
+
+  const [preservedSurgeries, setPreservedSurgeries] = useState<{
+    surgeryDetails: string;
+  }>({ surgeryDetails: "" });
+
+  const [preservedSymptoms, setPreservedSymptoms] = useState<{
+    symptomsDetails: string;
+  }>({ symptomsDetails: "" });
 
   // Initialize the form with default empty values
   const defaultFormValues: z.infer<typeof patientSchema> = {
@@ -604,6 +630,23 @@ export function PatientDialog({
     setShowPassword(!showPassword);
   };
 
+  const removeIDImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIdImagePreview(null);
+    form.setValue("nationalIDImg", "");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter key in input fields
+    if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
+      e.preventDefault();
+    }
+  };
+
   const chronicDiseaseOptions = [
     { id: "diabetes", label: "Diabetes" },
     { id: "highBloodPressure", label: "High blood pressure" },
@@ -612,6 +655,64 @@ export function PatientDialog({
     { id: "liverDiseases", label: "Liver diseases" },
     { id: "respiratoryDiseases", label: "Respiratory diseases (e.g., asthma)" },
   ];
+
+  // Set initial focus and create focus trap when dialog opens
+  useEffect(() => {
+    if (!open || !dialogRef.current) return;
+
+    // Give the dialog time to fully render before trying to focus or trap
+    setTimeout(() => {
+      if (firstInputRef.current) {
+        firstInputRef.current.focus();
+      }
+
+      // Attempt to manually implement a focus trap
+      const focusableSelector =
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])';
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key !== "Tab" || !dialogRef.current) return;
+
+        const focusableElements = Array.from(
+          dialogRef.current.querySelectorAll(focusableSelector)
+        ) as HTMLElement[];
+
+        // Filter out any hidden elements or those with zero dimensions
+        const visibleFocusable = focusableElements.filter((el) => {
+          const style = window.getComputedStyle(el);
+          return (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            style.opacity !== "0" &&
+            el.offsetWidth > 0 &&
+            el.offsetHeight > 0
+          );
+        });
+
+        if (visibleFocusable.length === 0) return;
+
+        const firstElement = visibleFocusable[0];
+        const lastElement = visibleFocusable[visibleFocusable.length - 1];
+
+        // Shift+Tab on first element -> focus last element
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+        // Tab on last element -> focus first element
+        else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      };
+
+      // Add event listener
+      document.addEventListener("keydown", handleTabKey);
+
+      return () => {
+        document.removeEventListener("keydown", handleTabKey);
+      };
+    }, 100);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
@@ -622,10 +723,13 @@ export function PatientDialog({
         blur={true}
       />
 
-      <DialogContent className="max-w-[900px] h-[90vh] p-0 flex flex-col overflow-hidden">
-        <div className="px-6 py-4 border-b shrink-0">
+      <DialogContent
+        className="max-w-[900px] h-[90vh] p-0 flex flex-col overflow-hidden"
+        ref={dialogRef}
+      >
+        <div className="px-6 py-4 border-b shrink-0 bg-muted/10">
           <DialogHeader className="text-left">
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle className="text-xl">{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
         </div>
@@ -634,110 +738,149 @@ export function PatientDialog({
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
             className="flex flex-col h-full overflow-hidden"
+            onKeyDown={handleKeyDown}
           >
             <ScrollArea className="flex-1 px-6">
-              <div className="space-y-6 py-4">
-                {/* Personal Information Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter first name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter last name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              <div className="space-y-8 py-6">
+                {/* Personal Information Section - Simplified structure */}
+                <div className="space-y-5">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-semibold">
+                      Personal Information
+                    </h3>
+                    <Separator className="flex-1 ml-3" />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Gender</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-row space-x-4"
-                          >
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="male" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Male
-                              </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="female" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Female
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="nationalID"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>National ID</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="14-digit Egyptian National ID"
-                            {...field}
-                            maxLength={14}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Egyptian National ID is 14 digits (e.g.,
-                          29901011234567)
+                  {/* First and Last name in a grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* First name input */}
+                    <div>
+                      <Label htmlFor="firstName">
+                        First Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="firstName"
+                        placeholder="Enter first name"
+                        value={form.watch("firstName")}
+                        onChange={(e) =>
+                          form.setValue("firstName", e.target.value)
+                        }
+                        ref={firstInputRef}
+                        aria-required="true"
+                        className="mt-1.5"
+                      />
+                      {form.formState.errors.firstName && (
+                        <p className="text-sm font-medium text-destructive mt-1">
+                          {form.formState.errors.firstName.message}
                         </p>
-                        <FormMessage />
-                      </FormItem>
+                      )}
+                    </div>
+
+                    {/* Last name input */}
+                    <div>
+                      <Label htmlFor="lastName">
+                        Last Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Enter last name"
+                        value={form.watch("lastName")}
+                        onChange={(e) =>
+                          form.setValue("lastName", e.target.value)
+                        }
+                        aria-required="true"
+                        className="mt-1.5"
+                      />
+                      {form.formState.errors.lastName && (
+                        <p className="text-sm font-medium text-destructive mt-1">
+                          {form.formState.errors.lastName.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Gender selection with blue styling */}
+                  <fieldset>
+                    <legend className="text-sm font-medium mb-2">Gender</legend>
+                    <div className="flex flex-row space-x-6">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="gender-male"
+                          name="gender"
+                          value="male"
+                          checked={form.watch("gender") === "male"}
+                          onChange={() => form.setValue("gender", "male")}
+                          className="w-4 h-4 accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                        <Label
+                          htmlFor="gender-male"
+                          className="ml-2 cursor-pointer"
+                        >
+                          Male
+                        </Label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="gender-female"
+                          name="gender"
+                          value="female"
+                          checked={form.watch("gender") === "female"}
+                          onChange={() => form.setValue("gender", "female")}
+                          className="w-4 h-4 accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                        <Label
+                          htmlFor="gender-female"
+                          className="ml-2 cursor-pointer"
+                        >
+                          Female
+                        </Label>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  {/* National ID input */}
+                  <div>
+                    <Label htmlFor="nationalID">
+                      National ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="nationalID"
+                      placeholder="14-digit Egyptian National ID"
+                      value={form.watch("nationalID")}
+                      onChange={(e) =>
+                        form.setValue("nationalID", e.target.value)
+                      }
+                      maxLength={14}
+                      aria-required="true"
+                      aria-describedby="national-id-hint"
+                      className="mt-1.5"
+                    />
+                    <p
+                      className="text-xs text-muted-foreground mt-1"
+                      id="national-id-hint"
+                    >
+                      Egyptian National ID is 14 digits (e.g., 29901011234567)
+                    </p>
+                    {form.formState.errors.nationalID && (
+                      <p className="text-sm font-medium text-destructive mt-1">
+                        {form.formState.errors.nationalID.message}
+                      </p>
                     )}
-                  />
+                  </div>
 
                   {/* National ID Image Upload */}
                   <div className="space-y-2">
                     <Label htmlFor="idImage">
                       Upload Front Side of National ID
                     </Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-scanalyze-400 transition-colors">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-scanalyze-400 transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                       <input
                         id="idImage"
                         type="file"
                         accept="image/*"
+                        ref={fileInputRef}
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];
@@ -753,10 +896,12 @@ export function PatientDialog({
                           }
                         }}
                         className="hidden"
+                        aria-describedby="id-image-hint"
                       />
-                      <label
-                        htmlFor="idImage"
-                        className="flex flex-col items-center justify-center cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full flex flex-col items-center justify-center cursor-pointer border-0 bg-transparent p-2"
                       >
                         {idImagePreview ? (
                           <div className="relative w-full">
@@ -764,114 +909,162 @@ export function PatientDialog({
                               src={idImagePreview}
                               alt="ID Preview"
                               className="mx-auto max-h-40 object-contain mb-2"
+                              aria-hidden="true"
                             />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-0 right-0 h-8 w-8"
+                              onClick={removeIDImage}
+                              aria-label="Remove image"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                             <p className="text-sm text-muted-foreground">
                               Click to change
                             </p>
                           </div>
                         ) : (
                           <>
-                            <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+                            <Upload
+                              className="h-10 w-10 text-muted-foreground mb-2"
+                              aria-hidden="true"
+                            />
                             <p className="text-sm text-muted-foreground">
                               Click to upload or drag and drop
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p
+                              className="text-xs text-muted-foreground mt-1"
+                              id="id-image-hint"
+                            >
                               JPG, PNG or PDF (max. 5MB)
                             </p>
                           </>
                         )}
-                      </label>
+                      </button>
                     </div>
                   </div>
 
+                  {/* Password field (for admin creating new account) */}
                   {!defaultValues && isAdmin && (
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Create a password"
-                                {...field}
-                              />
-                              <button
-                                type="button"
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                onClick={togglePasswordVisibility}
-                                tabIndex={-1}
-                              >
-                                {showPassword ? (
-                                  <EyeOff size={18} />
-                                ) : (
-                                  <Eye size={18} />
-                                )}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Password must be at least 8 characters
-                          </p>
-                          <FormMessage />
-                        </FormItem>
+                    <div>
+                      <Label htmlFor="password">
+                        Password <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="relative mt-1.5">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create a password"
+                          value={form.watch("password") || ""}
+                          onChange={(e) =>
+                            form.setValue("password", e.target.value)
+                          }
+                          aria-required="true"
+                          aria-describedby="password-hint"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                          onClick={togglePasswordVisibility}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
+                        </Button>
+                      </div>
+                      <p
+                        className="text-xs text-muted-foreground mt-1"
+                        id="password-hint"
+                      >
+                        Password must be at least 8 characters
+                      </p>
+                      {form.formState.errors.password && (
+                        <p className="text-sm font-medium text-destructive mt-1">
+                          {form.formState.errors.password.message}
+                        </p>
                       )}
-                    />
+                    </div>
                   )}
                 </div>
 
-                {/* Contact Information Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Contact Information</h3>
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Enter email address"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Contact Information Section - Simplified structure */}
+                <div className="space-y-5">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-semibold">
+                      Contact Information
+                    </h3>
+                    <Separator className="flex-1 ml-3" />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="tel"
-                            placeholder="Enter phone number"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Egyptian mobile numbers start with 010, 011, 012, or
-                          015
-                        </p>
-                        <FormMessage />
-                      </FormItem>
+                  {/* Email input */}
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter email address"
+                      value={form.watch("email") || ""}
+                      onChange={(e) => form.setValue("email", e.target.value)}
+                      aria-describedby="email-format"
+                      className="mt-1.5"
+                    />
+                    <p id="email-format" className="sr-only">
+                      Email format: example@domain.com
+                    </p>
+                    {form.formState.errors.email && (
+                      <p className="text-sm font-medium text-destructive mt-1">
+                        {form.formState.errors.email.message}
+                      </p>
                     )}
-                  />
+                  </div>
+
+                  {/* Phone input */}
+                  <div>
+                    <Label htmlFor="phone">
+                      Phone Number <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="Enter phone number"
+                      value={form.watch("phone") || ""}
+                      onChange={(e) => form.setValue("phone", e.target.value)}
+                      aria-required="true"
+                      aria-describedby="phone-hint"
+                      className="mt-1.5"
+                    />
+                    <p
+                      className="text-xs text-muted-foreground mt-1"
+                      id="phone-hint"
+                    >
+                      Egyptian mobile numbers start with 010, 011, 012, or 015
+                    </p>
+                    {form.formState.errors.phone && (
+                      <p className="text-sm font-medium text-destructive mt-1">
+                        {form.formState.errors.phone.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Medical History Section */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Medical History</h3>
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-semibold">Medical History</h3>
+                    <Separator className="flex-1 ml-3" />
+                  </div>
 
                   {/* Chronic Diseases */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
                     <FormField
                       control={form.control}
                       name="chronicDiseases.hasChronicDiseases"
@@ -880,59 +1073,79 @@ export function PatientDialog({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  // When unchecking, clear values
+                                  form.setValue(
+                                    "chronicDiseases.diseasesList",
+                                    []
+                                  );
+                                  form.setValue(
+                                    "chronicDiseases.otherDiseases",
+                                    ""
+                                  );
+                                }
+                                field.onChange(checked);
+                              }}
+                              id="has-chronic-diseases"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Has Chronic Diseases</FormLabel>
+                            <FormLabel
+                              htmlFor="has-chronic-diseases"
+                              className="font-medium cursor-pointer"
+                            >
+                              Has Chronic Diseases
+                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
                     />
 
                     {form.watch("chronicDiseases.hasChronicDiseases") && (
-                      <div className="pl-6 space-y-4">
-                        <Label>Select Chronic Diseases</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="pl-6 space-y-4 mt-2">
+                        <Label id="chronic-diseases-group">
+                          Select Chronic Diseases
+                        </Label>
+                        <div
+                          className="grid grid-cols-1 md:grid-cols-2 gap-2"
+                          role="group"
+                          aria-labelledby="chronic-diseases-group"
+                        >
                           {chronicDiseaseOptions.map((option) => (
-                            <FormField
+                            <div
                               key={option.id}
-                              control={form.control}
-                              name="chronicDiseases.diseasesList"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={option.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={(field.value || []).includes(
-                                          option.id
-                                        )}
-                                        onCheckedChange={(checked) => {
-                                          const currentValue =
-                                            field.value || [];
-                                          return checked
-                                            ? field.onChange([
-                                                ...currentValue,
-                                                option.id,
-                                              ])
-                                            : field.onChange(
-                                                currentValue.filter(
-                                                  (value) => value !== option.id
-                                                )
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">
-                                      {option.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <Checkbox
+                                id={`disease-${option.id}`}
+                                checked={(
+                                  form.watch("chronicDiseases.diseasesList") ||
+                                  []
+                                ).includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  const currentValue =
+                                    form.getValues(
+                                      "chronicDiseases.diseasesList"
+                                    ) || [];
+                                  const newValue = checked
+                                    ? [...currentValue, option.id]
+                                    : currentValue.filter(
+                                        (value) => value !== option.id
+                                      );
+                                  form.setValue(
+                                    "chronicDiseases.diseasesList",
+                                    newValue
+                                  );
+                                }}
+                              />
+                              <Label
+                                htmlFor={`disease-${option.id}`}
+                                className="font-normal cursor-pointer"
+                              >
+                                {option.label}
+                              </Label>
+                            </div>
                           ))}
                         </div>
 
@@ -957,7 +1170,7 @@ export function PatientDialog({
                   </div>
 
                   {/* Allergies */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
                     <FormField
                       control={form.control}
                       name="allergies.hasAllergies"
@@ -966,11 +1179,23 @@ export function PatientDialog({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  // When unchecking, clear values
+                                  form.setValue("allergies.allergyDetails", "");
+                                }
+                                field.onChange(checked);
+                              }}
+                              id="has-allergies"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Has Allergies</FormLabel>
+                            <FormLabel
+                              htmlFor="has-allergies"
+                              className="font-medium cursor-pointer"
+                            >
+                              Has Allergies
+                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
@@ -981,7 +1206,7 @@ export function PatientDialog({
                         control={form.control}
                         name="allergies.allergyDetails"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="pl-6 mt-2">
                             <FormLabel>Allergy Details</FormLabel>
                             <FormControl>
                               <Textarea
@@ -997,7 +1222,7 @@ export function PatientDialog({
                   </div>
 
                   {/* Medications */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
                     <FormField
                       control={form.control}
                       name="medications.takesMedications"
@@ -1006,22 +1231,36 @@ export function PatientDialog({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  // When unchecking, clear values but keep the structure
+                                  form.setValue("medications.list", [
+                                    { name: "", dosage: "", reason: "" },
+                                  ]);
+                                }
+                                field.onChange(checked);
+                              }}
+                              id="takes-medications"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Takes Medications</FormLabel>
+                            <FormLabel
+                              htmlFor="takes-medications"
+                              className="font-medium cursor-pointer"
+                            >
+                              Takes Medications
+                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
                     />
 
                     {form.watch("medications.takesMedications") && (
-                      <div className="space-y-4">
+                      <div className="pl-6 space-y-4 mt-2">
                         {form.watch("medications.list")?.map((_, index) => (
                           <div
                             key={index}
-                            className="border border-gray-200 rounded-md p-4 space-y-4"
+                            className="border border-gray-200 rounded-md p-4 space-y-4 bg-background"
                           >
                             <div className="flex justify-between items-center">
                               <h4 className="font-medium">
@@ -1030,7 +1269,7 @@ export function PatientDialog({
                               {index > 0 && (
                                 <Button
                                   type="button"
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     const currentItems =
@@ -1040,6 +1279,7 @@ export function PatientDialog({
                                       currentItems.filter((_, i) => i !== index)
                                     );
                                   }}
+                                  aria-label={`Remove medication ${index + 1}`}
                                 >
                                   Remove
                                 </Button>
@@ -1063,39 +1303,41 @@ export function PatientDialog({
                               )}
                             />
 
-                            <FormField
-                              control={form.control}
-                              name={`medications.list.${index}.dosage`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Dosage</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Enter dosage"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`medications.list.${index}.dosage`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Dosage</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Enter dosage"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                            <FormField
-                              control={form.control}
-                              name={`medications.list.${index}.reason`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Reason for use</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Enter reason for use"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                              <FormField
+                                control={form.control}
+                                name={`medications.list.${index}.reason`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Reason for use</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Enter reason for use"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
                           </div>
                         ))}
 
@@ -1120,7 +1362,7 @@ export function PatientDialog({
                   </div>
 
                   {/* Surgeries */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
                     <FormField
                       control={form.control}
                       name="surgeries.hadSurgeries"
@@ -1129,11 +1371,23 @@ export function PatientDialog({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  // When unchecking, clear values
+                                  form.setValue("surgeries.surgeryDetails", "");
+                                }
+                                field.onChange(checked);
+                              }}
+                              id="had-surgeries"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Had Surgeries</FormLabel>
+                            <FormLabel
+                              htmlFor="had-surgeries"
+                              className="font-medium cursor-pointer"
+                            >
+                              Had Surgeries
+                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
@@ -1144,7 +1398,7 @@ export function PatientDialog({
                         control={form.control}
                         name="surgeries.surgeryDetails"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="pl-6 mt-2">
                             <FormLabel>Surgery Details</FormLabel>
                             <FormControl>
                               <Textarea
@@ -1160,7 +1414,7 @@ export function PatientDialog({
                   </div>
 
                   {/* Symptoms */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
                     <FormField
                       control={form.control}
                       name="symptoms.hasSymptoms"
@@ -1169,11 +1423,23 @@ export function PatientDialog({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  // When unchecking, clear values
+                                  form.setValue("symptoms.symptomsDetails", "");
+                                }
+                                field.onChange(checked);
+                              }}
+                              id="has-symptoms"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Has Symptoms</FormLabel>
+                            <FormLabel
+                              htmlFor="has-symptoms"
+                              className="font-medium cursor-pointer"
+                            >
+                              Has Symptoms
+                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
@@ -1184,7 +1450,7 @@ export function PatientDialog({
                         control={form.control}
                         name="symptoms.symptomsDetails"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="pl-6 mt-2">
                             <FormLabel>Symptoms Details</FormLabel>
                             <FormControl>
                               <Textarea
@@ -1200,56 +1466,63 @@ export function PatientDialog({
                   </div>
 
                   {/* Lifestyle */}
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="lifestyle.smokes"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Smokes</FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                  <div className="space-y-4 p-4 rounded-lg border border-muted bg-muted/5">
+                    <h4 className="font-medium">Lifestyle Factors</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="lifestyle.smokes"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                id="smokes"
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel
+                                htmlFor="smokes"
+                                className="font-normal cursor-pointer"
+                              >
+                                Smokes
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="lifestyle.consumesAlcohol"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Consumes Alcohol</FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={form.control}
+                        name="lifestyle.consumesAlcohol"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                id="consumes-alcohol"
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel
+                                htmlFor="consumes-alcohol"
+                                className="font-normal cursor-pointer"
+                              >
+                                Consumes Alcohol
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </ScrollArea>
 
-            <div className="flex justify-end gap-4 px-6 py-4 border-t shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
+            <div className="flex justify-end px-6 py-4 border-t shrink-0 bg-muted/5">
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -1258,6 +1531,7 @@ export function PatientDialog({
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <circle
                         className="opacity-25"
