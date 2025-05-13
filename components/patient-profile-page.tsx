@@ -511,14 +511,6 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                 <Button
                   variant="outline"
                   className="gap-2"
-                  onClick={() => downloadSimpleQRCode(mainQrRef.current)}
-                >
-                  <Download className="h-4 w-4" />
-                  Download QR
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
                   onClick={() => downloadQRCode(mainQrRef.current)}
                 >
                   <IdCard className="h-4 w-4" />
