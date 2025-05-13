@@ -27,7 +27,15 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Share2, Copy, Check, Download, ExternalLink } from "lucide-react";
+import {
+  Share2,
+  Copy,
+  Check,
+  Download,
+  ExternalLink,
+  Pencil,
+  IdCard,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface PatientProfilePageProps {
@@ -74,6 +82,177 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Set canvas dimensions for the card
+    canvas.width = 800;
+    canvas.height = 450;
+
+    // Create a new Image with type definition
+    const img = new Image() as HTMLImageElement;
+    img.onload = () => {
+      // Draw the card background with gradient
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, "#eef7ff");
+      gradient.addColorStop(0.85, "#e0f0ff");
+      gradient.addColorStop(1, "#004785");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Add subtle pattern background of medical icons
+      const drawMedicalIcons = () => {
+        // Draw faint medical symbols in the background
+        ctx.save();
+        ctx.globalAlpha = 0.05;
+
+        // DNA helix
+        ctx.beginPath();
+        ctx.moveTo(200, 50);
+        ctx.bezierCurveTo(230, 70, 170, 90, 200, 110);
+        ctx.bezierCurveTo(230, 130, 170, 150, 200, 170);
+        ctx.stroke();
+
+        // Heart
+        ctx.beginPath();
+        ctx.moveTo(450, 100);
+        ctx.bezierCurveTo(450, 80, 420, 80, 420, 100);
+        ctx.bezierCurveTo(420, 120, 450, 140, 450, 120);
+        ctx.bezierCurveTo(450, 140, 480, 120, 480, 100);
+        ctx.bezierCurveTo(480, 80, 450, 80, 450, 100);
+        ctx.stroke();
+
+        // Medical cross
+        ctx.beginPath();
+        ctx.rect(300, 200, 40, 40);
+        ctx.moveTo(310, 220);
+        ctx.lineTo(330, 220);
+        ctx.moveTo(320, 210);
+        ctx.lineTo(320, 230);
+        ctx.stroke();
+
+        // Medical flask
+        ctx.beginPath();
+        ctx.moveTo(550, 250);
+        ctx.lineTo(550, 210);
+        ctx.lineTo(530, 210);
+        ctx.lineTo(530, 250);
+        ctx.bezierCurveTo(530, 270, 550, 270, 550, 250);
+        ctx.stroke();
+
+        ctx.restore();
+      };
+
+      // drawMedicalIcons();
+
+      // Draw right side vertical banner
+      ctx.fillStyle = "#004785";
+      ctx.fillRect(670, 0, 130, canvas.height);
+
+      // Add "MEDICAL PROFILE" vertical text in the right banner
+      ctx.save();
+      ctx.translate(720, 230);
+      ctx.rotate(Math.PI / 2);
+      ctx.font = "bold 30px Arial";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("MEDICAL PROFILE", -140, 0);
+      ctx.restore();
+
+      // Logo loading and drawing
+      const logo = new Image();
+      logo.onload = () => {
+        // Draw Scanalyze logo with better quality
+        // Calculate a good size while maintaining aspect ratio
+        const logoWidth = 300;
+        const logoHeight = (logoWidth / logo.width) * logo.height;
+
+        // Position it in the top left with good margins
+        ctx.drawImage(logo, 40, 10, logoWidth, logoHeight);
+
+        // Draw QR code box
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#004785";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.roundRect(60, 140, 220, 220, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the QR code
+        ctx.drawImage(img, 70, 150, 200, 200);
+
+        // Add "MEDICAL PROFILE" text under QR code
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#004785";
+        ctx.fillRect(60, 370, 220, 30);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("MEDICAL PROFILE", 170, 390);
+
+        // Add patient information section
+        const infoX = 300;
+        const startY = 220;
+        const lineSpacing = 70;
+
+        // Add styled information section
+        // Name section
+        ctx.fillStyle = "#004785"; // Darker blue for better contrast/accessibility
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText("NAME:", infoX, startY);
+
+        // Name value
+        ctx.font = "28px Arial";
+        ctx.fillStyle = "#004785";
+        ctx.fillText(
+          `${patientData.firstName} ${patientData.lastName}`,
+          infoX + 110,
+          startY
+        );
+
+        // ID section
+        ctx.fillStyle = "#004785";
+        ctx.font = "bold 32px Arial";
+        ctx.fillText("ID:", infoX, startY + lineSpacing);
+
+        // ID value
+        ctx.font = "28px Arial";
+        ctx.fillStyle = "#004785";
+        ctx.fillText(
+          patientData.nationalID || patientData._id.substring(0, 8),
+          infoX + 50,
+          startY + lineSpacing
+        );
+
+        // Convert to data URL and trigger download
+        const dataUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `medical-card-${patientData.firstName}-${patientData.lastName}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      logo.src = "/images/scanalyze-logo.png";
+    };
+
+    // Convert SVG to data URL
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgData], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+  };
+
+  const downloadSimpleQRCode = (svgElement: SVGSVGElement | null) => {
+    if (!svgElement) return;
+
+    // Create a canvas element
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     // Set canvas dimensions
     canvas.width = 300;
     canvas.height = 300;
@@ -92,7 +271,7 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
       const dataUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `profile-${patientData.firstName}-${patientData.lastName}.png`;
+      a.download = `qr-code-${patientData.firstName}-${patientData.lastName}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -147,89 +326,13 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2">
-                      <Share2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Share Profile</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Share Your Profile</DialogTitle>
-                      <DialogDescription>
-                        Share your medical profile with healthcare providers
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col space-y-4 py-4">
-                      <div className="flex flex-col items-center gap-3 mb-2">
-                        <div className="bg-white p-3 rounded-lg border">
-                          {isLoading ? (
-                            <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-100 animate-pulse">
-                              <span className="text-gray-400">Loading...</span>
-                            </div>
-                          ) : (
-                            <QRCodeSVG
-                              id="patient-profile-qr"
-                              ref={dialogQrRef}
-                              value={shareUrl}
-                              size={200}
-                              bgColor="#FFFFFF"
-                              fgColor="#000000"
-                              level="H"
-                              includeMargin={false}
-                            />
-                          )}
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => downloadQRCode(dialogQrRef.current)}
-                        >
-                          <Download className="h-4 w-4" />
-                          Download QR Code
-                        </Button>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="share-link">Profile Link</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="share-link"
-                            value={isLoading ? "Loading..." : shareUrl}
-                            readOnly
-                            className={`flex-1 ${
-                              isLoading ? "bg-gray-100 animate-pulse" : ""
-                            }`}
-                          />
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={handleCopyToClipboard}
-                            className="shrink-0"
-                            disabled={isLoading}
-                          >
-                            {copied ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        onClick={() => window.open(shareUrl, "_blank")}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Open in New Tab
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="outline" className="gap-2">
+                  <Pencil className="h-4 w-4" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Share your profile with a link or QR code</p>
+                <p>Edit your profile information</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -335,14 +438,24 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                   />
                 )}
               </div>
-              <Button
-                variant="outline"
-                className="gap-2 self-center mt-2"
-                onClick={() => downloadQRCode(mainQrRef.current)}
-              >
-                <Download className="h-4 w-4" />
-                Download QR Code
-              </Button>
+              <div className="flex gap-3 justify-center mt-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => downloadSimpleQRCode(mainQrRef.current)}
+                >
+                  <Download className="h-4 w-4" />
+                  Download QR
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => downloadQRCode(mainQrRef.current)}
+                >
+                  <IdCard className="h-4 w-4" />
+                  Download ID Card
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-4">
