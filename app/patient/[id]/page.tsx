@@ -28,14 +28,72 @@ function TabContentSkeleton() {
   );
 }
 
-export default async function PatientProfilePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+// Helper function to normalize medical history data
+function normalizeMedicalHistory(medicalHistoryData: any) {
+  // If it's a string, try to parse it
+  if (typeof medicalHistoryData === "string") {
+    try {
+      medicalHistoryData = JSON.parse(medicalHistoryData);
+    } catch (error) {
+      console.error("Error parsing medical history string:", error);
+      // Default structure if parsing fails
+      return {
+        chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+        allergies: { hasAllergies: false },
+        medications: { takesMedications: false, list: [] },
+        surgeries: { hadSurgeries: false },
+        currentSymptoms: { hasSymptoms: false },
+        lifestyle: { smokes: false, consumesAlcohol: false },
+      };
+    }
+  }
+
+  // Ensure all required properties exist with proper structure
+  return {
+    chronicDiseases: {
+      hasChronicDiseases:
+        medicalHistoryData?.chronicDiseases?.hasChronicDiseases || false,
+      diseasesList: medicalHistoryData?.chronicDiseases?.diseasesList || [],
+      otherDiseases: medicalHistoryData?.chronicDiseases?.otherDiseases || "",
+    },
+    allergies: {
+      hasAllergies: medicalHistoryData?.allergies?.hasAllergies || false,
+      allergyDetails: medicalHistoryData?.allergies?.allergyDetails || "",
+    },
+    medications: {
+      takesMedications:
+        medicalHistoryData?.medications?.takesMedications || false,
+      list: Array.isArray(medicalHistoryData?.medications?.list)
+        ? medicalHistoryData.medications.list
+        : [],
+    },
+    surgeries: {
+      hadSurgeries: medicalHistoryData?.surgeries?.hadSurgeries || false,
+      surgeryDetails: medicalHistoryData?.surgeries?.surgeryDetails || "",
+    },
+    currentSymptoms: {
+      hasSymptoms: medicalHistoryData?.currentSymptoms?.hasSymptoms || false,
+      symptomsDetails:
+        medicalHistoryData?.currentSymptoms?.symptomsDetails || "",
+    },
+    lifestyle: {
+      smokes: medicalHistoryData?.lifestyle?.smokes || false,
+      consumesAlcohol: medicalHistoryData?.lifestyle?.consumesAlcohol || false,
+    },
+  };
+}
+
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+// Server Component for patient details
+async function PatientDetails({ patientId }: { patientId: string }) {
   try {
-    // Fetch patient data
-    const response = await getPatientProfile(params.id);
+    // Fetch patient data using the id
+    const response = await getPatientProfile(patientId);
 
     // Check if response or patient data is missing
     if (!response || !response.patient) {
@@ -43,6 +101,9 @@ export default async function PatientProfilePage({
     }
 
     const { patient } = response;
+
+    // Normalize medical history (handle both string and object formats)
+    patient.medicalHistory = normalizeMedicalHistory(patient.medicalHistory);
 
     return (
       <div className="container py-8 max-w-6xl">
@@ -319,14 +380,14 @@ export default async function PatientProfilePage({
           {/* Lab Tests Tab */}
           <TabsContent value="tests">
             <Suspense fallback={<TabContentSkeleton />}>
-              <PatientTests patientId={params.id} />
+              <PatientTests patientId={patientId} />
             </Suspense>
           </TabsContent>
 
           {/* Scans Tab */}
           <TabsContent value="scans">
             <Suspense fallback={<TabContentSkeleton />}>
-              <PatientScans patientId={params.id} />
+              <PatientScans patientId={patientId} />
             </Suspense>
           </TabsContent>
         </Tabs>
@@ -356,4 +417,13 @@ export default async function PatientProfilePage({
       </div>
     );
   }
+}
+
+// Main server component
+export default async function PatientProfilePage({ params }: PageProps) {
+  // In Next.js 15, params is actually a Promise that needs to be awaited
+  const resolvedParams = await params;
+  const patientId = resolvedParams.id;
+
+  return <PatientDetails patientId={patientId} />;
 }

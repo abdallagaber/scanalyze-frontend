@@ -763,8 +763,8 @@ export function PatientTests({ patientId }: PatientTestsProps) {
           {filteredTests.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredTests.map((test) => (
-                <Card key={test._id} className="overflow-hidden">
-                  <CardContent className="p-4">
+                <Card key={test._id} className="overflow-hidden flex flex-col">
+                  <CardContent className="p-4 flex-1 flex flex-col">
                     <div className="mb-4">
                       <h3 className="font-semibold text-lg mb-1">
                         {test.testResults.map((cat) => cat.category).join(", ")}
@@ -833,35 +833,37 @@ export function PatientTests({ patientId }: PatientTestsProps) {
                       })()}
                     </div>
 
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewTest(test)}
-                        className="flex-1"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadPDF(test)}
-                        className="flex-1"
-                        disabled={generatingPDFs[test._id]}
-                      >
-                        {generatingPDFs[test._id] ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </>
-                        )}
-                      </Button>
+                    <div className="mt-auto">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewTest(test)}
+                          className="flex-1"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadPDF(test)}
+                          className="flex-1"
+                          disabled={generatingPDFs[test._id]}
+                        >
+                          {generatingPDFs[test._id] ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
