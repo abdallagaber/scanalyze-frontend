@@ -2,11 +2,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Metadata } from "next";
 import { createMetadata } from "../shared-metadata";
 
-// Determine the base URL
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "https://scanalyze-fcds.vercel.app";
-
 // This metadata will be used specifically for the landing page
 // Using the hero section content for better link previews
 export const metadata: Metadata = createMetadata(

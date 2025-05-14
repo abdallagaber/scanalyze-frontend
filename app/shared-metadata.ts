@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 
 // Determine base URL based on environment
-export const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_APP_URL || "https://scanalyze-fcds.vercel.app";
+export const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+  ? process.env.NEXT_PUBLIC_APP_URL
+  : "https://scanalyze-fcds.vercel.app";
 
 // Shared metadata properties
 export const sharedMetadata = {
