@@ -53,30 +53,21 @@ export function createMetadata(
   options: {
     ogImage?: string;
     noIndex?: boolean;
+    isLandingPage?: boolean;
   } = {}
 ): Metadata {
   // For the landing page, use a special title that matches the hero section
-  const isLandingPage = title === "Scanalyze" && !options.ogImage;
-  const ogTitle = isLandingPage ? "Advanced Medical Diagnostics" : title;
+  const isLandingPage = options.isLandingPage || title === "Scanalyze";
+  const ogTitle = isLandingPage
+    ? "Advanced Medical Diagnostics Simplified"
+    : title;
   const ogDescription = isLandingPage
-    ? "Cutting-edge laboratory testing and medical imaging with fast, accurate results."
+    ? "Cutting-edge laboratory testing and medical imaging with fast, accurate results. Your complete health information at your fingertips."
     : description;
 
-  // Make sure we have an absolute URL for the OG image
-  let ogImage = options.ogImage;
-
-  if (!ogImage) {
-    // If no image provided, use the dynamic OG image
-    const encodedTitle = encodeURIComponent(ogTitle);
-
-    // Create absolute URL
-    ogImage = `${baseUrl}/api/og?title=${encodedTitle}`;
-
-    // Fallback to a specific URL if needed
-    if (!ogImage.startsWith("http")) {
-      ogImage = `https://scanalyze-test.vercel.app/api/og?title=${encodedTitle}`;
-    }
-  }
+  // Use the hero screenshot as default image
+  const heroImage = `${baseUrl}/images/Scanalyze-hero.jpeg`;
+  const ogImage = options.ogImage || heroImage;
 
   return {
     ...sharedMetadata,
