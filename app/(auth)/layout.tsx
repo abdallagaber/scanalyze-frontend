@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "../globals.css";
+import { createMetadata } from "../shared-metadata";
 
-export const metadata: Metadata = {
-  title: "Authentication - Scanalyze",
-  description: "Login or create an account with Scanalyze",
-};
+export const metadata: Metadata = createMetadata(
+  "Scanalyze",
+  "Login or create an account with Scanalyze"
+);
 
 export default function AuthLayout({
   children,

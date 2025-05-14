@@ -3,17 +3,14 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Providers } from "./providers";
+import { createMetadata } from "./shared-metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Scanalyze",
-  description:
-    "Advanced laboratory testing and medical scans with fast, accurate results",
-  icons: {
-    icon: "/images/icon.png",
-  },
-};
+export const metadata: Metadata = createMetadata(
+  "Scanalyze",
+  "Advanced laboratory testing and medical scans with fast, accurate results"
+);
 
 export default function RootLayout({
   children,
