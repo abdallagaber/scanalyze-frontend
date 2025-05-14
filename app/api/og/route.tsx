@@ -14,10 +14,16 @@ export async function GET(request: NextRequest) {
       searchParams.get("subtitle") ||
       "Cutting-edge laboratory testing and medical imaging with fast, accurate results.";
 
-    // Get host from request for logo
-    const { host } = new URL(request.url);
-    const protocol = host.includes("localhost") ? "http" : "https";
-    const logoUrl = `${protocol}://${host}/images/scanalyze-logo.png`;
+    // Generate a simple SVG logo rather than relying on an external image
+    const logoSvg = `
+      <svg width="200" height="80" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="35" fill="#2563EB" opacity="0.9" />
+        <circle cx="40" cy="40" r="28" fill="#EFF6FF" stroke="#2563EB" stroke-width="2" />
+        <path d="M30 30 L50 50 M30 50 L50 30" stroke="#2563EB" stroke-width="3" />
+        <text x="85" y="35" font-size="24" font-weight="bold" fill="#2563EB">SCANALYZE</text>
+        <text x="85" y="55" font-size="14" fill="#475569">Medical Diagnostics</text>
+      </svg>
+    `;
 
     return new ImageResponse(
       (
@@ -53,8 +59,7 @@ export async function GET(request: NextRequest) {
                 marginBottom: "20px",
               }}
             >
-              {title}
-              <span style={{ color: "#2563EB" }}>Simplified</span>
+              {title.includes("Simplified") ? title : `${title} Simplified`}
             </div>
             <div
               style={{
@@ -116,15 +121,8 @@ export async function GET(request: NextRequest) {
               justifyContent: "center",
               width: "40%",
             }}
-          >
-            <img
-              src={logoUrl}
-              alt="Scanalyze Logo"
-              width="350"
-              height="250"
-              style={{ objectFit: "contain" }}
-            />
-          </div>
+            dangerouslySetInnerHTML={{ __html: logoSvg }}
+          />
 
           <div
             style={{
@@ -135,7 +133,7 @@ export async function GET(request: NextRequest) {
             }}
           >
             <div style={{ fontSize: 18, color: "#1E40AF", fontWeight: "bold" }}>
-              {host}
+              scanalyze-test.vercel.app
             </div>
           </div>
         </div>

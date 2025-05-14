@@ -62,8 +62,21 @@ export function createMetadata(
     ? "Cutting-edge laboratory testing and medical imaging with fast, accurate results."
     : description;
 
-  const ogImage =
-    options.ogImage || `/api/og?title=${encodeURIComponent(ogTitle)}`;
+  // Make sure we have an absolute URL for the OG image
+  let ogImage = options.ogImage;
+
+  if (!ogImage) {
+    // If no image provided, use the dynamic OG image
+    const encodedTitle = encodeURIComponent(ogTitle);
+
+    // Create absolute URL
+    ogImage = `${baseUrl}/api/og?title=${encodedTitle}`;
+
+    // Fallback to a specific URL if needed
+    if (!ogImage.startsWith("http")) {
+      ogImage = `https://scanalyze-test.vercel.app/api/og?title=${encodedTitle}`;
+    }
+  }
 
   return {
     ...sharedMetadata,

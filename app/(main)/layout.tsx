@@ -1,4 +1,3 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { Metadata } from "next";
 import { createMetadata } from "../shared-metadata";
 
@@ -22,7 +21,7 @@ export const metadata: Metadata = {
     siteName: "Scanalyze Medical",
     images: [
       {
-        url: "/api/og?title=Advanced%20Medical%20Diagnostics",
+        url: "https://scanalyze-fcds.vercel.app/api/og?title=Advanced%20Medical%20Diagnostics",
         width: 1200,
         height: 630,
         alt: "Advanced Medical Diagnostics Simplified",
@@ -34,7 +33,9 @@ export const metadata: Metadata = {
     title: "Advanced Medical Diagnostics Simplified",
     description:
       "Cutting-edge laboratory testing and medical imaging with fast, accurate results.",
-    images: ["/api/og?title=Advanced%20Medical%20Diagnostics"],
+    images: [
+      "https://scanalyze-test.vercel.app/api/og?title=Advanced%20Medical%20Diagnostics",
+    ],
     creator: "@scanalyze",
   },
 };
