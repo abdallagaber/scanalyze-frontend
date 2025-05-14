@@ -55,8 +55,15 @@ export function createMetadata(
     noIndex?: boolean;
   } = {}
 ): Metadata {
+  // For the landing page, use a special title that matches the hero section
+  const isLandingPage = title === "Scanalyze" && !options.ogImage;
+  const ogTitle = isLandingPage ? "Advanced Medical Diagnostics" : title;
+  const ogDescription = isLandingPage
+    ? "Cutting-edge laboratory testing and medical imaging with fast, accurate results."
+    : description;
+
   const ogImage =
-    options.ogImage || `/api/og?title=${encodeURIComponent(title)}`;
+    options.ogImage || `/api/og?title=${encodeURIComponent(ogTitle)}`;
 
   return {
     ...sharedMetadata,
@@ -64,22 +71,22 @@ export function createMetadata(
     description,
     openGraph: {
       ...sharedMetadata.openGraph,
-      title,
-      description,
+      title: ogTitle,
+      description: ogDescription,
       url: baseUrl,
       images: [
         {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: title,
+          alt: ogTitle,
         },
       ],
     },
     twitter: {
       ...sharedMetadata.twitter,
-      title,
-      description,
+      title: ogTitle,
+      description: ogDescription,
       images: [ogImage],
     },
     ...(options.noIndex && {

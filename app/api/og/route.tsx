@@ -26,50 +26,106 @@ export async function GET(request: NextRequest) {
             height: "100%",
             width: "100%",
             display: "flex",
-            flexDirection: "column",
+            flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             backgroundImage:
-              "linear-gradient(to bottom right, #EFF6FF, white, #DBEAFE)",
+              "linear-gradient(to bottom right, #f0f7ff, #e0f2fe, #c7e8ff)",
             padding: "40px 60px",
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 60,
-              fontWeight: "bold",
-              color: "#1E40AF",
-              textAlign: "center",
-              marginBottom: "20px",
-              lineHeight: 1.2,
-              maxWidth: "85%",
+              flexDirection: "column",
+              width: "60%",
+              paddingRight: "20px",
             }}
           >
-            {title}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                fontSize: 54,
+                fontWeight: "bold",
+                color: "#1E3A8A",
+                lineHeight: 1.2,
+                marginBottom: "20px",
+              }}
+            >
+              {title}
+              <span style={{ color: "#2563EB" }}>Simplified</span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 24,
+                color: "#475569",
+                marginBottom: "20px",
+                maxWidth: "90%",
+                lineHeight: 1.3,
+              }}
+            >
+              {subtitle}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                marginTop: "10px",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 18,
+                  color: "#64748B",
+                }}
+              >
+                ✓ HIPAA Compliant
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 18,
+                  color: "#64748B",
+                }}
+              >
+                ✓ Fast Results
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 18,
+                  color: "#64748B",
+                }}
+              >
+                ✓ Expert Care
+              </div>
+            </div>
           </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 30,
-              color: "#475569",
-              textAlign: "center",
-              marginBottom: "40px",
-              maxWidth: "70%",
-            }}
-          >
-            {subtitle}
-          </div>
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginTop: "20px",
+              width: "40%",
             }}
           >
-            <img src={logoUrl} alt="Scanalyze Logo" width="400" height="133" />
+            <img
+              src={logoUrl}
+              alt="Scanalyze Logo"
+              width="350"
+              height="250"
+              style={{ objectFit: "contain" }}
+            />
           </div>
+
           <div
             style={{
               position: "absolute",
@@ -78,7 +134,7 @@ export async function GET(request: NextRequest) {
               alignItems: "center",
             }}
           >
-            <div style={{ fontSize: 24, color: "#1E40AF", fontWeight: "bold" }}>
+            <div style={{ fontSize: 18, color: "#1E40AF", fontWeight: "bold" }}>
               {host}
             </div>
           </div>
