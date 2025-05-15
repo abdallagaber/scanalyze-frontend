@@ -475,4 +475,48 @@ export const patientService = {
     const response = await axiosInstance.delete(`/api/v1/patients/${id}`);
     return response.data;
   },
+
+  // Get all unverified patients
+  getUnverifiedPatients: async () => {
+    const response = await axiosInstance.get(
+      "/api/v1/patients/?verifyAccount=false"
+    );
+
+    // Normalize the data if it exists
+    if (
+      response.data &&
+      response.data.data &&
+      Array.isArray(response.data.data)
+    ) {
+      response.data.data = patientService.normalizePatientArray(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
+
+  // Verify a patient account
+  verifyPatient: async (id: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/verifyPatient/${id}`
+    );
+
+    // Normalize the response data
+    if (response.data && response.data.data) {
+      response.data.data = patientService.normalizePatientData(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
+
+  // Decline a patient account
+  declinePatient: async (id: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/declinePatient/${id}`
+    );
+    return response.data;
+  },
 };

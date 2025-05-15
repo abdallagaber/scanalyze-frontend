@@ -53,6 +53,11 @@ const navigationConfig: Record<
       icon: Users,
     },
     {
+      title: "Requests",
+      url: "/dashboard/admin/requests",
+      icon: ClipboardList,
+    },
+    {
       title: "Lab Technicians",
       url: "/dashboard/admin/lab-technicians",
       icon: Microscope,
@@ -85,6 +90,11 @@ const navigationConfig: Record<
       title: "Patients",
       url: "/dashboard/receptionist/patients",
       icon: Users,
+    },
+    {
+      title: "Requests",
+      url: "/dashboard/receptionist/requests",
+      icon: ClipboardList,
     },
     {
       title: "Reports",
