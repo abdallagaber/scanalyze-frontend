@@ -72,8 +72,8 @@ export function createMetadata(
   const ogImage = options.ogImage || defaultImage;
 
   // Image dimensions
-  const imageWidth = isLandingPage ? 1200 : 803;
-  const imageHeight = isLandingPage ? 630 : 314;
+  const imageWidth = isLandingPage ? 1200 : 256;
+  const imageHeight = isLandingPage ? 630 : 256;
 
   return {
     ...sharedMetadata,
