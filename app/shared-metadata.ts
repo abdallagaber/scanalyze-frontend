@@ -67,7 +67,7 @@ export function createMetadata(
 
   // Use the hero screenshot for landing page and logo for other pages
   const heroImage = `${baseUrl}/images/Scanalyze-hero.jpeg`;
-  const logoImage = `${baseUrl}/images/scanalyze-logo.png`;
+  const logoImage = `${baseUrl}/images/icon.png`;
   const defaultImage = isLandingPage ? heroImage : logoImage;
   const ogImage = options.ogImage || defaultImage;
 
