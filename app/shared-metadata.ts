@@ -59,15 +59,21 @@ export function createMetadata(
   // For the landing page, use a special title that matches the hero section
   const isLandingPage = options.isLandingPage || title === "Scanalyze";
   const ogTitle = isLandingPage
-    ? "Advanced Medical Diagnostics Simplified"
+    ? "Scanalyze - Advanced Medical Diagnostics Simplified"
     : title;
   const ogDescription = isLandingPage
     ? "Cutting-edge laboratory testing and medical imaging with fast, accurate results. Your complete health information at your fingertips."
     : description;
 
-  // Use the hero screenshot as default image
+  // Use the hero screenshot for landing page and logo for other pages
   const heroImage = `${baseUrl}/images/Scanalyze-hero.jpeg`;
-  const ogImage = options.ogImage || heroImage;
+  const logoImage = `${baseUrl}/images/scanalyze-logo.png`;
+  const defaultImage = isLandingPage ? heroImage : logoImage;
+  const ogImage = options.ogImage || defaultImage;
+
+  // Image dimensions
+  const imageWidth = isLandingPage ? 1200 : 803;
+  const imageHeight = isLandingPage ? 630 : 314;
 
   return {
     ...sharedMetadata,
@@ -81,8 +87,8 @@ export function createMetadata(
       images: [
         {
           url: ogImage,
-          width: 1200,
-          height: 630,
+          width: imageWidth,
+          height: imageHeight,
           alt: ogTitle,
         },
       ],
@@ -91,7 +97,14 @@ export function createMetadata(
       ...sharedMetadata.twitter,
       title: ogTitle,
       description: ogDescription,
-      images: [ogImage],
+      images: [
+        {
+          url: ogImage,
+          width: imageWidth,
+          height: imageHeight,
+          alt: ogTitle,
+        },
+      ],
     },
     ...(options.noIndex && {
       robots: {

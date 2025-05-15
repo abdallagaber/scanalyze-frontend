@@ -12,6 +12,40 @@ import { PatientTests } from "@/components/patient-tests";
 import { PatientScans } from "@/components/patient-scans";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Metadata } from "next";
+import { createMetadata } from "@/app/shared-metadata";
+
+// Generate dynamic metadata based on patient information
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  try {
+    // Fetch patient data for metadata
+    const response = await getPatientProfile(params.id);
+
+    // If patient data is available, use it for the metadata
+    if (response && response.patient) {
+      const { patient } = response;
+      return createMetadata(
+        `${patient.firstName} ${patient.lastName} | Patient Profile`,
+        `Medical profile and health records for patient ${patient.firstName} ${patient.lastName}`,
+        { noIndex: true }
+      );
+    }
+  } catch (error) {
+    // If there's an error, fall back to default metadata (defined in layout.tsx)
+    console.error("Error generating metadata:", error);
+  }
+
+  // Return default metadata if patient data couldn't be fetched
+  return createMetadata(
+    "Patient Details | Scanalyze",
+    "Detailed patient information including medical history, test results, and scans",
+    { noIndex: true }
+  );
+}
 
 // Loading component for the tabs content
 function TabContentSkeleton() {

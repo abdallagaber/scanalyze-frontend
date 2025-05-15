@@ -4,13 +4,15 @@ import Image from "next/image";
 import { Home } from "lucide-react";
 import { Inter } from "next/font/google";
 import "../globals.css";
+import { createMetadata } from "../shared-metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Patient Profile | Scanalyze",
-  description: "View patient profile, medical history, tests and scans",
-};
+export const metadata: Metadata = createMetadata(
+  "Patient Profile | Scanalyze",
+  "View patient profile, medical history, tests and scans",
+  { noIndex: true }
+);
 
 export default function PatientLayout({
   children,
