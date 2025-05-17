@@ -3,15 +3,19 @@ import { createMetadata } from "@/app/shared-metadata";
 import { scanService } from "@/lib/services/scan";
 import { getScanTypeById } from "@/lib/scan-types";
 
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
 // Generate dynamic metadata based on scan information
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
+    // Await the params object to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     // Fetch scan data for metadata
-    const response = await scanService.getScanById(params.id);
+    const response = await scanService.getScanById(id);
 
     // If scan data is available, use it for the metadata
     if (response?.data?.scan) {

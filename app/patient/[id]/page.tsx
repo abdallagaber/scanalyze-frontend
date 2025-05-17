@@ -15,15 +15,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Metadata } from "next";
 import { createMetadata } from "@/app/shared-metadata";
 
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
 // Generate dynamic metadata based on patient information
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
+    // Await the params object to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     // Fetch patient data for metadata
-    const response = await getPatientProfile(params.id);
+    const response = await getPatientProfile(id);
 
     // If patient data is available, use it for the metadata
     if (response && response.patient) {

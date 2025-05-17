@@ -2,15 +2,19 @@ import { Metadata } from "next";
 import { createMetadata } from "@/app/shared-metadata";
 import { testService } from "@/lib/services/test";
 
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
 // Generate dynamic metadata based on test information
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
+    // Await the params object to get the id
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
     // Fetch test data for metadata
-    const response = await testService.getLabTestById(params.id);
+    const response = await testService.getLabTestById(id);
 
     // If test data is available, use it for the metadata
     if (response?.data?.labTest) {
