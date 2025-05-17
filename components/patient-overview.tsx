@@ -26,9 +26,11 @@ import {
   History,
   Download,
   User,
+  TestTube,
 } from "lucide-react";
 import Image from "next/image";
 import { PatientScans } from "@/components/patient-scans";
+import { PatientTests } from "@/components/patient-tests";
 
 interface PatientOverviewProps {
   patientData: any;
@@ -52,30 +54,6 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
       time: "2:30 PM",
       type: "MRI Scan",
       doctor: "Dr. Johnson",
-    },
-  ];
-
-  const recentScans = [
-    {
-      id: "SCN-001",
-      date: "April 20, 2025",
-      type: "X-Ray",
-      bodyPart: "Chest",
-      status: "Completed",
-    },
-    {
-      id: "SCN-002",
-      date: "March 15, 2025",
-      type: "MRI",
-      bodyPart: "Brain",
-      status: "Analyzed",
-    },
-    {
-      id: "SCN-003",
-      date: "February 28, 2025",
-      type: "CT Scan",
-      bodyPart: "Abdomen",
-      status: "Analyzed",
     },
   ];
 
@@ -198,16 +176,8 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
       </Card>
 
       {/* Tabs for different sections */}
-      <Tabs defaultValue="appointments" className="w-full">
-        <TabsList className="grid grid-cols-4">
-          <TabsTrigger value="appointments" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Appointments</span>
-          </TabsTrigger>
-          <TabsTrigger value="scans" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Scans & Reports</span>
-          </TabsTrigger>
+      <Tabs defaultValue="medical-history" className="w-full">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger
             value="medical-history"
             className="flex items-center gap-2"
@@ -215,81 +185,15 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">Medical History</span>
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Documents</span>
+          <TabsTrigger value="tests" className="flex items-center gap-2">
+            <TestTube className="h-4 w-4" />
+            <span className="hidden sm:inline">Tests</span>
+          </TabsTrigger>
+          <TabsTrigger value="scans" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Scans</span>
           </TabsTrigger>
         </TabsList>
-
-        {/* Appointments Tab */}
-        <TabsContent value="appointments" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="col-span-1 md:col-span-2">
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                <CardDescription>Your scheduled appointments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {upcomingAppointments.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Appointment ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Doctor</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {upcomingAppointments.map((appointment) => (
-                        <TableRow key={appointment.id}>
-                          <TableCell>{appointment.id}</TableCell>
-                          <TableCell>{appointment.date}</TableCell>
-                          <TableCell>{appointment.time}</TableCell>
-                          <TableCell>{appointment.type}</TableCell>
-                          <TableCell>{appointment.doctor}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="outline" size="sm">
-                              Reschedule
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="py-8 text-center text-muted-foreground">
-                    No upcoming appointments. Book one using the calendar.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Calendar</CardTitle>
-                <CardDescription>Schedule new appointments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                />
-                <div className="mt-4">
-                  <Button className="w-full">Book New Appointment</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Scans Tab */}
-        <TabsContent value="scans" className="space-y-4">
-          <PatientScans patientId={patientData._id} />
-        </TabsContent>
 
         {/* Medical History Tab */}
         <TabsContent value="medical-history" className="space-y-4">
@@ -499,66 +403,14 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
           </Card>
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Medical Documents</CardTitle>
-              <CardDescription>
-                Access your medical reports and documents
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Lab Reports</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between items-center">
-                        <span>Blood Test - April 10, 2025</span>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </li>
-                      <li className="flex justify-between items-center">
-                        <span>Cholesterol Panel - March 22, 2025</span>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Prescriptions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between items-center">
-                        <span>Dr. Smith - April 15, 2025</span>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </li>
-                      <li className="flex justify-between items-center">
-                        <span>Dr. Johnson - March 10, 2025</span>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tests Tab */}
+        <TabsContent value="tests" className="space-y-4">
+          <PatientTests patientId={patientData._id} />
+        </TabsContent>
+
+        {/* Scans Tab */}
+        <TabsContent value="scans" className="space-y-4">
+          <PatientScans patientId={patientData._id} />
         </TabsContent>
       </Tabs>
     </div>
