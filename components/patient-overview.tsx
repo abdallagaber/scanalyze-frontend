@@ -85,30 +85,7 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col items-center justify-center">
-              {patientData.nationalIDImg ? (
-                <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-scanalyze-300">
-                  <Image
-                    src={patientData.nationalIDImg}
-                    alt={`${patientData.firstName} ${patientData.lastName}`}
-                    width={160}
-                    height={160}
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-40 h-40 rounded-full bg-scanalyze-100 border-4 border-scanalyze-300">
-                  <User className="h-20 w-20 text-scanalyze-500" />
-                </div>
-              )}
-              <h2 className="mt-4 text-xl font-bold">
-                {patientData.firstName} {patientData.lastName}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Patient ID: {patientData._id.substring(0, 8)}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="text-lg font-medium">Personal Details</h3>
               <div className="mt-2 space-y-2">
