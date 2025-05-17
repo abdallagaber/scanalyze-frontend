@@ -19,6 +19,9 @@ import {
   Loader2,
   Calendar as CalendarIcon,
   X,
+  Share2,
+  Copy,
+  Check,
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import {
@@ -63,6 +66,9 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { QRCodeSVG } from "qrcode.react";
+import { useRef } from "react";
 
 interface Test {
   testName: string;
@@ -116,6 +122,12 @@ export function PatientTests({ patientId }: PatientTestsProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
+  // Sharing functionality
+  const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false);
+  const [sharingUrl, setSharingUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const qrCodeRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -218,40 +230,6 @@ export function PatientTests({ patientId }: PatientTestsProps) {
   const handleViewTest = (test: LabTest) => {
     setSelectedTest(test);
     setIsViewDialogOpen(true);
-  };
-
-  // Format name for the PDF filename
-  const generatePDFFileName = (test: LabTest): string => {
-    // Get categories from the test
-    const categoriesString = test.testResults
-      .map((category) => category.category.toLowerCase().replace(/\s+/g, "-"))
-      .join("-");
-
-    // Get patient name or use "unknown" if not available
-    let patientName = "unknown-patient";
-    if (
-      test.patientSnapshot &&
-      test.patientSnapshot.firstName &&
-      test.patientSnapshot.lastName
-    ) {
-      patientName =
-        `${test.patientSnapshot.firstName}-${test.patientSnapshot.lastName}`
-          .toLowerCase()
-          .replace(/\s+/g, "-");
-    } else if (test.patientSnapshot && test.patientSnapshot.firstName) {
-      patientName = test.patientSnapshot.firstName
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-    }
-
-    // Format the test date
-    const testDate = format(new Date(test.createdAt), "yyyy-MM-dd");
-
-    // Create a timestamp for the export
-    const exportTimestamp = format(new Date(), "HHmmss");
-
-    // Put it all together
-    return `${categoriesString}-test_${patientName}_${testDate}_report-${exportTimestamp}.pdf`;
   };
 
   const handleDownloadPDF = async (test: LabTest) => {
@@ -612,6 +590,60 @@ export function PatientTests({ patientId }: PatientTestsProps) {
     return hasAbnormal ? "destructive" : "outline";
   };
 
+  const handleShareTest = (test: LabTest) => {
+    const domain = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${domain}/test/${test._id}`;
+    setSharingUrl(url);
+    setSelectedTest(test);
+    setIsSharingDialogOpen(true);
+  };
+
+  const handleCopyToClipboard = () => {
+    navigator.clipboard.writeText(sharingUrl).then(() => {
+      setCopied(true);
+      toast.success("Test link copied to clipboard");
+
+      // Reset the "copied" state after 2 seconds
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    });
+  };
+
+  // Format name for the PDF filename
+  const generatePDFFileName = (test: LabTest): string => {
+    // Get categories from the test
+    const categoriesString = test.testResults
+      .map((category) => category.category.toLowerCase().replace(/\s+/g, "-"))
+      .join("-");
+
+    // Get patient name or use "unknown" if not available
+    let patientName = "unknown-patient";
+    if (
+      test.patientSnapshot &&
+      test.patientSnapshot.firstName &&
+      test.patientSnapshot.lastName
+    ) {
+      patientName =
+        `${test.patientSnapshot.firstName}-${test.patientSnapshot.lastName}`
+          .toLowerCase()
+          .replace(/\s+/g, "-");
+    } else if (test.patientSnapshot && test.patientSnapshot.firstName) {
+      patientName = test.patientSnapshot.firstName
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+    }
+
+    // Format the test date
+    const testDate = format(new Date(test.createdAt), "yyyy-MM-dd");
+
+    // Create a timestamp for the export
+    const exportTimestamp = format(new Date(), "HHmmss");
+
+    // Put it all together
+    return `${categoriesString}-test_${patientName}_${testDate}_report-${exportTimestamp}.pdf`;
+  };
+
   if (loading) {
     return <div>Loading tests...</div>;
   }
@@ -863,6 +895,13 @@ export function PatientTests({ patientId }: PatientTestsProps) {
                             </>
                           )}
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShareTest(test)}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -1040,6 +1079,60 @@ export function PatientTests({ patientId }: PatientTestsProps) {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sharing Dialog */}
+      <Dialog open={isSharingDialogOpen} onOpenChange={setIsSharingDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Test Results</DialogTitle>
+            <DialogDescription>
+              Share these test results from{" "}
+              {selectedTest && format(new Date(selectedTest.createdAt), "PPP")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex justify-center">
+              <div className="bg-white p-4 rounded-lg border">
+                <QRCodeSVG
+                  ref={qrCodeRef}
+                  value={sharingUrl}
+                  size={180}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="share-link">Test Link</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="share-link"
+                  value={sharingUrl}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={handleCopyToClipboard}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Anyone with this link can view these test results.
+            </div>
           </div>
         </DialogContent>
       </Dialog>

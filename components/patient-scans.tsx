@@ -19,6 +19,9 @@ import {
   Loader2,
   Calendar as CalendarIcon,
   X,
+  Share2,
+  Copy,
+  Check,
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import {
@@ -57,6 +60,8 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Scan {
   _id: string;
@@ -96,6 +101,12 @@ export function PatientScans({ patientId }: PatientScansProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
+  // Sharing functionality
+  const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false);
+  const [sharingUrl, setSharingUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const qrCodeRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const fetchScans = async () => {
@@ -605,6 +616,26 @@ export function PatientScans({ patientId }: PatientScansProps) {
     }
   };
 
+  const handleShareScan = (scan: Scan) => {
+    const domain = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${domain}/scan/${scan._id}`;
+    setSharingUrl(url);
+    setSelectedScan(scan);
+    setIsSharingDialogOpen(true);
+  };
+
+  const handleCopyToClipboard = () => {
+    navigator.clipboard.writeText(sharingUrl).then(() => {
+      setCopied(true);
+      toast.success("Scan link copied to clipboard");
+
+      // Reset the "copied" state after 2 seconds
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    });
+  };
+
   if (loading) {
     return <div>Loading scans...</div>;
   }
@@ -799,6 +830,13 @@ export function PatientScans({ patientId }: PatientScansProps) {
                           </>
                         )}
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleShareScan(scan)}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -900,6 +938,60 @@ export function PatientScans({ patientId }: PatientScansProps) {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sharing Dialog */}
+      <Dialog open={isSharingDialogOpen} onOpenChange={setIsSharingDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Scan</DialogTitle>
+            <DialogDescription>
+              Share this {selectedScan?.type} scan from{" "}
+              {selectedScan && format(new Date(selectedScan.createdAt), "PPP")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex justify-center">
+              <div className="bg-white p-4 rounded-lg border">
+                <QRCodeSVG
+                  ref={qrCodeRef}
+                  value={sharingUrl}
+                  size={180}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="share-link">Scan Link</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="share-link"
+                  value={sharingUrl}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={handleCopyToClipboard}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Anyone with this link can view this scan and its report.
+            </div>
           </div>
         </DialogContent>
       </Dialog>
