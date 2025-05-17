@@ -22,6 +22,7 @@ import {
   Share2,
   Copy,
   Check,
+  ExternalLink,
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import {
@@ -1133,6 +1134,14 @@ export function PatientTests({ patientId }: PatientTestsProps) {
             <div className="text-sm text-muted-foreground">
               Anyone with this link can view these test results.
             </div>
+            <Button
+              variant="default"
+              className="w-full mt-2 gap-2"
+              onClick={() => window.open(sharingUrl, "_blank")}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in New Tab
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
