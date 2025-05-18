@@ -2,6 +2,21 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { toast } from "sonner";
+// Import jspdf-autotable with proper named import
+import autoTable from "jspdf-autotable";
+
+// Define the return type for autoTable
+interface AutoTableResult {
+  finalY: number;
+  [key: string]: any;
+}
+
+// Type definition for autoTable
+declare module "jspdf" {
+  interface jsPDF {
+    autoTable: typeof autoTable;
+  }
+}
 
 interface PatientInfo {
   firstName?: string;
@@ -94,7 +109,212 @@ export const generatePDFFileName = (
   return `${prefix}-${documentType}_${patientName}_${documentDate}_report-${exportTimestamp}.pdf`;
 };
 
-// Generate a scan PDF
+// Helper function to parse HTML content for PDF rendering
+const parseHtmlContent = (
+  html: string,
+  pdf: jsPDF,
+  options: {
+    x: number;
+    startY: number;
+    maxWidth: number;
+    fontSize: number;
+    lineHeight: number;
+  }
+): number => {
+  const { x, startY, maxWidth, fontSize, lineHeight } = options;
+  let yPos = startY;
+
+  // Create a temporary DOM element to parse the HTML
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  // Process each child node
+  Array.from(container.childNodes).forEach((node) => {
+    // Skip empty text nodes
+    if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+      return;
+    }
+
+    // Check if we should add a page break
+    if (yPos > 270) {
+      // Near bottom of A4 page
+      pdf.addPage();
+      yPos = 20; // Reset to top margin
+    }
+
+    // Process by node type
+    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+      // Simple text content
+      pdf.setFontSize(fontSize);
+      pdf.setFont("helvetica", "normal");
+      const lines = pdf.splitTextToSize(node.textContent.trim(), maxWidth);
+
+      lines.forEach((line: string) => {
+        pdf.text(line, x, yPos);
+        yPos += lineHeight;
+      });
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+
+      // Process based on tag type
+      if (element.tagName === "H1" || element.tagName === "H2") {
+        // Heading 1 or 2
+        pdf.setFontSize(fontSize + 8); // Increased from +6 to +8
+        pdf.setFont("helvetica", "bold");
+        const headingText = element.textContent || "";
+        const lines = pdf.splitTextToSize(headingText.trim(), maxWidth);
+
+        // Add more space before heading
+        yPos += lineHeight / 1.5;
+
+        lines.forEach((line: string) => {
+          pdf.text(line, x, yPos);
+          yPos += lineHeight * 1.3; // Increased from 1.2 to 1.3
+        });
+
+        // Add more space after heading
+        yPos += lineHeight / 1.5;
+      } else if (element.tagName === "H3" || element.tagName === "H4") {
+        // Heading 3 or 4
+        pdf.setFontSize(fontSize + 6); // Increased from +4 to +6
+        pdf.setFont("helvetica", "bold");
+        const headingText = element.textContent || "";
+        const lines = pdf.splitTextToSize(headingText.trim(), maxWidth);
+
+        // Add more space before heading
+        yPos += lineHeight / 1.5;
+
+        lines.forEach((line: string) => {
+          pdf.text(line, x, yPos);
+          yPos += lineHeight * 1.2; // Increased from 1.1 to 1.2
+        });
+
+        // Add space after heading
+        yPos += lineHeight / 2;
+      } else if (element.tagName === "P") {
+        // Paragraph
+        pdf.setFontSize(fontSize);
+        pdf.setFont("helvetica", "normal");
+        const paragraphText = element.textContent || "";
+
+        if (paragraphText.trim()) {
+          const lines = pdf.splitTextToSize(paragraphText.trim(), maxWidth);
+
+          lines.forEach((line: string) => {
+            pdf.text(line, x, yPos);
+            yPos += lineHeight;
+          });
+
+          // Add more space after paragraph
+          yPos += lineHeight * 0.7; // Increased from lineHeight/2 to lineHeight*0.7
+        }
+      } else if (element.tagName === "UL" || element.tagName === "OL") {
+        // Lists
+        const listItems = element.querySelectorAll("li");
+        const isOrdered = element.tagName === "OL";
+
+        // Process each list item
+        listItems.forEach((item, index) => {
+          pdf.setFontSize(fontSize);
+          pdf.setFont("helvetica", "normal");
+
+          const itemText = item.textContent || "";
+          const bullet = isOrdered ? `${index + 1}.` : "•";
+          const bulletWidth = pdf.getTextWidth(
+            isOrdered ? `${index + 1}.  ` : "• "
+          );
+
+          // Add bullet or number
+          pdf.text(bullet, x, yPos);
+
+          // Add the text with proper wrapping
+          const lines = pdf.splitTextToSize(
+            itemText.trim(),
+            maxWidth - bulletWidth - 2
+          );
+
+          // First line aligned with bullet
+          if (lines.length > 0) {
+            pdf.text(lines[0], x + bulletWidth, yPos);
+            yPos += lineHeight;
+
+            // Subsequent lines indented
+            for (let i = 1; i < lines.length; i++) {
+              pdf.text(lines[i], x + bulletWidth, yPos);
+              yPos += lineHeight;
+            }
+          }
+
+          // Space between list items
+          yPos += lineHeight / 3;
+        });
+
+        // Add space after the list
+        yPos += lineHeight / 2;
+      } else if (element.tagName === "STRONG" || element.tagName === "B") {
+        // Bold text
+        pdf.setFont("helvetica", "bold");
+        const strongText = element.textContent || "";
+        const lines = pdf.splitTextToSize(strongText.trim(), maxWidth);
+
+        lines.forEach((line: string) => {
+          pdf.text(line, x, yPos);
+          yPos += lineHeight;
+        });
+
+        pdf.setFont("helvetica", "normal");
+      } else if (element.tagName === "BR") {
+        // Line break
+        yPos += lineHeight;
+      } else if (element.tagName === "DIV" || element.tagName === "SPAN") {
+        // Process children of container elements recursively
+        if (element.childNodes.length > 0) {
+          yPos = parseHtmlContent(element.innerHTML, pdf, {
+            x,
+            startY: yPos,
+            maxWidth,
+            fontSize,
+            lineHeight,
+          });
+        } else if (element.textContent) {
+          // Handle div/span with just text
+          pdf.setFontSize(fontSize);
+          pdf.setFont("helvetica", "normal");
+          const lines = pdf.splitTextToSize(
+            element.textContent.trim(),
+            maxWidth
+          );
+
+          lines.forEach((line: string) => {
+            pdf.text(line, x, yPos);
+            yPos += lineHeight;
+          });
+        }
+      } else {
+        // Default for other elements - just get text content
+        if (element.textContent?.trim()) {
+          pdf.setFontSize(fontSize);
+          pdf.setFont("helvetica", "normal");
+          const lines = pdf.splitTextToSize(
+            element.textContent.trim(),
+            maxWidth
+          );
+
+          lines.forEach((line: string) => {
+            pdf.text(line, x, yPos);
+            yPos += lineHeight;
+          });
+
+          yPos += lineHeight / 2;
+        }
+      }
+    }
+  });
+
+  return yPos; // Return the new Y position
+};
+
+// Generate a scan PDF with selectable text
 export const generateScanPDF = async (
   scan: ScanData,
   setGeneratingPDF: (state: boolean) => void
@@ -102,302 +322,349 @@ export const generateScanPDF = async (
   try {
     setGeneratingPDF(true);
 
-    const reportContent =
-      scan.report && scan.report.trim() !== ""
-        ? scan.report
-        : "<p>No detailed report available for this scan.</p>";
+    // Initialize PDF document
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: true,
+    });
 
-    // Process and compress the scan image
-    const compressedImageUrl = await compressImage(scan.scanImage);
+    // Set document properties for accessibility
+    pdf.setProperties({
+      title: `${scan.type.toUpperCase()} Scan Report`,
+      subject: "Medical Scan Report",
+      creator: "Scanalyze Medical System",
+      keywords: "medical, scan, report, health",
+    });
 
-    // Create page 1 - Patient details and scan image
-    const page1Div = document.createElement("div");
-    page1Div.style.padding = "20px";
-    page1Div.style.width = "800px";
-    page1Div.style.margin = "0 auto";
-    page1Div.style.fontFamily = "Arial, sans-serif";
-    page1Div.style.position = "absolute";
-    page1Div.style.left = "-9999px";
-    page1Div.style.top = "0";
+    // Define page dimensions and margins
+    const pageWidth = 210; // A4 width in mm
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
 
-    // Add the HTML content for page 1
-    page1Div.innerHTML = `
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #0f172a; margin-bottom: 10px; font-size: 24px;">${scan.type.toUpperCase()} SCAN REPORT</h1>
-      </div>
+    // Add title with larger font
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(22); // Increased from 16 to 22 to match lab test
+    pdf.setTextColor(15, 23, 42); // #0f172a in RGB
+    pdf.text(
+      `${scan.type.toUpperCase()} SCAN REPORT`,
+      pageWidth / 2,
+      yPosition,
+      {
+        align: "center",
+      }
+    );
+    yPosition += 18; // Increased from 15 to 18 for better spacing
 
-      <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background-color: #f8fafc; margin-bottom: 30px;">
-        <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Patient Information</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Date:</p>
-            <p style="margin: 5px 0; font-weight: bold;">${format(
-              new Date(scan.createdAt),
-              "PPP"
-            )}</p>
-          </div>
-          ${
-            scan.patientSnapshot
-              ? `
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Patient Name:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${
-                scan.patientSnapshot.firstName || ""
-              } ${scan.patientSnapshot.lastName || ""}</p>
-            </div>
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">ID:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${
-                scan.patientSnapshot.nationalID || ""
-              }</p>
-            </div>
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Age:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${
-                scan.patientSnapshot.age || ""
-              }</p>
-            </div>
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Gender:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${formatGender(
-                scan.patientSnapshot.gender
-              )}</p>
-            </div>
-          `
-              : ""
+    // Calculate patient info box dimensions more precisely, similar to lab test PDF
+    // More precise row tracking and height calculation
+    const rowHeight = 12; // Increased from 10 to 12 for better readability
+    const headerHeight = 12; // Increased for consistent sizing
+    const patientInfoPadding = 10; // Top/bottom internal padding for the box
+
+    // Count exact number of rows needed based on available data
+    let totalRows = 0;
+
+    // Date row (always present)
+    totalRows += 1;
+
+    // Add rows for patient data if available
+    if (scan.patientSnapshot) {
+      if (scan.patientSnapshot.nationalID) totalRows += 1;
+      if (scan.patientSnapshot.gender) totalRows += 1;
+      if (scan.patientSnapshot.firstName || scan.patientSnapshot.lastName)
+        totalRows += 1;
+      if (scan.patientSnapshot.age !== undefined) totalRows += 1;
+      if (scan.patientSnapshot.phone) totalRows += 1;
+      if (scan.patientSnapshot.email) totalRows += 1;
+    }
+
+    // Calculate rows needed for two-column layout (divide by 2 and round up)
+    totalRows = Math.ceil(totalRows / 2);
+
+    // More precise height calculation with extra spacing between rows
+    const patientInfoBoxHeight =
+      patientInfoPadding * 2 + headerHeight + totalRows * (rowHeight + 2);
+
+    // Create improved patient information box styling
+    pdf.setDrawColor(200, 215, 230); // Slightly darker border for better definition
+    pdf.setFillColor(248, 250, 252); // Light background
+    pdf.setLineWidth(0.5); // Thicker border for more professional look
+    pdf.roundedRect(
+      margin,
+      yPosition,
+      contentWidth,
+      patientInfoBoxHeight,
+      4, // Increased corner radius for more modern look
+      4,
+      "FD" // Fill and draw
+    );
+    pdf.setLineWidth(0.1); // Reset line width
+    yPosition += patientInfoPadding; // Set initial position with proper padding
+
+    // Patient info header with better styling
+    pdf.setFontSize(16); // Increased from 14 to 16
+    pdf.setTextColor(15, 23, 42); // Darker text for better contrast
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Patient Information", margin + 8, yPosition);
+    pdf.setFont("helvetica", "normal");
+    yPosition += 6;
+
+    // Draw a better styled line under the header
+    pdf.setDrawColor(200, 215, 230); // Slightly darker line
+    pdf.setLineWidth(0.5); // Thicker line
+    pdf.line(margin + 8, yPosition, margin + contentWidth - 8, yPosition);
+    pdf.setLineWidth(0.1); // Reset line width
+    yPosition += 8; // Space after header line
+
+    // Initial setup for patient info fields with better spacing
+    pdf.setFontSize(12); // Increased from 10 to 12
+    const leftColumnX = margin + 8; // Increased left margin
+    const rightColumnX = margin + contentWidth / 2 + 5; // Better right column position
+    const labelWidth = 30; // Slightly wider label area
+    let leftColY = yPosition;
+    let rightColY = yPosition;
+
+    // Date row (always present)
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("Date:", leftColumnX, leftColY);
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(
+      format(new Date(scan.createdAt), "PPP"),
+      leftColumnX + labelWidth,
+      leftColY
+    );
+    pdf.setFont("helvetica", "normal");
+    leftColY += rowHeight + 2; // Added extra spacing between rows
+
+    // Add patient info if available in a better 2-column layout
+    if (scan.patientSnapshot) {
+      const info = scan.patientSnapshot;
+
+      // Name (right column)
+      if (info.firstName || info.lastName) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Patient Name:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          `${info.firstName || ""} ${info.lastName || ""}`.trim(),
+          rightColumnX + labelWidth,
+          rightColY
+        );
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2; // Added extra spacing
+      }
+
+      // ID (left column)
+      if (info.nationalID) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("ID:", leftColumnX, leftColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.nationalID, leftColumnX + labelWidth, leftColY);
+        pdf.setFont("helvetica", "normal");
+        leftColY += rowHeight + 2;
+      }
+
+      // Age (right column)
+      if (info.age !== undefined) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Age:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.age.toString(), rightColumnX + labelWidth, rightColY);
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2;
+      }
+
+      // Gender (left column)
+      if (info.gender) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Gender:", leftColumnX, leftColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(formatGender(info.gender), leftColumnX + labelWidth, leftColY);
+        pdf.setFont("helvetica", "normal");
+        leftColY += rowHeight + 2;
+      }
+
+      // Phone (right column if it exists)
+      if (info.phone) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Phone:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.phone, rightColumnX + labelWidth, rightColY);
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2;
+      }
+
+      // Email (left or right column, depending on which has less content)
+      if (info.email) {
+        const useLeftCol = leftColY <= rightColY;
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(
+          "Email:",
+          useLeftCol ? leftColumnX : rightColumnX,
+          useLeftCol ? leftColY : rightColY
+        );
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          info.email,
+          useLeftCol ? leftColumnX + labelWidth : rightColumnX + labelWidth,
+          useLeftCol ? leftColY : rightColY
+        );
+        pdf.setFont("helvetica", "normal");
+      }
+    }
+
+    // Move past the patient info box with increased spacing
+    yPosition = margin + 18 + patientInfoBoxHeight + 15; // Title + box height + increased padding
+
+    // Add scan image (if available)
+    if (scan.scanImage) {
+      // Add scan image section label
+      pdf.setFontSize(16); // Increased from 12 to 16
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Scan Image", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 10; // Increased from 8 to 10
+
+      // Process the image
+      try {
+        const compressedImageUrl = await compressImage(scan.scanImage);
+
+        // Add image with calculated dimensions to maintain aspect ratio
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = compressedImageUrl;
+        });
+
+        // Calculate page metrics
+        const pageHeight = pdf.internal.pageSize.height;
+        const availableHeight = pageHeight - yPosition - margin;
+
+        // Calculate initial image dimensions - fit within content width while maintaining aspect ratio
+        const imgRatio = img.height / img.width;
+        let imgWidth = Math.min(contentWidth, 170); // Max width in mm
+        let imgHeight = imgWidth * imgRatio;
+
+        // Check if the image would fit on the current page
+        // If not, either add a new page or reduce the image size
+        if (imgHeight > availableHeight) {
+          // Option 1: Add a new page if the image is very large
+          if (imgHeight > pageHeight * 0.7) {
+            pdf.addPage();
+            yPosition = margin;
+
+            // Add "Scan Image" label again on the new page
+            pdf.setFontSize(16);
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Scan Image", pageWidth / 2, yPosition, {
+              align: "center",
+            });
+            yPosition += 10;
           }
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-bottom: 20px;">
-        <div style="margin-bottom: 15px; color: #64748b; font-size: 16px; font-weight: bold;">Scan Image</div>
-        <img src="${compressedImageUrl}" style="max-width: 100%; max-height: 450px; border: 1px solid #e2e8f0; border-radius: 8px;" />
-      </div>
-    `;
-
-    // Create page 2 - Report content with ProseMirror styles
-    const page2Div = document.createElement("div");
-    page2Div.style.padding = "20px";
-    page2Div.style.width = "800px";
-    page2Div.style.margin = "0 auto";
-    page2Div.style.fontFamily = "Arial, sans-serif";
-    page2Div.style.position = "absolute";
-    page2Div.style.left = "-9999px";
-    page2Div.style.top = "0";
-
-    // Add the HTML content for page 2 with embedded styles for the report
-    page2Div.innerHTML = `
-      <style>
-        /* Base styles for all report content */
-        .report-content {
-          font-size: 1rem;
-          line-height: 1.6;
-          color: #0f172a;
+          // Option 2: Reduce the image size to fit available space
+          else {
+            // Recalculate dimensions to fit available height
+            const scaleFactor = (availableHeight / imgHeight) * 0.95; // 95% of available space
+            imgWidth = imgWidth * scaleFactor;
+            imgHeight = imgHeight * scaleFactor;
+          }
         }
 
-        /* Heading styles */
-        .report-content h1 {
-          font-size: 1.75rem;
-          font-weight: bold;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          line-height: 1.2;
-        }
+        // Center the image horizontally
+        const imgX = (pageWidth - imgWidth) / 2;
 
-        .report-content h2 {
-          font-size: 1.5rem;
-          font-weight: bold;
-          margin-top: 1.25rem;
-          margin-bottom: 0.75rem;
-          line-height: 1.3;
-        }
+        // Add the image
+        pdf.addImage(
+          compressedImageUrl,
+          "JPEG",
+          imgX,
+          yPosition,
+          imgWidth,
+          imgHeight
+        );
 
-        .report-content h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          margin-top: 1rem;
-          margin-bottom: 0.5rem;
-        }
+        // Update position
+        yPosition += imgHeight + 10;
+      } catch (imgError) {
+        console.error("Error processing scan image:", imgError);
+        pdf.setTextColor(220, 38, 38); // Red color
+        pdf.setFontSize(10);
+        pdf.text("Error loading scan image", pageWidth / 2, yPosition + 5, {
+          align: "center",
+        });
+        yPosition += 15;
+      }
+    }
 
-        .report-content h4 {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-top: 0.75rem;
-          margin-bottom: 0.5rem;
-        }
+    // Add report content as actual text
+    if (scan.report && scan.report.trim() !== "") {
+      // Add a new page for report content if needed
+      if (yPosition > 230) {
+        // Check if we're near the page end
+        pdf.addPage();
+        yPosition = margin;
+      }
 
-        /* Paragraph styles */
-        .report-content p {
-          margin-bottom: 0.75rem;
-          line-height: 1.6;
-        }
+      // Add report section header with larger font
+      pdf.setFontSize(18); // Increased from 14 to 18
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Detailed Report", margin, yPosition);
+      yPosition += 6; // Increased from 5 to 6
 
-        /* Reset list styles for proper alignment */
-        .report-content {
-          position: relative;
-          counter-reset: item;
-          font-size: 1rem;
-          line-height: 1.6;
-        }
+      // Add enhanced line under header
+      pdf.setDrawColor(200, 215, 230); // Matched with patient info section
+      pdf.setLineWidth(0.5); // Thicker line for consistency
+      pdf.line(margin, yPosition, margin + contentWidth, yPosition);
+      pdf.setLineWidth(0.1); // Reset line width
+      yPosition += 12; // Increased from 10 to 12 for more space
 
-        /* Override browser defaults for lists */
-        .report-content ul,
-        .report-content ol {
-          padding-left: 1.5rem;  /* List container indentation */
-          list-style: none;
-          margin: 1rem 0;
-        }
+      // Process HTML report content with larger text
+      pdf.setTextColor(15, 23, 42); // Reset text color
 
-        /* Create custom bullets for unordered lists with tab effect */
-        .report-content ul li {
-          position: relative;
-          padding-left: 2.5em;  /* Slightly increased for better tab spacing */
-          margin-bottom: 0.6em;
-          text-indent: 0;
-          display: block;  /* Changed from flex for more reliable rendering */
-        }
-
-        /* Create content wrapper for list items */
-        .report-content ul li > * {
-          display: inline-block;
-          width: calc(100% - 1em);  /* Ensure content doesn't wrap under the bullet */
-        }
-
-        .report-content ul li::before {
-          content: "•";
-          position: absolute;
-          left: 1em;  /* Adjusted for better tab alignment */
-          top: 0;  /* Align with first line of text */
-          font-size: 1em;
-          color: #000;
-          display: inline-block;
-          width: 1em;
-        }
-
-        /* Create custom numbering for ordered lists with tab effect */
-        .report-content ol li {
-          position: relative;
-          padding-left: 3em;  /* Increased for better tab spacing with numbers */
-          margin-bottom: 0.6em;
-          counter-increment: item;
-          text-indent: 0;
-          display: block;  /* Changed from flex for more reliable rendering */
-        }
-
-        /* Create content wrapper for list items */
-        .report-content ol li > * {
-          display: inline-block;
-          width: calc(100% - 2em);  /* Ensure content doesn't wrap under the number */
-        }
-
-        .report-content ol li::before {
-          content: counter(item) ".";
-          position: absolute;
-          left: 1em;  /* Adjusted for better tab alignment */
-          top: 0;  /* Align with first line of text */
-          font-weight: normal;
-          min-width: 1.5em;
-          text-align: left;
-        }
-
-        /* Fix any nested paragraph margins */
-        .report-content li p {
-          margin: 0;
-          padding: 0;
-        }
-
-        /* Bold and italic */
-        .report-content strong,
-        .report-content b {
-          font-weight: 600;
-        }
-
-        .report-content em,
-        .report-content i {
-          font-style: italic;
-        }
-
-        /* Blockquotes */
-        .report-content blockquote {
-          border-left: 3px solid #e2e8f0;
-          padding-left: 1rem;
-          margin: 1rem 0;
-          color: #64748b;
-        }
-      </style>
-      <div style="margin-bottom: 20px;">
-        <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Detailed Report</h2>
-        <div class="report-content">${reportContent}</div>
-      </div>
-    `;
-
-    // Generate PDF with multiple pages
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    // Optimize html2canvas options
-    const canvasOptions = {
-      scale: 2.5,
-      useCORS: true,
-      logging: false,
-      backgroundColor: "#FFFFFF",
-      imageTimeout: 0,
-      allowTaint: false,
-      width: 800,
-    };
-
-    // Process pages
-    try {
-      // Process page 1
-      document.body.appendChild(page1Div);
-      const canvas1 = await html2canvas(page1Div, canvasOptions);
-      document.body.removeChild(page1Div);
-
-      // Add page 1 to PDF
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas1.height * imgWidth) / canvas1.width;
-      pdf.addImage(
-        canvas1.toDataURL("image/jpeg", 0.95),
-        "JPEG",
-        0,
-        0,
-        imgWidth,
-        imgHeight
-      );
-
-      // Clear canvas1 to free memory
-      canvas1.width = 0;
-      canvas1.height = 0;
-
-      // Process page 2
-      document.body.appendChild(page2Div);
-      const canvas2 = await html2canvas(page2Div, canvasOptions);
-      document.body.removeChild(page2Div);
-
-      // Add page 2 to PDF
-      pdf.addPage();
-      const img2Height = (canvas2.height * imgWidth) / canvas2.width;
-      pdf.addImage(
-        canvas2.toDataURL("image/jpeg", 0.95),
-        "JPEG",
-        0,
-        0,
-        imgWidth,
-        img2Height
-      );
-
-      // Clear canvas2 to free memory
-      canvas2.width = 0;
-      canvas2.height = 0;
-
-      // Save the PDF
-      pdf.save(generatePDFFileName(scan, "scan"));
-      toast.success("PDF report downloaded successfully");
-    } catch (imageError) {
-      console.error("Error generating image:", imageError);
-      toast.error(
-        "There was a problem generating the PDF. Please try again later."
+      // Parse the HTML content with our helper function - even larger font and line height
+      yPosition = parseHtmlContent(scan.report, pdf, {
+        x: margin,
+        startY: yPosition,
+        maxWidth: contentWidth,
+        fontSize: 14, // Increased from 12 to 14
+        lineHeight: 7, // Increased from 6 to 7
+      });
+    } else {
+      // Show a message if no report is available - with larger font
+      pdf.setFontSize(14); // Increased from 10 to 14
+      pdf.setTextColor(100, 116, 139);
+      pdf.setFont("helvetica", "italic");
+      pdf.text(
+        "No detailed report available for this scan.",
+        margin,
+        yPosition
       );
     }
+
+    // Add footer with timestamp
+    const footerText = `Generated on ${format(new Date(), "PPP")}`;
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139); // Gray text for footer
+    pdf.text(footerText, pageWidth / 2, pdf.internal.pageSize.height - 10, {
+      align: "center",
+    });
+
+    // Save the PDF with selectable text
+    pdf.save(generatePDFFileName(scan, "scan"));
+    toast.success("PDF report downloaded successfully");
   } catch (error) {
     console.error("Error generating PDF:", error);
     toast.error("Failed to generate PDF. Please try again.");
@@ -406,7 +673,7 @@ export const generateScanPDF = async (
   }
 };
 
-// Generate a test PDF
+// Generate a test PDF with improved quality and text support
 export const generateLabTestPDF = async (
   test: LabTestData,
   setGeneratingPDF: (state: boolean) => void
@@ -419,264 +686,395 @@ export const generateLabTestPDF = async (
       ? `${test.testResults[0].category} Test Report`
       : "Laboratory Test Report";
 
-    // Create a div for the PDF content
-    const pdfDiv = document.createElement("div");
-    pdfDiv.style.padding = "20px";
-    pdfDiv.style.width = "800px";
-    pdfDiv.style.margin = "0 auto";
-    pdfDiv.style.fontFamily = "Arial, sans-serif";
-    pdfDiv.style.position = "absolute";
-    pdfDiv.style.left = "-9999px";
-    pdfDiv.style.top = "0";
-
-    // Add the HTML content for the PDF
-    pdfDiv.innerHTML = `
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #0f172a; margin-bottom: 10px; font-size: 24px;">${mainTestName}</h1>
-      </div>
-
-      <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background-color: #f8fafc; margin-bottom: 30px;">
-        <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Patient Information</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Date:</p>
-            <p style="margin: 5px 0; font-weight: bold;">${format(
-              new Date(test.createdAt),
-              "PPP"
-            )}</p>
-          </div>
-          ${
-            test.patientSnapshot
-              ? `
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Patient Name:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${
-                test.patientSnapshot.firstName || ""
-              } ${test.patientSnapshot.lastName || ""}</p>
-            </div>
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">ID:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${
-                test.patientSnapshot.nationalID || ""
-              }</p>
-            </div>
-            ${
-              test.patientSnapshot.age
-                ? `<div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Age:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${test.patientSnapshot.age}</p>
-              </div>`
-                : ""
-            }
-            ${
-              test.patientSnapshot.gender
-                ? `<div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Gender:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${formatGender(
-                  test.patientSnapshot.gender
-                )}</p>
-              </div>`
-                : ""
-            }
-            ${
-              test.patientSnapshot.phone
-                ? `<div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Phone:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${test.patientSnapshot.phone}</p>
-              </div>`
-                : ""
-            }
-            ${
-              test.patientSnapshot.email
-                ? `<div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Email:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${test.patientSnapshot.email}</p>
-              </div>`
-                : ""
-            }
-          `
-              : ""
-          }
-        </div>
-      </div>
-    `;
-
-    // Add each test category and its results
-    test.testResults.forEach((category) => {
-      pdfDiv.innerHTML += `
-        <div style="margin-bottom: 30px;">
-          <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 18px;">
-            ${category.category}
-          </h2>
-
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="background-color: #f1f5f9;">
-                <th style="text-align: left; padding: 10px; border: 1px solid #e2e8f0;">Test Name</th>
-                <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Value</th>
-                <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Unit</th>
-                <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Normal Range</th>
-                <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${category.tests
-                .map((test) => {
-                  // Determine the status color based on special categories
-                  let statusColor = "";
-                  if (test.status !== "Normal") {
-                    if (
-                      category.category === "Diabetes" ||
-                      test.testName.toLowerCase().includes("glucose") ||
-                      test.testName.toLowerCase().includes("a1c")
-                    ) {
-                      switch (test.status) {
-                        case "Pre-diabetic":
-                          statusColor = "color: #d97706;"; // amber-600
-                          break;
-                        case "Diabetic":
-                          statusColor = "color: #dc2626;"; // red-600
-                          break;
-                        default:
-                          statusColor = "color: #ef4444;"; // red-500
-                      }
-                    } else if (
-                      category.category === "Kidney Function" ||
-                      test.testName.toLowerCase().includes("creatinine") ||
-                      test.testName.toLowerCase().includes("gfr") ||
-                      test.testName.toLowerCase().includes("urea")
-                    ) {
-                      switch (test.status) {
-                        case "Early Stage":
-                          statusColor = "color: #d97706;"; // amber-600
-                          break;
-                        case "Kidney Disease":
-                          statusColor = "color: #ea580c;"; // orange-600
-                          break;
-                        case "Kidney Failure":
-                          statusColor = "color: #dc2626;"; // red-600
-                          break;
-                        default:
-                          statusColor = "color: #ef4444;"; // red-500
-                      }
-                    } else if (test.status === "High") {
-                      statusColor = "color: #ef4444;"; // red-500
-                    } else if (test.status === "Low") {
-                      statusColor = "color: #d97706;"; // amber-600
-                    } else {
-                      statusColor = "color: #ef4444;"; // red-500
-                    }
-                  }
-
-                  return `
-                      <tr>
-                        <td style="padding: 10px; border: 1px solid #e2e8f0;">${
-                          test.testName
-                        }</td>
-                        <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                          test.value
-                        }</td>
-                        <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                          test.unit
-                        }</td>
-                        <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                          test.normalRange
-                        }</td>
-                        <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0; ${
-                          test.status !== "Normal"
-                            ? statusColor + " font-weight: bold;"
-                            : ""
-                        }">${test.status !== "Normal" ? test.status : ""}</td>
-                      </tr>
-                    `;
-                })
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      `;
+    // Initialize PDF with higher quality settings
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: true,
     });
 
-    try {
-      // Append the div to the body but keep it hidden
-      document.body.appendChild(pdfDiv);
+    // Add document metadata for better accessibility
+    pdf.setProperties({
+      title: mainTestName,
+      subject: "Laboratory Test Report",
+      creator: "Scanalyze Medical System",
+      keywords: "laboratory, test, medical, report, health",
+      author: "Scanalyze Medical System",
+    });
 
-      // Create a PDF with appropriate size
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+    // Define margins
+    const margin = 10; // 10mm margin
+    const pageWidth = 210; // A4 width
+    const contentWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
 
-      // Use html2canvas with optimized options
-      const canvasOptions = {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#FFFFFF",
-      };
+    // Add title with proper text attributes - this makes the text selectable
+    pdf.setFontSize(22); // Increased from 18 for more prominent title
+    pdf.setTextColor(15, 23, 42); // #0f172a in RGB
+    pdf.text(mainTestName, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 12; // Slightly more spacing after title
 
-      const canvas = await html2canvas(pdfDiv, canvasOptions);
+    // Patient info section - improved to avoid empty spaces
+    let patientInfoExists = false;
+    let infoRows = 0;
 
-      // Clean up DOM
-      document.body.removeChild(pdfDiv);
+    // Count actual available patient info to determine box size
+    if (test.patientSnapshot) {
+      patientInfoExists = true;
+      // Count fields that actually have values
+      if (test.patientSnapshot.firstName || test.patientSnapshot.lastName)
+        infoRows++;
+      if (test.patientSnapshot.nationalID) infoRows++;
+      if (test.patientSnapshot.gender) infoRows++;
+      if (test.patientSnapshot.age) infoRows++;
+      if (test.patientSnapshot.phone) infoRows++;
+      if (test.patientSnapshot.email) infoRows++;
+    }
 
-      // Calculate dimensions
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // Always have at least the date row
+    infoRows = Math.max(infoRows, 1);
 
-      // Handle multi-page content
-      if (imgHeight > 297) {
-        // A4 height
-        let heightLeft = imgHeight;
-        let position = 0;
-        const pageHeight = 297;
+    // Calculate dynamic height based on actual content
+    const rowHeight = 12; // Increased row height to match larger font size
+    const headerHeight = 12; // Increased header height
+    const patientInfoPadding = 10; // Slightly increased top/bottom padding
 
-        // Simple loop to add pages
-        while (heightLeft > 0) {
-          // Add image to current page
-          pdf.addImage(
-            canvas.toDataURL("image/jpeg", 0.8),
-            "JPEG",
-            0,
-            position,
-            imgWidth,
-            imgHeight
-          );
+    // Calculate box height more precisely based on actual content
+    // Count exact number of rows needed
+    let totalRows = 0;
 
-          heightLeft -= pageHeight;
+    // Date row (always present)
+    totalRows += 1;
 
-          // Add new page if needed
-          if (heightLeft > 0) {
-            pdf.addPage();
-            position -= pageHeight;
-          }
-        }
-      } else {
-        // Single page case
-        pdf.addImage(
-          canvas.toDataURL("image/jpeg", 0.8),
-          "JPEG",
-          0,
-          0,
-          imgWidth,
-          imgHeight
+    // Count only fields that actually exist
+    if (test.patientSnapshot) {
+      if (test.patientSnapshot.nationalID) totalRows += 1;
+      if (test.patientSnapshot.gender) totalRows += 1;
+      if (test.patientSnapshot.firstName || test.patientSnapshot.lastName)
+        totalRows += 1;
+      if (test.patientSnapshot.age !== undefined) totalRows += 1;
+      if (test.patientSnapshot.phone) totalRows += 1;
+      if (test.patientSnapshot.email) totalRows += 1;
+    }
+
+    // Calculate rows needed for two-column layout (divide by 2 and round up)
+    totalRows = Math.ceil(totalRows / 2);
+
+    // More precise height calculation with extra spacing between rows
+    const patientInfoBoxHeight =
+      patientInfoPadding * 2 + headerHeight + totalRows * (rowHeight + 2);
+
+    // Create patient information section with improved styling
+    pdf.setDrawColor(200, 215, 230); // Slightly darker border color
+    pdf.setFillColor(248, 250, 252); // Light background
+    pdf.setLineWidth(0.5); // Slightly thicker border
+    pdf.roundedRect(
+      margin,
+      yPosition,
+      contentWidth,
+      patientInfoBoxHeight,
+      4, // Increased corner radius
+      4,
+      "FD" // Fill and draw
+    );
+    pdf.setLineWidth(0.1); // Reset line width
+    yPosition += patientInfoPadding; // Set initial position with proper top padding
+
+    // Patient info header with improved styling
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42); // Darker text for better contrast
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Patient Information", margin + 8, yPosition);
+    pdf.setFont("helvetica", "normal");
+    yPosition += 6;
+
+    // Draw a line under the header with improved styling
+    pdf.setDrawColor(200, 215, 230); // Slightly darker line color
+    pdf.setLineWidth(0.5); // Thicker line
+    pdf.line(margin + 8, yPosition, margin + contentWidth - 8, yPosition);
+    pdf.setLineWidth(0.1); // Reset line width
+    yPosition += 8; // Space after header line
+
+    // Initial setup for patient info fields with better spacing
+    pdf.setFontSize(12); // Increased font size from 10 to 12
+    const leftColumnX = margin + 8; // Increased left margin
+    const rightColumnX = margin + contentWidth / 2 + 5; // Better right column position
+    const labelWidth = 30; // Slightly wider label area
+    let leftColY = yPosition;
+    let rightColY = yPosition;
+
+    // Date row (always present)
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("Date:", leftColumnX, leftColY);
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(
+      format(new Date(test.createdAt), "PPP"),
+      leftColumnX + labelWidth,
+      leftColY
+    );
+    pdf.setFont("helvetica", "normal");
+    leftColY += rowHeight + 2; // Added 2 extra points of spacing between rows
+
+    // Add patient info if available in a compact 2-column layout
+    if (patientInfoExists) {
+      const info = test.patientSnapshot!;
+
+      // Name (right column)
+      if (info.firstName || info.lastName) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Patient Name:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          `${info.firstName || ""} ${info.lastName || ""}`.trim(),
+          rightColumnX + labelWidth,
+          rightColY
         );
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2; // Added 2 extra points of spacing between rows
       }
 
-      // Clean up to free memory
-      canvas.width = 0;
-      canvas.height = 0;
+      // ID (left column)
+      if (info.nationalID) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("ID:", leftColumnX, leftColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.nationalID, leftColumnX + labelWidth, leftColY);
+        pdf.setFont("helvetica", "normal");
+        leftColY += rowHeight + 2; // Added 2 extra points of spacing between rows
+      }
 
-      // Save the PDF
-      pdf.save(generatePDFFileName(test, "lab-test"));
-      toast.success("PDF report downloaded successfully");
-    } catch (imageError) {
-      console.error("Error generating image:", imageError);
-      toast.error(
-        "There was a problem generating the PDF. Please try again later."
-      );
+      // Age (right column)
+      if (info.age !== undefined) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Age:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.age.toString(), rightColumnX + labelWidth, rightColY);
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2; // Added 2 extra points of spacing between rows
+      }
+
+      // Gender (left column)
+      if (info.gender) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Gender:", leftColumnX, leftColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(formatGender(info.gender), leftColumnX + labelWidth, leftColY);
+        pdf.setFont("helvetica", "normal");
+        leftColY += rowHeight + 2; // Added 2 extra points of spacing between rows
+      }
+
+      // Phone (right column)
+      if (info.phone) {
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("Phone:", rightColumnX, rightColY);
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(info.phone, rightColumnX + labelWidth, rightColY);
+        pdf.setFont("helvetica", "normal");
+        rightColY += rowHeight + 2; // Added 2 extra points of spacing between rows
+      }
+
+      // Email (left or right column, depending on which has less content)
+      if (info.email) {
+        const useLeftCol = leftColY <= rightColY;
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(
+          "Email:",
+          useLeftCol ? leftColumnX : rightColumnX,
+          useLeftCol ? leftColY : rightColY
+        );
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          info.email,
+          useLeftCol ? leftColumnX + labelWidth : rightColumnX + labelWidth,
+          useLeftCol ? leftColY : rightColY
+        );
+        pdf.setFont("helvetica", "normal");
+      }
     }
+
+    // Move position past the patient info box with increased spacing
+    yPosition = margin + 12 + patientInfoBoxHeight + 15; // Added +15 for more space before test category
+
+    // Process each test category with tables for better text support
+    for (const category of test.testResults) {
+      // Check if we need a new page
+      if (yPosition > 250) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      // Category header as text
+      pdf.setFontSize(16);
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(category.category, margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      yPosition += 10;
+
+      // Create table headers using jspdf-autotable for selectable text
+      const headers = [
+        ["Test Name", "Value", "Unit", "Normal Range", "Status"],
+      ];
+
+      // Process table data
+      const tableData = category.tests.map((test) => {
+        // Handle special unit formatting
+        let formattedUnit = test.unit;
+
+        // First handle Red Blood Cells specific cases
+        if (
+          test.testName === "Red blood cells (RBC)" ||
+          test.testName === "Red blood cells" ||
+          test.testName.includes("RBC")
+        ) {
+          formattedUnit = "10⁶/µL";
+        }
+        // Then handle other unit format issues
+        else if (
+          formattedUnit === "10^6/µL" ||
+          formattedUnit === "10^6/uL" ||
+          formattedUnit === "10 v / µ L" ||
+          formattedUnit === "1 0 v / µ l" ||
+          formattedUnit === "1 0 v / µ L" ||
+          (formattedUnit.includes("10") &&
+            (formattedUnit.includes("v") || formattedUnit.includes("^6")) &&
+            (formattedUnit.includes("µ") || formattedUnit.includes("u")) &&
+            (formattedUnit.includes("L") || formattedUnit.includes("l")))
+        ) {
+          formattedUnit = "10⁶/µL";
+        } else if (
+          formattedUnit === "10^3/µL" ||
+          formattedUnit === "10^3/uL" ||
+          formattedUnit === "10³/uL"
+        ) {
+          formattedUnit = "10³/µL";
+        }
+
+        // Only apply the general replacement if we haven't already fixed the unit
+        if (formattedUnit !== "10⁶/µL" && formattedUnit !== "10³/µL") {
+          // Clean up any other spacing issues in units
+          formattedUnit = formattedUnit.replace(/\s+/g, "").replace(/v/g, "⁶");
+        }
+
+        return [
+          test.testName,
+          test.value,
+          formattedUnit,
+          test.normalRange,
+          test.status !== "Normal" ? test.status : "",
+        ];
+      });
+
+      // Add the table with proper styling for accessibility
+      autoTable(pdf, {
+        startY: yPosition,
+        head: headers,
+        body: tableData,
+        margin: { left: margin, right: margin },
+        styles: {
+          fontSize: 12,
+          cellPadding: 4,
+          font: "helvetica",
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+        },
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [15, 23, 42],
+          fontStyle: "bold",
+          fontSize: 14,
+        },
+        columnStyles: {
+          0: { cellWidth: 60 }, // Test Name
+          1: { cellWidth: 30, halign: "center" }, // Value
+          2: { cellWidth: 25, halign: "center" }, // Unit
+          3: { cellWidth: 40, halign: "center" }, // Normal Range
+          4: { cellWidth: 35, halign: "center" }, // Status
+        },
+        didDrawCell: (data: any) => {
+          // Only style the body cells, not header cells
+          if (
+            data.section === "body" &&
+            data.column.index === 4 &&
+            data.cell.raw
+          ) {
+            const status = data.cell.raw;
+            // Safely access the test name with null checks
+            const testName =
+              data.table?.body?.[data.row?.index]?.[0]?.raw || "";
+
+            if (status) {
+              // Set text color based on status type and test context
+              let bgColor = [254, 226, 226]; // Default light red (#fee2e2)
+
+              if (
+                status === "Pre-diabetic" ||
+                status === "Early Stage" ||
+                status === "Low"
+              ) {
+                pdf.setTextColor(217, 119, 6); // amber-600
+                bgColor = [254, 243, 199]; // Light amber (#fef3c7)
+              } else if (
+                status === "Diabetic" ||
+                status === "Kidney Failure" ||
+                status === "Very High"
+              ) {
+                pdf.setTextColor(220, 38, 38); // red-600
+                bgColor = [254, 226, 226]; // Light red (#fee2e2)
+              } else if (status === "Kidney Disease" || status === "Moderate") {
+                pdf.setTextColor(234, 88, 12); // orange-600
+                bgColor = [255, 237, 213]; // Light orange (#ffedd5)
+              } else if (status === "High" || status === "Abnormal") {
+                pdf.setTextColor(239, 68, 68); // red-500
+                bgColor = [254, 226, 226]; // Light red (#fee2e2)
+              } else {
+                pdf.setTextColor(239, 68, 68); // red-500 default
+              }
+
+              // Add background color to highlight the status
+              const cell = data.cell;
+
+              // Draw highlight background for abnormal statuses with the appropriate color
+              pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+              pdf.rect(cell.x, cell.y, cell.width, cell.height, "F");
+
+              // Re-draw the cell text with bold font
+              pdf.setFont("helvetica", "bold");
+              pdf.text(
+                status,
+                cell.x + cell.width / 2,
+                cell.y + cell.height / 2 + 1,
+                { align: "center", baseline: "middle" }
+              );
+            }
+          }
+        },
+      });
+
+      // Update position after the table
+      const finalY = (pdf as any).lastAutoTable?.finalY || yPosition + 40;
+      yPosition = finalY + 15;
+    }
+
+    // Add footer with timestamp
+    const footerText = `Generated on ${format(new Date(), "PPP 'at' h:mm a")}`;
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(footerText, pageWidth / 2, pdf.internal.pageSize.height - 10, {
+      align: "center",
+    });
+
+    // Save the enhanced PDF with selectable text
+    pdf.save(generatePDFFileName(test, "lab-test"));
+    toast.success("PDF report downloaded successfully");
   } catch (error) {
     console.error("Error generating PDF:", error);
     toast.error("Failed to generate PDF. Please try again.");
@@ -685,7 +1083,7 @@ export const generateLabTestPDF = async (
   }
 };
 
-// Helper function to compress image
+// Helper function to compress image with improved quality
 const compressImage = async (imageUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = document.createElement("img");
@@ -693,12 +1091,13 @@ const compressImage = async (imageUrl: string): Promise<string> => {
 
     img.onload = () => {
       try {
-        // Create a canvas to resize the image
+        // Create a canvas to process the image
         const canvas = document.createElement("canvas");
 
         // Calculate new dimensions (reduce size while maintaining aspect ratio)
-        const maxWidth = 800;
-        const maxHeight = 800;
+        // Optimized for PDF quality - not too large, not too small
+        const maxWidth = 1500; // Increased for better quality
+        const maxHeight = 1500; // Increased for better quality
         let width = img.width;
         let height = img.height;
 
@@ -717,26 +1116,42 @@ const compressImage = async (imageUrl: string): Promise<string> => {
         canvas.width = width;
         canvas.height = height;
 
-        // Draw image at new size
-        const ctx = canvas.getContext("2d");
+        // Draw image with optimized quality settings
+        const ctx = canvas.getContext("2d", {
+          alpha: false,
+          desynchronized: true, // Performance improvement
+        });
+
         if (!ctx) {
           reject("Failed to get canvas context");
           return;
         }
 
+        // Apply optimized rendering settings
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, width, height);
+
+        // Apply better image quality settings
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Draw the image
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Get compressed image as JPEG with reduced quality
-        resolve(canvas.toDataURL("image/jpeg", 0.9));
+        // Get compressed image as JPEG with higher but reasonable quality
+        // Higher quality for medical images - they need to be clear
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
       } catch (err) {
-        reject(`Error compressing image: ${err}`);
+        console.error("Image compression error:", err);
+        // If compression fails, return the original to ensure functionality
+        resolve(imageUrl);
       }
     };
 
-    img.onerror = () => {
-      reject("Failed to load image");
+    img.onerror = (error) => {
+      console.error("Failed to load image for compression:", error);
+      // Return original if loading fails
+      resolve(imageUrl);
     };
 
     img.src = imageUrl;
