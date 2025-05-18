@@ -49,8 +49,6 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import { toast } from "sonner";
 import {
   Table,
@@ -70,6 +68,11 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { QRCodeSVG } from "qrcode.react";
 import { useRef } from "react";
+import {
+  generateLabTestPDF,
+  LabTestData,
+  TestCategory as PDFTestCategory,
+} from "@/lib/utils/pdf-generator";
 
 interface Test {
   testName: string;
@@ -234,269 +237,24 @@ export function PatientTests({ patientId }: PatientTestsProps) {
   };
 
   const handleDownloadPDF = async (test: LabTest) => {
+    // Set loading state for this specific test
+    setGeneratingPDFs((prev) => ({ ...prev, [test._id]: true }));
+
+    // Cast to the interface expected by the PDF generator
+    const testData: LabTestData = {
+      _id: test._id,
+      createdAt: test.createdAt,
+      patientSnapshot: test.patientSnapshot,
+      testResults: test.testResults as PDFTestCategory[],
+    };
+
     try {
-      // Set loading state for this specific test
-      setGeneratingPDFs((prev) => ({ ...prev, [test._id]: true }));
-
-      // Create a div for the PDF content
-      const pdfDiv = document.createElement("div");
-      pdfDiv.style.padding = "20px";
-      pdfDiv.style.width = "800px"; // Fixed width regardless of screen size
-      pdfDiv.style.margin = "0 auto";
-      pdfDiv.style.fontFamily = "Arial, sans-serif";
-      pdfDiv.style.position = "absolute";
-      pdfDiv.style.left = "-9999px"; // Position off-screen
-      pdfDiv.style.top = "0";
-
-      // Format gender correctly with null/undefined checks
-      const formatGender = (gender: string | undefined): string => {
-        if (!gender) return "";
-        return gender.charAt(0).toUpperCase() + gender.slice(1);
-      };
-
-      // Add the HTML content for the PDF
-      pdfDiv.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #0f172a; margin-bottom: 10px; font-size: 24px;">LABORATORY TEST REPORT</h1>
-        </div>
-
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background-color: #f8fafc; margin-bottom: 30px;">
-          <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Patient Information</h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Date:</p>
-              <p style="margin: 5px 0; font-weight: bold;">${format(
-                new Date(test.createdAt),
-                "PPP"
-              )}</p>
-            </div>
-            ${
-              test.patientSnapshot
-                ? `
-              <div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Patient Name:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${
-                  test.patientSnapshot.firstName || ""
-                } ${test.patientSnapshot.lastName || ""}</p>
-              </div>
-              <div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">ID:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${
-                  test.patientSnapshot.nationalID || ""
-                }</p>
-              </div>
-              <div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Gender:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${formatGender(
-                  test.patientSnapshot.gender
-                )}</p>
-              </div>
-              <div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Phone:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${
-                  test.patientSnapshot.phone || ""
-                }</p>
-              </div>
-              <div>
-                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">Email:</p>
-                <p style="margin: 5px 0; font-weight: bold;">${
-                  test.patientSnapshot.email || ""
-                }</p>
-              </div>
-            `
-                : ""
-            }
-          </div>
-        </div>
-      `;
-
-      // Add each test category and its results
-      test.testResults.forEach((category) => {
-        pdfDiv.innerHTML += `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">${
-              category.category
-            }</h2>
-
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-              <thead>
-                <tr style="background-color: #f1f5f9;">
-                  <th style="text-align: left; padding: 10px; border: 1px solid #e2e8f0;">Test Name</th>
-                  <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Value</th>
-                  <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Unit</th>
-                  <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Normal Range</th>
-                  <th style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${category.tests
-                  .map((test) => {
-                    // Determine the status color based on special categories
-                    let statusColor = "";
-                    if (test.status !== "Normal") {
-                      if (
-                        category.category === "Diabetes" ||
-                        test.testName.toLowerCase().includes("glucose") ||
-                        test.testName.toLowerCase().includes("a1c")
-                      ) {
-                        switch (test.status) {
-                          case "Pre-diabetic":
-                            statusColor = "color: #d97706;"; // amber-600
-                            break;
-                          case "Diabetic":
-                            statusColor = "color: #dc2626;"; // red-600
-                            break;
-                          default:
-                            statusColor = "color: #ef4444;"; // red-500
-                        }
-                      } else if (
-                        category.category === "Kidney Function" ||
-                        test.testName.toLowerCase().includes("creatinine") ||
-                        test.testName.toLowerCase().includes("gfr") ||
-                        test.testName.toLowerCase().includes("urea")
-                      ) {
-                        switch (test.status) {
-                          case "Early Stage":
-                            statusColor = "color: #d97706;"; // amber-600
-                            break;
-                          case "Kidney Disease":
-                            statusColor = "color: #ea580c;"; // orange-600
-                            break;
-                          case "Kidney Failure":
-                            statusColor = "color: #dc2626;"; // red-600
-                            break;
-                          default:
-                            statusColor = "color: #ef4444;"; // red-500
-                        }
-                      } else {
-                        statusColor = "color: #ef4444;"; // red-500
-                      }
-                    }
-
-                    return `
-                        <tr>
-                          <td style="padding: 10px; border: 1px solid #e2e8f0;">${
-                            test.testName
-                          }</td>
-                          <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                            test.value
-                          }</td>
-                          <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                            test.unit
-                          }</td>
-                          <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0;">${
-                            test.normalRange
-                          }</td>
-                          <td style="text-align: center; padding: 10px; border: 1px solid #e2e8f0; ${
-                            test.status !== "Normal"
-                              ? statusColor + " font-weight: bold;"
-                              : ""
-                          }">${test.status !== "Normal" ? test.status : ""}</td>
-                        </tr>
-                      `;
-                  })
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
+      await generateLabTestPDF(testData, () => {
+        // This is a workaround since we need to update a specific test's loading state
+        // rather than a simple boolean
       });
-
-      try {
-        // Append the div to the body but keep it hidden
-        document.body.appendChild(pdfDiv);
-
-        // Generate PDF with a consistent size
-        const pdf = new jsPDF("p", "mm", "a4");
-
-        // Optimize html2canvas options
-        const canvasOptions = {
-          scale: 2.5,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#FFFFFF",
-          imageTimeout: 0,
-          allowTaint: false,
-          // Force the canvas to use the fixed dimensions
-          width: 800,
-          height: pdfDiv.offsetHeight,
-        };
-
-        const canvas = await html2canvas(pdfDiv, canvasOptions);
-        document.body.removeChild(pdfDiv);
-
-        // Add to PDF with compression
-        const imgWidth = 210; // A4 width in mm
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        // If the content is larger than one page, we need to split it
-        if (imgHeight > 297) {
-          // A4 height is 297mm
-          let heightLeft = imgHeight;
-          let position = 0;
-          let pageHeight = 297;
-
-          // First page
-          pdf.addImage(
-            canvas.toDataURL("image/jpeg", 0.95),
-            "JPEG",
-            0,
-            0,
-            imgWidth,
-            imgHeight,
-            undefined,
-            "FAST"
-          );
-
-          heightLeft -= pageHeight;
-          position = -pageHeight;
-
-          // Add other pages if needed
-          while (heightLeft > 0) {
-            pdf.addPage();
-            pdf.addImage(
-              canvas.toDataURL("image/jpeg", 0.95),
-              "JPEG",
-              0,
-              position,
-              imgWidth,
-              imgHeight,
-              undefined,
-              "FAST"
-            );
-            heightLeft -= pageHeight;
-            position -= pageHeight;
-          }
-        } else {
-          // Content fits on a single page
-          pdf.addImage(
-            canvas.toDataURL("image/jpeg", 0.95),
-            "JPEG",
-            0,
-            0,
-            imgWidth,
-            imgHeight
-          );
-        }
-
-        // Clear canvas to free memory
-        canvas.width = 0;
-        canvas.height = 0;
-
-        // Save the PDF
-        pdf.save(generatePDFFileName(test));
-        toast.success("PDF report downloaded successfully");
-      } catch (imageError) {
-        console.error("Error generating image:", imageError);
-        toast.error(
-          "There was a problem generating the PDF. Please try again later."
-        );
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
     } finally {
-      // Clear loading state for this specific test
+      // Update the loading state for this specific test
       setGeneratingPDFs((prev) => ({ ...prev, [test._id]: false }));
     }
   };
@@ -609,40 +367,6 @@ export function PatientTests({ patientId }: PatientTestsProps) {
         setCopied(false);
       }, 2000);
     });
-  };
-
-  // Format name for the PDF filename
-  const generatePDFFileName = (test: LabTest): string => {
-    // Get categories from the test
-    const categoriesString = test.testResults
-      .map((category) => category.category.toLowerCase().replace(/\s+/g, "-"))
-      .join("-");
-
-    // Get patient name or use "unknown" if not available
-    let patientName = "unknown-patient";
-    if (
-      test.patientSnapshot &&
-      test.patientSnapshot.firstName &&
-      test.patientSnapshot.lastName
-    ) {
-      patientName =
-        `${test.patientSnapshot.firstName}-${test.patientSnapshot.lastName}`
-          .toLowerCase()
-          .replace(/\s+/g, "-");
-    } else if (test.patientSnapshot && test.patientSnapshot.firstName) {
-      patientName = test.patientSnapshot.firstName
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-    }
-
-    // Format the test date
-    const testDate = format(new Date(test.createdAt), "yyyy-MM-dd");
-
-    // Create a timestamp for the export
-    const exportTimestamp = format(new Date(), "HHmmss");
-
-    // Put it all together
-    return `${categoriesString}-test_${patientName}_${testDate}_report-${exportTimestamp}.pdf`;
   };
 
   if (loading) {
