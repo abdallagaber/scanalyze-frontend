@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import {
   calculateDerivedValue,
   checkReferenceRange,
@@ -25,7 +25,7 @@ import { testService } from "@/lib/services/test";
 import Cookies from "js-cookie";
 
 interface TestFormProps {
-  selectedCategories: string[];
+  selectedTests: { category: string; testName: string }[];
   patientInfo: {
     id: string;
     gender: "male" | "female";
@@ -43,13 +43,18 @@ type TestResult = {
 };
 
 export default function TestForm({
-  selectedCategories,
+  selectedTests,
   patientInfo,
   onTestComplete,
 }: TestFormProps) {
   const [testResults, setTestResults] = useState<Record<string, TestResult>>(
     {}
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Get unique categories from selected tests
+  const selectedCategories = [
+    ...new Set(selectedTests.map((test) => test.category)),
+  ];
   const [activeTab, setActiveTab] = useState<string>(
     selectedCategories[0] || ""
   );
@@ -59,21 +64,23 @@ export default function TestForm({
     let isValid = true;
     const missingTests: string[] = [];
 
-    selectedCategories.forEach((category) => {
+    selectedTests.forEach(({ category, testName }) => {
       const categoryTests = testData[
         category as keyof typeof testData
       ] as any[];
-      categoryTests.forEach((test) => {
-        const testKey = `${category}:${test["Test Name"]}`;
+      const test = categoryTests.find((t) => t["Test Name"] === testName);
+
+      if (test) {
+        const testKey = `${category}:${testName}`;
         // Skip validation for calculated tests
         if (!test["Formula"]) {
           const result = testResults[testKey];
           if (!result || !result.value.trim()) {
             isValid = false;
-            missingTests.push(test["Test Name"]);
+            missingTests.push(testName);
           }
         }
-      });
+      }
     });
 
     return { isValid, missingTests };
@@ -145,18 +152,16 @@ export default function TestForm({
     numericValues["Age"] = patientInfo.age;
     numericValues["Gender"] = patientInfo.gender === "male" ? 1 : 0; // 1 for male, 0 for female
 
-    // Check all categories for tests that depend on the changed test
-    selectedCategories.forEach((category) => {
+    // Check selected tests for tests that depend on the changed test
+    selectedTests.forEach(({ category, testName }) => {
       const categoryTests = testData[
         category as keyof typeof testData
       ] as any[];
+      const test = categoryTests.find((t) => t["Test Name"] === testName);
 
-      categoryTests.forEach((test) => {
+      if (test) {
         // Skip if this is the test that just changed
-        if (
-          test["Test Name"] === changedTestName &&
-          category === changedCategory
-        ) {
+        if (testName === changedTestName && category === changedCategory) {
           return;
         }
 
@@ -190,7 +195,7 @@ export default function TestForm({
               const formattedValue = derivedValue.toFixed(2);
 
               // Update the derived test value
-              currentResults[`${category}:${test["Test Name"]}`] = {
+              currentResults[`${category}:${testName}`] = {
                 value: formattedValue,
                 status: null,
               };
@@ -203,13 +208,12 @@ export default function TestForm({
                   patientInfo.gender
                 );
 
-                currentResults[`${category}:${test["Test Name"]}`].status =
-                  result;
+                currentResults[`${category}:${testName}`].status = result;
               }
             }
           }
         }
-      });
+      }
     });
   };
 
@@ -225,17 +229,22 @@ export default function TestForm({
     }
 
     const formattedTestData = selectedCategories.map((category) => {
+      const categorySelectedTests = selectedTests.filter(
+        (test) => test.category === category
+      );
       const categoryTests = testData[
         category as keyof typeof testData
       ] as any[];
+
       return {
         category: category,
-        tests: categoryTests.map((test) => {
-          const testKey = `${category}:${test["Test Name"]}`;
+        tests: categorySelectedTests.map(({ testName }) => {
+          const test = categoryTests.find((t) => t["Test Name"] === testName);
+          const testKey = `${category}:${testName}`;
           const result = testResults[testKey];
 
           let normalRange = "";
-          if (test["Reference Range"]) {
+          if (test && test["Reference Range"]) {
             if (test["Reference Range"]["Normal"]) {
               normalRange = test["Reference Range"]["Normal"];
             } else if (
@@ -250,10 +259,10 @@ export default function TestForm({
           }
 
           return {
-            testName: test["Test Name"],
+            testName: testName,
             value: result?.value || "",
             normalRange: normalRange,
-            unit: test["Unit"],
+            unit: test?.["Unit"] || "",
             status: result?.status?.status || "Not Evaluated",
           };
         }),
@@ -296,13 +305,18 @@ export default function TestForm({
   // Reset form function
   const resetForm = () => {
     setTestResults({});
-    setActiveTab(selectedCategories[0] || "");
+    const newSelectedCategories = [
+      ...new Set(selectedTests.map((test) => test.category)),
+    ];
+    setActiveTab(newSelectedCategories[0] || "");
   };
 
   // Handle form submission
   const handleSubmit = async () => {
     const data = formatTestDataForExport();
     if (!data) return;
+
+    setIsSubmitting(true);
 
     try {
       // Get user data from cookie
@@ -347,6 +361,8 @@ export default function TestForm({
     } catch (error) {
       console.error("Error submitting test results:", error);
       toast.error("Failed to submit test results. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -416,12 +432,28 @@ export default function TestForm({
             ))}
           </TabsList>
 
-          {selectedCategories.map((category) => (
-            <TabsContent key={category} value={category} className="space-y-6">
-              <div className="space-y-4">
-                {(testData[category as keyof typeof testData] as any[]).map(
-                  (test) => {
-                    const testKey = `${category}:${test["Test Name"]}`;
+          {selectedCategories.map((category) => {
+            const categorySelectedTests = selectedTests.filter(
+              (test) => test.category === category
+            );
+            const categoryTests = testData[
+              category as keyof typeof testData
+            ] as any[];
+
+            return (
+              <TabsContent
+                key={category}
+                value={category}
+                className="space-y-6"
+              >
+                <div className="space-y-4">
+                  {categorySelectedTests.map(({ testName }) => {
+                    const test = categoryTests.find(
+                      (t) => t["Test Name"] === testName
+                    );
+                    if (!test) return null;
+
+                    const testKey = `${category}:${testName}`;
                     const testResult = testResults[testKey] || {
                       value: "",
                       status: null,
@@ -430,7 +462,7 @@ export default function TestForm({
 
                     return (
                       <div
-                        key={test["Test Name"]}
+                        key={testName}
                         className="space-y-2 p-3 border rounded-md"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -438,11 +470,11 @@ export default function TestForm({
                             htmlFor={testKey}
                             className="text-base font-medium"
                           >
-                            {test["Test Name"]}
+                            {testName}
                             {isCalculated && (
                               <Badge
                                 variant="outline"
-                                className="ml-2 bg-blue-50"
+                                className="ml-2 bg-green-50"
                               >
                                 Calculated
                               </Badge>
@@ -468,7 +500,7 @@ export default function TestForm({
                             onChange={(e) =>
                               handleTestValueChange(
                                 category,
-                                test["Test Name"],
+                                testName,
                                 e.target.value
                               )
                             }
@@ -510,19 +542,26 @@ export default function TestForm({
                         )}
                       </div>
                     );
-                  }
-                )}
-              </div>
-            </TabsContent>
-          ))}
+                  })}
+                </div>
+              </TabsContent>
+            );
+          })}
 
           <div className="flex gap-4 mt-6">
             <Button
               onClick={handleSubmit}
               className="flex-1"
-              disabled={!validateForm().isValid}
+              disabled={!validateForm().isValid || isSubmitting}
             >
-              Submit Test Results
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Test Results"
+              )}
             </Button>
             {/* <Button
               onClick={handleExport}

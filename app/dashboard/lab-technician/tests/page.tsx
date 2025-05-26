@@ -26,7 +26,9 @@ export default function LabTestsPage() {
     "patient-search" | "test-selection" | "test-form"
   >("patient-search");
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTests, setSelectedTests] = useState<
+    { category: string; testName: string }[]
+  >([]);
   const patientSearchRef = useRef<PatientSearchRef>(null);
   const [cachedPatient, setCachedPatient] = useState<any>(null);
 
@@ -69,8 +71,10 @@ export default function LabTestsPage() {
     setStep("test-selection");
   };
 
-  const handleTestsSelected = (categories: string[]) => {
-    setSelectedCategories(categories);
+  const handleTestsSelected = (
+    tests: { category: string; testName: string }[]
+  ) => {
+    setSelectedTests(tests);
     setStep("test-form");
   };
 
@@ -125,13 +129,13 @@ export default function LabTestsPage() {
 
         {step === "test-form" && patientInfo && (
           <TestForm
-            selectedCategories={selectedCategories}
+            selectedTests={selectedTests}
             patientInfo={patientInfo}
             onTestComplete={() => {
               // Clear cached patient and reset state
               setCachedPatient(null);
               setPatientInfo(null);
-              setSelectedCategories([]);
+              setSelectedTests([]);
               // Go back to patient search step
               setStep("patient-search");
               // Reset patient search form if ref is available
