@@ -14,6 +14,8 @@ import {
   Undo,
   Redo,
   Link,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
@@ -36,33 +38,6 @@ interface AnalysisSectionProps {
     aiModel: string;
   } | null;
 }
-
-// Mock analysis results for different scan types
-const mockAnalysisResults = {
-  "brain-tumor":
-    "MRI analysis reveals a well-defined, contrast-enhancing mass in the right frontal lobe, measuring approximately 2.3 x 2.1 cm. The lesion demonstrates heterogeneous signal intensity with areas of necrosis and surrounding vasogenic edema. There is no evidence of midline shift or ventricular compression. Features are consistent with a high-grade glioma (likely glioblastoma). Recommend neurosurgical consultation for biopsy and treatment planning.",
-
-  tuberculosis:
-    "Chest X-ray shows patchy consolidation in the upper lobes bilaterally with evidence of cavitation in the right upper lobe. There are fibrotic changes and volume loss in both upper lobes. No pleural effusion is noted. Findings are highly suggestive of pulmonary tuberculosis, active disease. Recommend sputum analysis for acid-fast bacilli and clinical correlation.",
-
-  pneumonia:
-    "Chest X-ray demonstrates diffuse bilateral airspace opacities predominantly in the lower lobes with air bronchograms. No pleural effusion or pneumothorax is identified. Heart size is within normal limits. Findings are consistent with bilateral pneumonia. Recommend clinical correlation and appropriate antibiotic therapy based on sputum culture results.",
-
-  "knee-osteoarthritis":
-    "X-ray of the right knee shows moderate to severe degenerative changes with joint space narrowing, particularly in the medial compartment. Osteophyte formation is present along the margins of the femoral condyles and tibial plateau. Subchondral sclerosis and mild varus deformity are noted. Findings are consistent with Grade 3 osteoarthritis according to Kellgren-Lawrence classification. No acute fracture or dislocation is identified.",
-
-  "lung-cancer":
-    "CT scan of the chest reveals a spiculated mass in the right upper lobe measuring 3.2 x 2.8 cm with irregular margins. There is evidence of right hilar lymphadenopathy with nodes measuring up to 1.5 cm in short axis. No pleural effusion or chest wall invasion is noted. Findings are highly concerning for primary lung malignancy (likely non-small cell lung cancer). Recommend PET-CT for staging and CT-guided biopsy for histopathological diagnosis.",
-
-  "diabetic-retinopathy":
-    "Fundus examination reveals multiple microaneurysms, dot and blot hemorrhages, and hard exudates in both eyes, predominantly in the macular region. There are areas of neovascularization noted in the superior temporal quadrant of the right eye. No evidence of macular edema. Findings are consistent with severe non-proliferative diabetic retinopathy in the left eye and early proliferative diabetic retinopathy in the right eye. Recommend prompt referral to retina specialist for consideration of laser photocoagulation therapy.",
-
-  "kidney-diseases":
-    "Renal ultrasound shows bilateral kidneys of normal size with increased echogenicity of the cortex. Multiple cysts are noted in both kidneys, ranging from 1.2 to 3.5 cm in diameter. No hydronephrosis or calculi are identified. The findings are consistent with autosomal dominant polycystic kidney disease. Recommend clinical correlation with family history and renal function tests.",
-
-  "covid-19":
-    "Chest X-ray demonstrates bilateral peripheral ground-glass opacities predominantly in the lower lobes with patchy consolidation. No pleural effusion or pneumothorax is identified. Heart size is normal. Findings are highly suggestive of COVID-19 pneumonia with moderate severity. Recommend correlation with RT-PCR results and clinical monitoring of oxygen saturation levels.",
-};
 
 // Menu bar component for the rich text editor
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
@@ -166,6 +141,8 @@ export function AnalysisSection({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localContent, setLocalContent] = useState(analysisResult);
+  const [predictionResult, setPredictionResult] = useState<string | null>(null);
+  const [showResult, setShowResult] = useState(false);
 
   // Memoize the update handler to prevent unnecessary re-renders
   const handleUpdate = useCallback(({ editor }: { editor: Editor }) => {
@@ -179,6 +156,12 @@ export function AnalysisSection({
       setAnalysisResult("");
       onAnalysisGenerated("");
     }
+    // Also clear prediction result and hide result box when image is removed
+    if (!uploadedImage) {
+      setPredictionResult(null);
+      setShowResult(false);
+      setError(null);
+    }
   }, [uploadedImage, analysisResult, setAnalysisResult, onAnalysisGenerated]);
 
   // Only update the parent state when the user stops typing
@@ -186,11 +169,21 @@ export function AnalysisSection({
     const timer = setTimeout(() => {
       if (localContent !== analysisResult) {
         setAnalysisResult(localContent);
+        // Also call onAnalysisGenerated to enable submit button when user types manually
+        if (
+          localContent &&
+          localContent.trim() !== "" &&
+          localContent !== "<p></p>"
+        ) {
+          onAnalysisGenerated(localContent);
+        } else {
+          onAnalysisGenerated("");
+        }
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [localContent, setAnalysisResult, analysisResult]);
+  }, [localContent, setAnalysisResult, analysisResult, onAnalysisGenerated]);
 
   const editor = useEditor({
     extensions: [
@@ -243,6 +236,8 @@ export function AnalysisSection({
 
     setIsAnalyzing(true);
     setError(null);
+    setShowResult(false);
+    setPredictionResult(null);
 
     try {
       // Convert base64 to blob
@@ -269,25 +264,26 @@ export function AnalysisSection({
       }
 
       const result = data.prediction || "No prediction available";
-
-      const paragraphs = (typeof result === "string" ? result : "")
-        .split("\n")
-        .filter((p) => p.trim() !== "");
-      const htmlResult = paragraphs.map((p) => `<p>${p}</p>`).join("");
-      setLocalContent(htmlResult);
-      setAnalysisResult(htmlResult);
-      onAnalysisGenerated(htmlResult);
+      setPredictionResult(result);
+      setShowResult(true);
+      // Don't call onAnalysisGenerated to avoid populating text editor
+      // onAnalysisGenerated(result);
     } catch (err) {
       const errorMessage =
         err instanceof Error
           ? err.message
           : "An error occurred during analysis";
       setError(errorMessage);
-      setAnalysisResult("");
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  // Check if result is normal/healthy
+  const isNormalResult =
+    predictionResult &&
+    (predictionResult.toLowerCase().includes("normal") ||
+      predictionResult.toLowerCase().includes("healthy"));
 
   return (
     <div
@@ -312,6 +308,28 @@ export function AnalysisSection({
           </>
         )}
       </Button>
+
+      {showResult && predictionResult && uploadedImage && (
+        <div
+          className={`p-4 rounded-lg border-2 ${
+            isNormalResult
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {isNormalResult ? (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            )}
+            <h3 className="font-semibold">
+              {isNormalResult ? "Normal Result" : "Abnormal Result Detected"}
+            </h3>
+          </div>
+          <p className="mt-2 text-sm">{predictionResult}</p>
+        </div>
+      )}
 
       {error && (
         <Alert variant="destructive">

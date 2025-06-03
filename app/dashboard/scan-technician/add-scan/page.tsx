@@ -64,14 +64,30 @@ export default function AddScanPage() {
     setAnalysisResult("");
   };
 
+  // Handle selection reset
+  const handleSelectionReset = () => {
+    setSelectedScanType(null);
+    setCurrentStep(2); // Reset to scan type selection step
+    // Clear subsequent steps data
+    setUploadedImage(null);
+    setUploadedFile(null);
+    setAnalysisResult("");
+    scanUploadRef.current?.removeImage();
+  };
+
   // Handle file uploaded
   const handleFileUploaded = (fileUrl: string | null, file?: File | null) => {
     setUploadedImage(fileUrl);
     setUploadedFile(file || null);
 
     if (fileUrl) {
-      setCurrentStep(5); // Directly enable the submit button
-      // Clear subsequent steps data
+      setCurrentStep(4); // Move to analysis step when file is uploaded
+      // Clear analysis data when new file is uploaded
+      setAnalysisResult("");
+    } else {
+      // When image is removed, go back to scan upload step
+      setCurrentStep(3);
+      // Clear analysis data
       setAnalysisResult("");
     }
   };
@@ -79,7 +95,14 @@ export default function AddScanPage() {
   // Handle analysis result
   const handleAnalysisResult = (result: string) => {
     setAnalysisResult(result);
-    setCurrentStep(5);
+    if (result && result.trim() !== "" && result !== "<p></p>") {
+      setCurrentStep(5); // Advance to submit step when there's content (from AI or manual)
+    } else if (
+      uploadedImage &&
+      (!result || result.trim() === "" || result === "<p></p>")
+    ) {
+      setCurrentStep(4); // Stay on analysis step if content is cleared but image exists
+    }
   };
 
   // Handle final submission
@@ -108,9 +131,10 @@ export default function AddScanPage() {
     if (
       !analysisResult ||
       analysisResult.trim() === "" ||
-      analysisResult.length < 10
+      analysisResult === "<p></p>" ||
+      analysisResult.length < 5
     ) {
-      toast.error("Please generate or enter an analysis report", {
+      toast.error("Please generate an analysis or write a report", {
         style: { backgroundColor: "#EF4444", color: "white" },
       });
       return;
@@ -236,6 +260,7 @@ export default function AddScanPage() {
                   disabled={currentStep < 2}
                   onScanTypeSelected={handleScanTypeSelected}
                   selectedScanType={selectedScanType}
+                  onSelectionReset={handleSelectionReset}
                 />
               </CardContent>
             </Card>
@@ -243,7 +268,11 @@ export default function AddScanPage() {
             {/* Steps 3 & 4: Scan Upload and Analysis */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Step 3: Scan Upload */}
-              <Card className={currentStep < 3 ? "opacity-60" : ""}>
+              <Card
+                className={
+                  currentStep < 3 || !selectedScanType ? "opacity-60" : ""
+                }
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -262,7 +291,7 @@ export default function AddScanPage() {
                 <CardContent>
                   <ScanUpload
                     ref={scanUploadRef}
-                    disabled={currentStep < 3}
+                    disabled={currentStep < 3 || !selectedScanType}
                     onFileUploaded={handleFileUploaded}
                     scanType={selectedScanTypeDetails?.name || ""}
                   />
@@ -270,7 +299,11 @@ export default function AddScanPage() {
               </Card>
 
               {/* Step 4: Analysis */}
-              <Card className={currentStep < 4 ? "opacity-60" : ""}>
+              <Card
+                className={
+                  currentStep < 4 || !selectedScanType ? "opacity-60" : ""
+                }
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -286,7 +319,7 @@ export default function AddScanPage() {
                 </CardHeader>
                 <CardContent>
                   <AnalysisSection
-                    disabled={currentStep < 4}
+                    disabled={currentStep < 4 || !selectedScanType}
                     uploadedImage={uploadedImage}
                     analysisResult={analysisResult}
                     setAnalysisResult={setAnalysisResult}
