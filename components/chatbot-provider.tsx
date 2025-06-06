@@ -59,33 +59,38 @@ export function ChatbotProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_CHATBOT_API_URL || "http://127.0.0.1:8000/ask",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query: message }),
-        }
-      );
+      const baseUrl =
+        process.env.NEXT_PUBLIC_CHATBOT_API_URL || "http://127.0.0.1:8000/ask";
+      const encodedMessage = encodeURIComponent(message);
+      const url = `${baseUrl}?message=${encodedMessage}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
-      if (data.response) {
+      if (data.Answer) {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: data.response,
+          text: data.Answer,
           isUser: false,
         };
         setMessages((prev) => [...prev, botMessage]);
       } else {
-        throw new Error(data.error || "Failed to get response");
+        throw new Error("No Answer field in response");
       }
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I couldn't process your request. Please try again later.",
+        text: "I'm sorry, I can't respond right now. Please try again later.",
         isUser: false,
       };
       setMessages((prev) => [...prev, errorMessage]);

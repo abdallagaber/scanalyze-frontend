@@ -282,8 +282,7 @@ export function AnalysisSection({
   // Check if result is normal/healthy
   const isNormalResult =
     predictionResult &&
-    (predictionResult.toLowerCase().includes("normal") ||
-      predictionResult.toLowerCase().includes("healthy"));
+    predictionResult.toLowerCase().includes("no abnormal findings detected");
 
   return (
     <div
@@ -291,43 +290,58 @@ export function AnalysisSection({
         disabled ? "pointer-events-none opacity-50" : ""
       }`}
     >
-      <Button
-        onClick={handleAnalyze}
-        disabled={!uploadedImage || isAnalyzing || !scanType}
-        className="w-full"
-      >
-        {isAnalyzing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Analyzing with AI...
-          </>
-        ) : (
-          <>
-            <Zap className="mr-2 h-4 w-4" />
-            Generate Analysis
-          </>
-        )}
-      </Button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button
+          onClick={handleAnalyze}
+          disabled={!uploadedImage || isAnalyzing || !scanType}
+          className="w-full"
+        >
+          {isAnalyzing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <Zap className="mr-2 h-4 w-4" />
+              Prediction Result
+            </>
+          )}
+        </Button>
+
+        <Button variant="outline" className="w-full">
+          <Zap className="mr-2 h-4 w-4" />
+          Generate Report
+        </Button>
+      </div>
 
       {showResult && predictionResult && uploadedImage && (
         <div
-          className={`p-4 rounded-lg border-2 ${
+          className={`relative p-6 rounded-xl border shadow-sm transition-all duration-200 ${
             isNormalResult
-              ? "bg-green-50 border-green-200 text-green-800"
-              : "bg-red-50 border-red-200 text-red-800"
+              ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-900"
+              : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200 text-red-900"
           }`}
         >
-          <div className="flex items-center gap-2">
-            {isNormalResult ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-600" />
-            )}
-            <h3 className="font-semibold">
-              {isNormalResult ? "Normal Result" : "Abnormal Result Detected"}
-            </h3>
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex-shrink-0 p-2 rounded-full ${
+                isNormalResult ? "bg-green-100" : "bg-red-100"
+              }`}
+            >
+              {isNormalResult ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-medium leading-relaxed">
+                {predictionResult.charAt(0).toUpperCase() +
+                  predictionResult.slice(1)}
+              </p>
+            </div>
           </div>
-          <p className="mt-2 text-sm">{predictionResult}</p>
         </div>
       )}
 
