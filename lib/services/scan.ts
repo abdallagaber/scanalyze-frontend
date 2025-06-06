@@ -5,6 +5,8 @@ export interface ScanData {
   scanImage: File | string | Blob;
   report: string;
   patient: string;
+  scanTechnician: string;
+  branch: string;
 }
 
 export const scanService = {
@@ -98,12 +100,20 @@ export const scanService = {
       // Add patient ID
       formData.append("patient", scanData.patient);
 
+      // Add scan technician ID
+      formData.append("scanTechnician", scanData.scanTechnician);
+
+      // Add branch ID
+      formData.append("branch", scanData.branch);
+
       // Log what we're sending to help troubleshoot
       console.log("Sending scan data to backend:", {
         type: scanData.type,
         imageType: typeof scanData.scanImage,
         report: scanData.report,
         patient: scanData.patient,
+        scanTechnician: scanData.scanTechnician,
+        branch: scanData.branch,
       });
 
       // Send the request

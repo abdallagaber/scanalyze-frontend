@@ -19,6 +19,7 @@ import { Save, ArrowLeft } from "lucide-react";
 import { SCAN_TYPES } from "@/lib/scan-types";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { scanService } from "@/lib/services/scan";
+import Cookies from "js-cookie";
 
 export default function AddScanPage() {
   // Workflow state
@@ -151,12 +152,21 @@ export default function AddScanPage() {
         throw new Error("Invalid scan type selected");
       }
 
+      // Get user data from cookies
+      const userCookie = Cookies.get("user");
+      if (!userCookie) {
+        throw new Error("User session not found. Please login again.");
+      }
+      const userData = JSON.parse(userCookie);
+
       // Prepare scan data for API submission
       await scanService.createScan({
         type: scanTypeObj.name, // Send the scan type name as required by the API
         scanImage: uploadedFile || uploadedImage, // Prefer the File over the URL
         report: analysisResult, // The AI-generated or edited analysis
         patient: patientData.id || patientData._id, // The patient ID
+        scanTechnician: userData._id, // The scan technician ID from cookies
+        branch: userData.branch, // The branch ID from cookies
       });
 
       toast.success("Scan and analysis saved successfully", {
