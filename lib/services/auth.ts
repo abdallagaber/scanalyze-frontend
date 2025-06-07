@@ -220,3 +220,55 @@ export const getPatientProfile = async (patientId: string) => {
     throw error;
   }
 };
+
+// Forgot Password - Send OTP to registered phone
+export const sendForgotPasswordOtp = async (nationalID: string) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/auth/patient/forgetPassword",
+      {
+        nationalID,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error sending forgot password OTP:", error);
+    throw error;
+  }
+};
+
+// Verify OTP for password reset
+export const verifyOtpForPassword = async (otp: string) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/auth/patient/verifyOtpForPassword",
+      {
+        otp,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error verifying OTP for password reset:", error);
+    throw error;
+  }
+};
+
+// Reset password with new password
+export const resetPassword = async (
+  nationalID: string,
+  newPassword: string
+) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/auth/patient/resetPassword",
+      {
+        nationalID,
+        newPassword,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    throw error;
+  }
+};

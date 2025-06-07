@@ -268,15 +268,6 @@ export default function StaffLoginForm() {
                   )}
                 />
 
-                <div className="text-right">
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-scanalyze-600 hover:text-scanalyze-800"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-
                 <Button
                   type="submit"
                   className="w-full scanalyze-button-primary"
