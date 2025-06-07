@@ -58,17 +58,16 @@ export function ScanSubmissionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Warning Alert */}
-          <Alert className="border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-            <AlertDescription className="text-orange-800">
-              <strong>Important:</strong> Once submitted, this scan and analysis
-              cannot be edited or deleted. Please ensure all information is
-              correct before proceeding.
-            </AlertDescription>
-          </Alert>
+        {/* Initial Warning Alert */}
+        <Alert className="border-amber-200 bg-amber-50">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>Review Required:</strong> Please carefully verify all
+            patient information and scan details before submission.
+          </AlertDescription>
+        </Alert>
 
+        <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Patient Information */}
             <Card>
@@ -239,6 +238,23 @@ export function ScanSubmissionDialog({
           </Card>
         </div>
 
+        {/* Warning Message */}
+        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-red-800">
+                Important: This action cannot be undone
+              </p>
+              <p className="text-sm text-red-700 mt-1">
+                Once you submit this scan, you will not be able to edit or
+                delete this scan. Please ensure all information is correct
+                before proceeding.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
@@ -250,7 +266,7 @@ export function ScanSubmissionDialog({
           <Button
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className=" text-white"
           >
             {isSubmitting ? "Submitting..." : "Confirm & Submit"}
           </Button>

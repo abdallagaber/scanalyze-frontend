@@ -536,33 +536,13 @@ export default function TestSelector({ onTestsSelected }: TestSelectorProps) {
       {/* Search and Filter Controls */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">Select Individual Tests</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Choose specific tests from each category. Calculated tests will
-                automatically include their dependencies and be auto-selected
-                when available.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExpandAll}
-                disabled={visibleCategories.length === 0}
-              >
-                Expand All
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCollapseAll}
-                disabled={visibleCategories.length === 0}
-              >
-                Collapse All
-              </Button>
-            </div>
+          <div>
+            <CardTitle className="text-xl">Select Individual Tests</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Choose specific tests from each category. Calculated tests will
+              automatically include their dependencies and be auto-selected when
+              available.
+            </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -680,13 +660,35 @@ export default function TestSelector({ onTestsSelected }: TestSelectorProps) {
       {/* Test Categories */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Available Tests</CardTitle>
-          {searchQuery && (
-            <p className="text-sm text-muted-foreground">
-              Showing results for "{searchQuery}" ({visibleCategories.length}{" "}
-              categories found)
-            </p>
-          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Available Tests</CardTitle>
+              {searchQuery && (
+                <p className="text-sm text-muted-foreground">
+                  Showing results for "{searchQuery}" (
+                  {visibleCategories.length} categories found)
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExpandAll}
+                disabled={visibleCategories.length === 0}
+              >
+                Expand All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCollapseAll}
+                disabled={visibleCategories.length === 0}
+              >
+                Collapse All
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">

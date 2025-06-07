@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Download, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { TestSubmissionDialog } from "@/components/test-submission-dialog";
 import {
   calculateDerivedValue,
   checkReferenceRange,
@@ -51,6 +52,8 @@ export default function TestForm({
     {}
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [submissionData, setSubmissionData] = useState<any>(null);
   // Get unique categories from selected tests
   const selectedCategories = [
     ...new Set(selectedTests.map((test) => test.category)),
@@ -282,26 +285,6 @@ export default function TestForm({
     };
   };
 
-  // Function to handle export
-  const handleExport = () => {
-    const data = formatTestDataForExport();
-    if (!data) return;
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `lab-test-results-${patientInfo.id}-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Test results exported successfully!");
-  };
-
   // Reset form function
   const resetForm = () => {
     setTestResults({});
@@ -311,12 +294,22 @@ export default function TestForm({
     setActiveTab(newSelectedCategories[0] || "");
   };
 
-  // Handle form submission
+  // Handle form submission - show confirmation dialog first
   const handleSubmit = async () => {
     const data = formatTestDataForExport();
     if (!data) return;
 
+    // Store data for confirmation dialog
+    setSubmissionData(data);
+    setShowConfirmDialog(true);
+  };
+
+  // Handle confirmed submission
+  const handleConfirmedSubmit = async () => {
+    if (!submissionData) return;
+
     setIsSubmitting(true);
+    setShowConfirmDialog(false);
 
     try {
       // Get user data from cookie
@@ -341,7 +334,7 @@ export default function TestForm({
       // Transform test data to match the API expected format
       const labTestData = {
         patient: patientInfo.id,
-        testResults: data.testResults,
+        testResults: submissionData.testResults,
         labTechnician: labTechnicianId,
         branch: branchId,
       };
@@ -363,6 +356,7 @@ export default function TestForm({
       toast.error("Failed to submit test results. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setSubmissionData(null);
     }
   };
 
@@ -563,18 +557,18 @@ export default function TestForm({
                 "Submit Test Results"
               )}
             </Button>
-            {/* <Button
-              onClick={handleExport}
-              variant="outline"
-              className="flex items-center gap-2"
-              disabled={!validateForm().isValid}
-            >
-              <Download className="h-4 w-4" />
-              Export JSON
-            </Button> */}
           </div>
         </Tabs>
       </CardContent>
+
+      {/* Test Submission Dialog */}
+      <TestSubmissionDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        submissionData={submissionData}
+        onConfirm={handleConfirmedSubmit}
+        isSubmitting={isSubmitting}
+      />
     </Card>
   );
 }
