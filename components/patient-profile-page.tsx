@@ -245,19 +245,18 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
           startY + 40
         );
 
-        // ID section with icon
+        // Phone section with icon
         ctx.fillStyle = "#004785";
         ctx.font = "bold 20px 'Roboto', Arial";
-        ctx.fillText("ID", infoX, startY + lineSpacing);
+        ctx.fillText("PHONE", infoX, startY + lineSpacing);
 
-        // ID value
+        // Phone value (without first 2 digits)
         ctx.font = "32px 'Roboto', Arial";
         ctx.fillStyle = "#004785";
-        ctx.fillText(
-          patientData.nationalID || patientData._id.substring(0, 8),
-          infoX,
-          startY + lineSpacing + 40
-        );
+        const phoneWithoutPrefix = patientData.phone
+          ? patientData.phone.substring(1)
+          : "";
+        ctx.fillText(phoneWithoutPrefix, infoX, startY + lineSpacing + 40);
 
         // Reset shadow
         ctx.shadowColor = "transparent";
