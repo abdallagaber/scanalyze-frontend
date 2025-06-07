@@ -158,6 +158,7 @@ export function AnalysisSection({
   const [localContent, setLocalContent] = useState(analysisResult);
   const [predictionResult, setPredictionResult] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [reportProgress, setReportProgress] = useState<string>("");
 
   // Memoize the update handler to prevent unnecessary re-renders
   const handleUpdate = useCallback(({ editor }: { editor: Editor }) => {
@@ -176,6 +177,7 @@ export function AnalysisSection({
       setPredictionResult(null);
       setShowResult(false);
       setError(null);
+      setReportProgress("");
     }
   }, [uploadedImage, analysisResult, setAnalysisResult, onAnalysisGenerated]);
 
@@ -303,6 +305,7 @@ export function AnalysisSection({
     setIsGeneratingReport(true);
     setError(null);
     setIsQuotaError(false);
+    setReportProgress("Starting report generation...");
 
     try {
       // Convert base64 to blob
@@ -313,7 +316,7 @@ export function AnalysisSection({
       const formData = new FormData();
       formData.append("file", blob, "image.jpg");
 
-      // Call our API route instead of Gradio client directly
+      // Start the async job
       const response = await fetch("/api/generate-report", {
         method: "POST",
         body: formData,
@@ -322,53 +325,116 @@ export function AnalysisSection({
       const data = await response.json();
 
       if (!data.success) {
-        // Check if it's a quota exceeded error (429 status)
-        if (response.status === 429) {
-          setIsQuotaError(true);
-        }
-        throw new Error(data.error || "Failed to generate report");
+        throw new Error(data.error || "Failed to start report generation");
       }
 
-      const reportContent = data.report;
+      const jobId = data.jobId;
+      setReportProgress(
+        "Report generation in progress... This may take a few minutes."
+      );
 
-      if (reportContent && typeof reportContent === "string") {
-        // Add the report to the text editor
-        if (editor) {
-          // Get current content
-          const currentContent = editor.getHTML();
-
-          // Add report content with proper formatting
-          let newContent = "";
-          if (
-            currentContent &&
-            currentContent !== "<p></p>" &&
-            currentContent.trim() !== ""
-          ) {
-            newContent =
-              currentContent +
-              "<h2>Generated Medical Report</h2>" +
-              reportContent;
-          } else {
-            newContent = "<h2>Generated Medical Report</h2>" + reportContent;
-          }
-
-          // Set the new content
-          editor.commands.setContent(newContent);
-          setLocalContent(newContent);
-          setAnalysisResult(newContent);
-          onAnalysisGenerated(newContent);
-        }
-      } else {
-        throw new Error("Invalid report format received");
-      }
+      // Poll for job completion
+      await pollJobStatus(jobId);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to generate report";
       setError(errorMessage);
       console.error("Report generation error:", err);
-    } finally {
       setIsGeneratingReport(false);
+      setReportProgress("");
     }
+  };
+
+  const pollJobStatus = async (jobId: string) => {
+    const maxAttempts = 60; // Poll for up to 5 minutes (60 * 5 seconds)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        attempts++;
+
+        const response = await fetch(`/api/generate-report?jobId=${jobId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || "Failed to check job status");
+        }
+
+        if (data.status === "completed") {
+          // Job completed successfully
+          const reportContent = data.result;
+
+          if (reportContent && typeof reportContent === "string") {
+            // Add the report to the text editor
+            if (editor) {
+              // Get current content
+              const currentContent = editor.getHTML();
+
+              // Add report content with proper formatting
+              let newContent = "";
+              if (
+                currentContent &&
+                currentContent !== "<p></p>" &&
+                currentContent.trim() !== ""
+              ) {
+                newContent =
+                  currentContent +
+                  "<h2>Generated Medical Report</h2>" +
+                  reportContent;
+              } else {
+                newContent =
+                  "<h2>Generated Medical Report</h2>" + reportContent;
+              }
+
+              // Set the new content
+              editor.commands.setContent(newContent);
+              setLocalContent(newContent);
+              setAnalysisResult(newContent);
+              onAnalysisGenerated(newContent);
+            }
+          } else {
+            throw new Error("Invalid report format received");
+          }
+
+          setIsGeneratingReport(false);
+          setReportProgress("");
+          return;
+        } else if (data.status === "failed") {
+          // Job failed
+          const errorMessage = data.error || "Report generation failed";
+
+          // Check if it's a quota error
+          if (
+            errorMessage.includes("temporarily at capacity") ||
+            errorMessage.includes("GPU quota exceeded")
+          ) {
+            setIsQuotaError(true);
+          }
+
+          throw new Error(errorMessage);
+        } else if (data.status === "processing") {
+          // Job still processing
+          if (attempts >= maxAttempts) {
+            throw new Error(
+              "Report generation is taking too long. Please try again later."
+            );
+          }
+
+          // Wait 5 seconds before next poll
+          setTimeout(poll, 5000);
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to generate report";
+        setError(errorMessage);
+        console.error("Polling error:", err);
+        setIsGeneratingReport(false);
+        setReportProgress("");
+      }
+    };
+
+    // Start polling
+    poll();
   };
 
   // Check if result is normal/healthy
@@ -476,8 +542,8 @@ export function AnalysisSection({
           <InfoIcon className="h-4 w-4" />
           <AlertTitle>Generating medical report</AlertTitle>
           <AlertDescription>
-            Using MedGemma AI to generate a comprehensive medical report based
-            on the scan
+            {reportProgress ||
+              "Using MedGemma AI to generate a comprehensive medical report based on the scan."}
           </AlertDescription>
         </Alert>
       )}

@@ -2,30 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@gradio/client";
 import { marked } from "marked";
 
-// Configure marked for medical reports
+// Use Node.js runtime for better compatibility with Gradio client
+export const runtime = "nodejs";
+
+// In-memory storage for demo (use Redis/database in production)
+const jobs = new Map<
+  string,
+  { status: string; result?: string; error?: string }
+>();
+
+// Configure marked
 marked.setOptions({
-  gfm: true, // GitHub flavored markdown
-  breaks: true, // Convert line breaks to <br>
+  gfm: true,
+  breaks: true,
 });
 
-// Function to format plain text report to HTML using marked
 function formatReportToHTML(text: string): string {
-  // Minimal preprocessing - only clean up formatting, don't force headings
   let processedText = text;
-
-  // Ensure bullet points are properly formatted for markdown
   processedText = processedText.replace(/^\s*\*\s+/gm, "* ");
-
-  // Convert to HTML using marked
   const html = marked.parse(processedText) as string;
-
-  // Return the clean HTML output
   return html.trim();
 }
 
+// Start report generation job
 export async function POST(request: NextRequest) {
   try {
-    // Get the uploaded file from the request
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -36,13 +37,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate unique job ID
+    const jobId = crypto.randomUUID();
+
+    // Initialize job status
+    jobs.set(jobId, { status: "processing" });
+
+    // Start background processing (don't await)
+    processReportInBackground(jobId, file);
+
+    // Return job ID immediately
+    return NextResponse.json({
+      success: true,
+      jobId,
+      message: "Report generation started. Use the job ID to check status.",
+    });
+  } catch (error) {
+    console.error("Error starting report generation:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to start report generation" },
+      { status: 500 }
+    );
+  }
+}
+
+// Get job status
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const jobId = url.searchParams.get("jobId");
+
+  if (!jobId) {
+    return NextResponse.json(
+      { success: false, error: "Job ID required" },
+      { status: 400 }
+    );
+  }
+
+  const job = jobs.get(jobId);
+
+  if (!job) {
+    return NextResponse.json(
+      { success: false, error: "Job not found" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    status: job.status,
+    result: job.result,
+    error: job.error,
+  });
+}
+
+// Background processing function
+async function processReportInBackground(jobId: string, file: File) {
+  try {
     // Initialize Gradio client
     const client = await Client.connect("rishiraj/radiology");
 
-    // Convert file to blob (it's already a blob from formData)
+    // Convert file to blob
     const imageBlob = new Blob([await file.arrayBuffer()], { type: file.type });
 
-    // Make prediction with Gradio API
+    // Make prediction
     const result = await client.predict("/_do_predictions", {
       text: "You are a medical assistant. Diagnose the medical scan image.",
       image_file: imageBlob,
@@ -51,66 +108,58 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result || !result.data) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to generate report - no data received",
-        },
-        { status: 500 }
-      );
+      jobs.set(jobId, {
+        status: "failed",
+        error: "Failed to generate report - no data received",
+      });
+      return;
     }
 
-    // Extract the report content from the API response
     const reportContent = Array.isArray(result.data)
       ? result.data[0]
       : result.data;
 
     if (!reportContent || typeof reportContent !== "string") {
-      return NextResponse.json(
-        { success: false, error: "Invalid report format received" },
-        { status: 500 }
-      );
+      jobs.set(jobId, {
+        status: "failed",
+        error: "Invalid report format received",
+      });
+      return;
     }
 
-    // Format the report content to HTML
     const formattedReport = formatReportToHTML(reportContent);
 
-    return NextResponse.json({
-      success: true,
-      report: formattedReport,
+    // Update job with success
+    jobs.set(jobId, {
+      status: "completed",
+      result: formattedReport,
     });
   } catch (error) {
-    console.error("Report generation error:", error);
+    console.error("Background processing error:", error);
 
     let errorMessage = "Unknown error occurred";
-    let statusCode = 500;
-
     if (error instanceof Error) {
       errorMessage = error.message;
     }
 
-    // Check if it's a ZeroGPU quota exceeded error
+    // Handle ZeroGPU quota errors
     if (typeof error === "object" && error !== null) {
       const errorObj = error as any;
-
       if (
         errorObj.title === "ZeroGPU quota exceeded" ||
         (errorObj.message && errorObj.message.includes("GPU quota exceeded"))
       ) {
-        // Extract wait time from the message if available
         const waitTimeMatch = errorObj.message?.match(
           /Try again in (\d+:\d+:\d+)/
         );
         const waitTime = waitTimeMatch ? waitTimeMatch[1] : "a few minutes";
-
-        errorMessage = `AI service is temporarily at capacity. Please try again in ${waitTime}. This happens when many users are using the AI analysis feature simultaneously.`;
-        statusCode = 429; // Too Many Requests
+        errorMessage = `AI service is temporarily at capacity. Please try again in ${waitTime}.`;
       }
     }
 
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: statusCode }
-    );
+    jobs.set(jobId, {
+      status: "failed",
+      error: errorMessage,
+    });
   }
 }
