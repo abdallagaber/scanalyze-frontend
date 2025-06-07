@@ -146,11 +146,6 @@ export default function ForgotPasswordForm() {
         setNationalId(values.nationalId);
         setPhoneNumber(response.phone);
         setCurrentStep(2);
-
-        toast.success("OTP sent successfully", {
-          description: `Verification code sent to your WhatsApp number ${response.phone}`,
-          style: { backgroundColor: "#10B981", color: "white" },
-        });
       }
     } catch (error: any) {
       console.error("Forgot password error:", error);
@@ -178,11 +173,6 @@ export default function ForgotPasswordForm() {
 
       if (response.status === "Success") {
         setCurrentStep(3);
-
-        toast.success("OTP verified successfully", {
-          description: "You can now set your new password",
-          style: { backgroundColor: "#10B981", color: "white" },
-        });
       }
     } catch (error: any) {
       console.error("OTP verification error:", error);
