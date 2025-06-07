@@ -11,11 +11,13 @@ import {
   ListOrdered,
   Heading2,
   Heading1,
+  Heading3,
   Undo,
   Redo,
   Link,
   CheckCircle,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
@@ -87,6 +89,17 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <Heading2 className="h-4 w-4" />
       </Toggle>
 
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("heading", { level: 3 })}
+        onPressedChange={() =>
+          editor.chain().focus().toggleHeading({ level: 3 }).run()
+        }
+        aria-label="Heading 3"
+      >
+        <Heading3 className="h-4 w-4" />
+      </Toggle>
+
       <Separator orientation="vertical" className="mx-1 h-6" />
 
       <Toggle
@@ -139,7 +152,9 @@ export function AnalysisSection({
   scanType,
 }: AnalysisSectionProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isQuotaError, setIsQuotaError] = useState(false);
   const [localContent, setLocalContent] = useState(analysisResult);
   const [predictionResult, setPredictionResult] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -279,6 +294,83 @@ export function AnalysisSection({
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!uploadedImage) {
+      setError("No image uploaded");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    setError(null);
+    setIsQuotaError(false);
+
+    try {
+      // Convert base64 to blob
+      const base64Response = await fetch(uploadedImage);
+      const blob = await base64Response.blob();
+
+      // Create form data to send to our API
+      const formData = new FormData();
+      formData.append("file", blob, "image.jpg");
+
+      // Call our API route instead of Gradio client directly
+      const response = await fetch("/api/generate-report", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // Check if it's a quota exceeded error (429 status)
+        if (response.status === 429) {
+          setIsQuotaError(true);
+        }
+        throw new Error(data.error || "Failed to generate report");
+      }
+
+      const reportContent = data.report;
+
+      if (reportContent && typeof reportContent === "string") {
+        // Add the report to the text editor
+        if (editor) {
+          // Get current content
+          const currentContent = editor.getHTML();
+
+          // Add report content with proper formatting
+          let newContent = "";
+          if (
+            currentContent &&
+            currentContent !== "<p></p>" &&
+            currentContent.trim() !== ""
+          ) {
+            newContent =
+              currentContent +
+              "<h2>Generated Medical Report</h2>" +
+              reportContent;
+          } else {
+            newContent = "<h2>Generated Medical Report</h2>" + reportContent;
+          }
+
+          // Set the new content
+          editor.commands.setContent(newContent);
+          setLocalContent(newContent);
+          setAnalysisResult(newContent);
+          onAnalysisGenerated(newContent);
+        }
+      } else {
+        throw new Error("Invalid report format received");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to generate report";
+      setError(errorMessage);
+      console.error("Report generation error:", err);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // Check if result is normal/healthy
   const isNormalResult =
     predictionResult &&
@@ -304,14 +396,28 @@ export function AnalysisSection({
           ) : (
             <>
               <Zap className="mr-2 h-4 w-4" />
-              Prediction Result
+              Analyze Scan
             </>
           )}
         </Button>
 
-        <Button variant="outline" className="w-full">
-          <Zap className="mr-2 h-4 w-4" />
-          Generate Report
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGenerateReport}
+          disabled={!uploadedImage || isGeneratingReport || isAnalyzing}
+        >
+          {isGeneratingReport ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FileText className="mr-2 h-4 w-4" />
+              Generate Report
+            </>
+          )}
         </Button>
       </div>
 
@@ -346,9 +452,11 @@ export function AnalysisSection({
       )}
 
       {error && (
-        <Alert variant="destructive">
+        <Alert variant={isQuotaError ? "default" : "destructive"}>
           <InfoIcon className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>
+            {isQuotaError ? "Service Temporarily Unavailable" : "Error"}
+          </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -359,6 +467,17 @@ export function AnalysisSection({
           <AlertTitle>Analysis in progress</AlertTitle>
           <AlertDescription>
             Using AI model: {scanType.name} to analyze the scan
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isGeneratingReport && (
+        <Alert>
+          <InfoIcon className="h-4 w-4" />
+          <AlertTitle>Generating medical report</AlertTitle>
+          <AlertDescription>
+            Using MedGemma AI to generate a comprehensive medical report based
+            on the scan
           </AlertDescription>
         </Alert>
       )}

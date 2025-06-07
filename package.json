@@ -13,6 +13,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@gradio/client": "^1.15.1",
     "@hookform/resolvers": "latest",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -70,6 +71,7 @@
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.454.0",
+    "marked": "^15.0.12",
     "next": "15.2.4",
     "next-client-cookies": "^2.0.1",
     "next-themes": "^0.4.6",
@@ -88,6 +90,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/marked": "^6.0.0",
     "@types/node": "^22",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
