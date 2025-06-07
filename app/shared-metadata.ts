@@ -20,7 +20,6 @@ export const sharedMetadata = {
     "medical scans",
   ],
   authors: [{ name: "Scanalyze Medical" }],
-  colorScheme: "light" as const,
   creator: "Scanalyze Medical",
   publisher: "Scanalyze",
   formatDetection: {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -11,6 +11,10 @@ export const metadata: Metadata = createMetadata(
   "Scanalyze",
   "Advanced laboratory testing and medical scans with fast, accurate results"
 );
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+};
 
 export default function RootLayout({
   children,
