@@ -19,6 +19,7 @@ import { Save, ArrowLeft } from "lucide-react";
 import { SCAN_TYPES } from "@/lib/scan-types";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { scanService } from "@/lib/services/scan";
+import { ScanSubmissionDialog } from "@/components/scan-submission-dialog";
 import Cookies from "js-cookie";
 
 export default function AddScanPage() {
@@ -32,6 +33,7 @@ export default function AddScanPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const scanUploadRef = useRef<ScanUploadRef>(null);
   const patientSearchRef = useRef<PatientSearchRef>(null);
@@ -106,8 +108,8 @@ export default function AddScanPage() {
     }
   };
 
-  // Handle final submission
-  const handleSubmit = async () => {
+  // Handle showing confirmation dialog
+  const handleSubmit = () => {
     if (!patientData) {
       toast.error("Please search for a patient first", {
         style: { backgroundColor: "#EF4444", color: "white" },
@@ -141,6 +143,12 @@ export default function AddScanPage() {
       return;
     }
 
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  // Handle actual submission after confirmation
+  const handleConfirmSubmit = async () => {
     setIsSaving(true);
 
     try {
@@ -162,7 +170,7 @@ export default function AddScanPage() {
       // Prepare scan data for API submission
       await scanService.createScan({
         type: scanTypeObj.name, // Send the scan type name as required by the API
-        scanImage: uploadedFile || uploadedImage, // Prefer the File over the URL
+        scanImage: uploadedFile || uploadedImage!, // Prefer the File over the URL, we know it exists from validation
         report: analysisResult, // The AI-generated or edited analysis
         patient: patientData.id || patientData._id, // The patient ID
         scanTechnician: userData._id, // The scan technician ID from cookies
@@ -173,8 +181,10 @@ export default function AddScanPage() {
         style: { backgroundColor: "#10B981", color: "white" },
       });
 
-      // Reset the UI state completely
-      setCurrentStep(1);
+      // Close dialog first
+      setShowConfirmDialog(false);
+
+      // Reset all state first
       setPatientData(null);
       setSelectedScanType(null);
       setUploadedImage(null);
@@ -186,6 +196,9 @@ export default function AddScanPage() {
 
       // Force the PatientSearch component to clear by explicitly resetting related state
       patientSearchRef.current?.reset();
+
+      // Set step to 1 at the very end to ensure it doesn't get overridden
+      setCurrentStep(1);
     } catch (error) {
       console.error("Error saving scan:", error);
       toast.error("Failed to save scan and analysis. Please try again.", {
@@ -361,6 +374,18 @@ export default function AddScanPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ScanSubmissionDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        patientData={patientData}
+        scanType={selectedScanTypeDetails?.name || ""}
+        uploadedImage={uploadedImage || ""}
+        analysisResult={analysisResult}
+        onConfirm={handleConfirmSubmit}
+        isSubmitting={isSaving}
+      />
     </DashboardPageLayout>
   );
 }

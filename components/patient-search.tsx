@@ -19,6 +19,7 @@ interface Patient {
   medicalHistory: string[];
   bloodType: string;
   lastVisit: string;
+  dateOfBirth?: string;
   _id?: string;
   firstName?: string;
   lastName?: string;
@@ -86,6 +87,7 @@ export const PatientSearch = forwardRef<PatientSearchRef, PatientSearchProps>(
         medicalHistory: conditions,
         bloodType: "Not available", // Not present in API response
         lastVisit: "N/A", // Not present in API response
+        dateOfBirth: apiPatient.dateOfBirth || apiPatient.birthDate,
         _id: apiPatient._id,
         firstName: apiPatient.firstName,
         lastName: apiPatient.lastName,
