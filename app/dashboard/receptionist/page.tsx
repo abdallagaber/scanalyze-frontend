@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
+  AlertTriangle,
 } from "lucide-react";
 import { patientService } from "@/lib/services/patient";
 import { PatientDialog } from "@/components/dialogs/patient-dialog";
@@ -33,6 +34,7 @@ interface DashboardStats {
   totalPatients: number;
   verifiedPatients: number;
   pendingVerifications: number;
+  urgentRequests: number;
   recentRegistrations: number;
 }
 
@@ -271,10 +273,20 @@ export default function ReceptionistDashboard() {
       return createdDate >= weekAgo;
     }).length;
 
+    // Calculate urgent requests (older than 1 day)
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    const urgentCount = unverifiedPatients.filter((p: Patient) => {
+      const createdDate = new Date(p.createdAt);
+      return createdDate < oneDayAgo;
+    }).length;
+
     const calculatedStats: DashboardStats = {
       totalPatients: allPatients.length,
       verifiedPatients: verifiedPatients,
       pendingVerifications: unverifiedPatients.length,
+      urgentRequests: urgentCount,
       recentRegistrations: recentCount,
     };
 
@@ -287,8 +299,23 @@ export default function ReceptionistDashboard() {
       )
       .slice(0, 5);
 
-    // Get pending verification requests (max 5)
-    const pending = unverifiedPatients.slice(0, 5);
+    // Get pending verification requests (max 5) - prioritize urgent ones
+    const pending = unverifiedPatients
+      .sort((a: Patient, b: Patient) => {
+        // Sort by urgency first (oldest first), then by creation date
+        const aDate = new Date(a.createdAt);
+        const bDate = new Date(b.createdAt);
+
+        const aIsUrgent = aDate < oneDayAgo;
+        const bIsUrgent = bDate < oneDayAgo;
+
+        if (aIsUrgent && !bIsUrgent) return -1;
+        if (!aIsUrgent && bIsUrgent) return 1;
+
+        // Both urgent or both not urgent, sort by creation date (oldest first)
+        return aDate.getTime() - bDate.getTime();
+      })
+      .slice(0, 5);
 
     return {
       stats: calculatedStats,
@@ -444,6 +471,13 @@ export default function ReceptionistDashboard() {
     }
   };
 
+  // Helper function to check if a request is urgent
+  const isRequestUrgent = (createdAt: string) => {
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    return new Date(createdAt) < oneDayAgo;
+  };
+
   // Show error state
   if (hasError) {
     return (
@@ -560,6 +594,40 @@ export default function ReceptionistDashboard() {
                 </CardContent>
               </Card>
 
+              {/* New Urgent Requests Card */}
+              <Card
+                className={`w-full ${
+                  stats.urgentRequests > 0
+                    ? "border-orange-200 bg-orange-50/50"
+                    : ""
+                }`}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Urgent Requests
+                  </CardTitle>
+                  <AlertTriangle
+                    className={`h-4 w-4 ${
+                      stats.urgentRequests > 0
+                        ? "text-orange-500"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`text-2xl font-bold ${
+                      stats.urgentRequests > 0
+                        ? "text-orange-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {stats.urgentRequests}
+                  </div>
+                  <p className="text-xs text-muted-foreground">1+ days old</p>
+                </CardContent>
+              </Card>
+
               <Card className="w-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -573,28 +641,6 @@ export default function ReceptionistDashboard() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     New registrations
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="w-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Verification Rate
-                  </CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.totalPatients > 0
-                      ? Math.round(
-                          (stats.verifiedPatients / stats.totalPatients) * 100
-                        )
-                      : 0}
-                    %
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Patients verified
                   </p>
                 </CardContent>
               </Card>
@@ -667,13 +713,28 @@ export default function ReceptionistDashboard() {
           {/* Pending Verification Requests */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Pending Verifications</CardTitle>
+              <div>
+                <CardTitle className="text-lg">Pending Verifications</CardTitle>
+                {stats.urgentRequests > 0 && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <AlertTriangle className="h-3 w-3 text-orange-500" />
+                    <span className="text-xs text-orange-600 font-medium">
+                      {stats.urgentRequests} urgent request
+                      {stats.urgentRequests !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
               {isLoading ? (
                 <Skeleton className="h-6 w-20" />
               ) : (
                 <Badge
                   variant="outline"
-                  className="text-amber-600 border-amber-200"
+                  className={`${
+                    stats.urgentRequests > 0
+                      ? "text-orange-600 border-orange-200 bg-orange-50"
+                      : "text-amber-600 border-amber-200"
+                  }`}
                 >
                   {stats.pendingVerifications} pending
                 </Badge>
@@ -693,44 +754,76 @@ export default function ReceptionistDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pendingRequests.map((patient: RecentPatient) => (
-                    <div
-                      key={patient._id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                          <Clock className="h-4 w-4 text-amber-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">
-                            {patient.firstName} {patient.lastName}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            <span>{patient.phone}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-amber-600 mt-1">
-                            <Clock className="h-3 w-3" />
-                            <span>
-                              Pending {getPendingDuration(patient.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          router.push("/dashboard/receptionist/requests")
-                        }
-                        className="text-xs"
+                  {pendingRequests.map((patient: RecentPatient) => {
+                    const isUrgent = isRequestUrgent(patient.createdAt);
+
+                    return (
+                      <div
+                        key={patient._id}
+                        className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                          isUrgent ? "border-orange-200 bg-orange-50/30" : ""
+                        }`}
                       >
-                        <Eye className="h-3 w-3 mr-1" />
-                        Review
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3 flex-1">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isUrgent ? "bg-orange-100" : "bg-amber-100"
+                            }`}
+                          >
+                            {isUrgent ? (
+                              <AlertTriangle className="h-4 w-4 text-orange-600" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-amber-600" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">
+                                {patient.firstName} {patient.lastName}
+                              </p>
+                              {isUrgent && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-orange-700 border-orange-200 bg-orange-100 text-xs px-1.5 py-0.5"
+                                >
+                                  Urgent
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              <span>{patient.phone}</span>
+                            </div>
+                            <div
+                              className={`flex items-center gap-1 text-xs mt-1 ${
+                                isUrgent ? "text-orange-600" : "text-amber-600"
+                              }`}
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>
+                                Pending {getPendingDuration(patient.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={isUrgent ? "default" : "outline"}
+                          onClick={() =>
+                            router.push("/dashboard/receptionist/requests")
+                          }
+                          className={`text-xs ${
+                            isUrgent
+                              ? "bg-orange-600 hover:bg-orange-700 text-white"
+                              : ""
+                          }`}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          {isUrgent ? "Review Now" : "Review"}
+                        </Button>
+                      </div>
+                    );
+                  })}
                   {stats.pendingVerifications > 5 && (
                     <Button
                       variant="ghost"
@@ -741,6 +834,11 @@ export default function ReceptionistDashboard() {
                       }
                     >
                       View all {stats.pendingVerifications} requests
+                      {stats.urgentRequests > 0 && (
+                        <span className="ml-1 text-orange-600">
+                          ({stats.urgentRequests} urgent)
+                        </span>
+                      )}
                       <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                   )}
