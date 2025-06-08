@@ -186,21 +186,6 @@ export function MedicalHistoryForm({
     setIsSubmitting(true);
 
     try {
-      console.log("=== FORM SUBMISSION STARTED ===");
-      // Log the current form data and values
-      console.log("Form data (personal info):", {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        nationalId: formData.nationalId,
-        gender: formData.gender,
-        hasIdImage: !!formData.idImagePreview,
-        hasOtp: !!formData.otp,
-      });
-
-      console.log("Medical history form values:", values);
-
       // Prepare medications list with required fields
       const medications =
         values.medications.taking === "yes"
@@ -210,8 +195,6 @@ export function MedicalHistoryForm({
               reason: item.reason || "", // Ensure reason is a string
             }))
           : [];
-
-      console.log("Formatted medications list:", medications);
 
       // Format phone number to ensure it has the correct format
       const formatPhoneNumber = (phone: string): string => {
@@ -234,8 +217,6 @@ export function MedicalHistoryForm({
 
       // Format the phone number for the API
       const formattedPhone = formatPhoneNumber(formData.phone);
-      console.log("Original phone:", formData.phone);
-      console.log("Formatted phone for API:", formattedPhone);
 
       // Map frontend form data to match backend schema
       const patientData: PatientRegistrationData = {
@@ -279,36 +260,8 @@ export function MedicalHistoryForm({
         },
       };
 
-      console.log("Mapped patient data ready for API - structure:", {
-        personalFields: Object.keys(patientData).filter(
-          (k) => k !== "medicalHistory"
-        ),
-        medicalHistoryStructure: {
-          sections: Object.keys(patientData.medicalHistory),
-          chronicDiseasesFields: Object.keys(
-            patientData.medicalHistory.chronicDiseases
-          ),
-          medicationsFields: Object.keys(
-            patientData.medicalHistory.medications
-          ),
-          medicationListLength:
-            patientData.medicalHistory.medications.list.length,
-        },
-      });
-
-      // Check if environment variables are set correctly
-      console.log("Environment:", {
-        NODE_ENV: process.env.NODE_ENV,
-        API_BASE_URL: process.env.NEXT_PUBLIC_API_URL,
-      });
-
-      // Log axios config from browser
-      console.log("Making API call to registerPatient...");
-
       // Call register API
       await registerPatient(patientData);
-
-      console.log("Registration API call successful!");
 
       // Update form data with medical history
       updateFormData({ medicalHistory: values });
@@ -324,19 +277,11 @@ export function MedicalHistoryForm({
       // Move to the complete step
       onNext();
     } catch (error: any) {
-      console.error("Registration error:", error);
-
       // Extract more detailed error information if available
       let errorDetails =
         "An error occurred during registration. Please try again.";
 
       if (error.response) {
-        console.error("Error response:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers,
-        });
-
         // Try to extract meaningful error message
         if (error.response.data?.message) {
           errorDetails = error.response.data.message;
@@ -353,7 +298,6 @@ export function MedicalHistoryForm({
       });
     } finally {
       setIsSubmitting(false);
-      console.log("=== FORM SUBMISSION ENDED ===");
     }
   };
 

@@ -1,60 +1,60 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { UserInfoForm } from "@/components/user-info-form"
-import { OtpVerificationForm } from "@/components/otp-verification-form"
-import { MedicalHistoryForm } from "@/components/medical-history-form"
-import { RegistrationComplete } from "@/components/registration-complete"
-import { Progress } from "@/components/ui/progress"
-import { CheckIcon } from "lucide-react"
+import { useState } from "react";
+import { UserInfoForm } from "@/components/user-info-form";
+import { OtpVerificationForm } from "@/components/otp-verification-form";
+import { MedicalHistoryForm } from "@/components/medical-history-form";
+import { RegistrationComplete } from "@/components/registration-complete";
+import { Progress } from "@/components/ui/progress";
+import { CheckIcon } from "lucide-react";
 
 type FormData = {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  nationalId: string
-  password: string
-  gender: string
-  idFrontImage: File | null
-  idImagePreview: string | null // Add a base64 preview string
-  idImageVerified: boolean // Track if the ID was verified
-  otp: string
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  nationalId: string;
+  password: string;
+  gender: string;
+  idFrontImage: File | null;
+  idImagePreview: string | null; // Add a base64 preview string
+  idImageVerified: boolean; // Track if the ID was verified
+  otp: string;
   medicalHistory: {
     chronicDiseases: {
-      has: string
-      specified: string[]
-      other: string
-    }
+      has: string;
+      specified: string[];
+      other: string;
+    };
     allergies: {
-      has: string
-      specified: string
-    }
+      has: string;
+      specified: string;
+    };
     medications: {
-      taking: string
+      taking: string;
       items: Array<{
-        name: string
-        dosage: string
-        reason: string
-      }>
-    }
+        name: string;
+        dosage: string;
+        reason: string;
+      }>;
+    };
     surgeries: {
-      had: string
-      specified: string
-    }
+      had: string;
+      specified: string;
+    };
     symptoms: {
-      has: string
-      specified: string
-    }
+      has: string;
+      specified: string;
+    };
     lifestyle: {
-      smoking: string
-      alcohol: string
-    }
-  }
-}
+      smoking: string;
+      alcohol: string;
+    };
+  };
+};
 
 export default function RegistrationForm() {
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -100,41 +100,27 @@ export default function RegistrationForm() {
         alcohol: "no",
       },
     },
-  })
+  });
 
   const updateFormData = (data: Partial<FormData>) => {
-    console.log("Updating form data:", Object.keys(data))
-    if (data.idFrontImage) {
-      console.log("Image being updated in form data")
-    }
-    setFormData((prev) => ({ ...prev, ...data }))
-  }
+    setFormData((prev) => ({ ...prev, ...data }));
+  };
 
   const nextStep = () => {
-    console.log(
-      "Moving to next step, current image state:",
-      formData.idFrontImage ? "Image exists" : "No image",
-      formData.idImagePreview ? "Preview exists" : "No preview",
-    )
-    setStep((prev) => prev + 1)
-  }
+    setStep((prev) => prev + 1);
+  };
 
   const prevStep = () => {
-    console.log(
-      "Going back to previous step, current image state:",
-      formData.idFrontImage ? "Image exists" : "No image",
-      formData.idImagePreview ? "Preview exists" : "No preview",
-    )
-    setStep((prev) => prev - 1)
-  }
+    setStep((prev) => prev - 1);
+  };
 
-  const progress = ((step - 1) / 3) * 100
+  const progress = ((step - 1) / 3) * 100;
 
   const steps = [
     { number: 1, label: "Personal Info" },
     { number: 2, label: "Verification" },
     { number: 3, label: "Medical History" },
-  ]
+  ];
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -146,20 +132,28 @@ export default function RegistrationForm() {
             {steps.map((s) => (
               <div key={s.number} className="flex flex-col items-center">
                 <div
-                  className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 
+                  className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2
                     ${
                       s.number < step
                         ? "bg-scanalyze-600 border-scanalyze-600 text-white"
                         : s.number === step
-                          ? "bg-scanalyze-600 border-scanalyze-600 text-white"
-                          : "bg-background border-muted text-muted-foreground"
+                        ? "bg-scanalyze-600 border-scanalyze-600 text-white"
+                        : "bg-background border-muted text-muted-foreground"
                     }`}
                 >
-                  {s.number < step ? <CheckIcon className="h-5 w-5" /> : s.number}
+                  {s.number < step ? (
+                    <CheckIcon className="h-5 w-5" />
+                  ) : (
+                    s.number
+                  )}
                 </div>
                 <span
-                  className={`mt-2 text-sm font-medium 
-                    ${s.number <= step ? "text-scanalyze-600" : "text-muted-foreground"}`}
+                  className={`mt-2 text-sm font-medium
+                    ${
+                      s.number <= step
+                        ? "text-scanalyze-600"
+                        : "text-muted-foreground"
+                    }`}
                 >
                   {s.label}
                 </span>
@@ -167,21 +161,40 @@ export default function RegistrationForm() {
             ))}
           </div>
         </div>
-        <Progress value={progress} className="h-2 bg-scanalyze-100" indicatorClassName="bg-scanalyze-600" />
+        <Progress
+          value={progress}
+          className="h-2 bg-scanalyze-100"
+          indicatorClassName="bg-scanalyze-600"
+        />
       </div>
 
-      {step === 1 && <UserInfoForm formData={formData} updateFormData={updateFormData} onNext={nextStep} />}
+      {step === 1 && (
+        <UserInfoForm
+          formData={formData}
+          updateFormData={updateFormData}
+          onNext={nextStep}
+        />
+      )}
 
       {step === 2 && (
-        <OtpVerificationForm formData={formData} updateFormData={updateFormData} onNext={nextStep} onPrev={prevStep} />
+        <OtpVerificationForm
+          formData={formData}
+          updateFormData={updateFormData}
+          onNext={nextStep}
+          onPrev={prevStep}
+        />
       )}
 
       {step === 3 && (
-        <MedicalHistoryForm formData={formData} updateFormData={updateFormData} onNext={nextStep} onPrev={prevStep} />
+        <MedicalHistoryForm
+          formData={formData}
+          updateFormData={updateFormData}
+          onNext={nextStep}
+          onPrev={prevStep}
+        />
       )}
 
       {step === 4 && <RegistrationComplete />}
     </div>
-  )
+  );
 }
-

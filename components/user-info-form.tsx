@@ -307,8 +307,6 @@ export function UserInfoForm({
           idImagePreview: base64Preview,
           idImageVerified: result.isValid,
         });
-
-        console.log("Updated form data with new image and preview");
       } catch (error) {
         console.error("Error during ID verification:", error);
         setVerificationResult({
