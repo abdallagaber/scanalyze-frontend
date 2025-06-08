@@ -116,10 +116,19 @@ export default function ReceptionistDashboard() {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true); // Default to true to avoid hydration mismatch
+  const [isClient, setIsClient] = useState(false); // Track if we're on the client
+
+  // Initialize client-side values after hydration
+  useEffect(() => {
+    setIsClient(true);
+    setIsOnline(navigator.onLine);
+  }, []);
 
   // Listen for network status changes
   useEffect(() => {
+    if (!isClient) return; // Only run on client
+
     const handleOnline = () => {
       setIsOnline(true);
       toast.success("Connection restored", {
@@ -144,7 +153,7 @@ export default function ReceptionistDashboard() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [isClient]);
 
   // Use parallel queries with real-time functionality
   const queries = useQueries({
@@ -189,8 +198,8 @@ export default function ReceptionistDashboard() {
     setIsManualRefreshing(true);
 
     try {
-      // Check if navigator is online first
-      if (!navigator.onLine) {
+      // Check if navigator is online first (only on client)
+      if (isClient && !navigator.onLine) {
         throw new Error("No internet connection");
       }
 
@@ -234,7 +243,7 @@ export default function ReceptionistDashboard() {
       console.error("Manual refresh error:", error);
 
       // Specific error messages based on error type
-      if (!navigator.onLine || error.message?.includes("fetch")) {
+      if ((isClient && !navigator.onLine) || error.message?.includes("fetch")) {
         toast.error("No internet connection", {
           description: "Please check your network and try again",
           style: { backgroundColor: "#EF4444", color: "white" },
