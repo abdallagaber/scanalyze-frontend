@@ -819,7 +819,9 @@ export default function ReceptionistDashboard() {
                           size="sm"
                           variant={isUrgent ? "default" : "outline"}
                           onClick={() =>
-                            router.push("/dashboard/receptionist/requests")
+                            router.push(
+                              `/dashboard/receptionist/requests/${patient._id}`
+                            )
                           }
                           className={`text-xs ${
                             isUrgent
@@ -904,15 +906,6 @@ export default function ReceptionistDashboard() {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          router.push("/dashboard/receptionist/reports")
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
                     </div>
                   ))}
                 </div>

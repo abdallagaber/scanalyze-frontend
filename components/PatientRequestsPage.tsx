@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { patientService } from "@/lib/services/patient";
 import {
-  CheckCircle,
-  XCircle,
   Search,
   Calendar,
   Phone,
@@ -13,10 +12,7 @@ import {
   UserCheck,
   AlertTriangle,
   Users,
-  ArrowLeft,
-  MoreVertical,
   Eye,
-  Shield,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,14 +26,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import {
   Select,
   SelectContent,
@@ -46,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { PatientVerificationDetails } from "@/components/PatientVerificationDetails";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -101,9 +89,9 @@ const PatientCardSkeleton = () => (
 );
 
 export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("oldest");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -143,9 +131,9 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
     let filtered = patients.filter((patient) => {
       const query = searchQuery.toLowerCase();
       return (
-        patient.firstName.toLowerCase().includes(query) ||
-        patient.lastName.toLowerCase().includes(query) ||
-        patient.phone.includes(query) ||
+        patient.firstName?.toLowerCase().includes(query) ||
+        patient.lastName?.toLowerCase().includes(query) ||
+        patient.phone?.includes(query) ||
         patient.nationalID?.toLowerCase().includes(query) ||
         patient.email?.toLowerCase().includes(query)
       );
@@ -163,8 +151,8 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
         case "name":
-          return `${a.firstName} ${a.lastName}`.localeCompare(
-            `${b.firstName} ${b.lastName}`
+          return `${a.firstName || ""} ${a.lastName || ""}`.localeCompare(
+            `${b.firstName || ""} ${b.lastName || ""}`
           );
         default:
           return 0;
@@ -175,42 +163,7 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
   }, [patients, searchQuery, sortBy]);
 
   const handlePatientClick = (patient: Patient) => {
-    setSelectedPatient(patient);
-  };
-
-  const handleBack = () => {
-    setSelectedPatient(null);
-  };
-
-  const handleVerificationComplete = () => {
-    setSelectedPatient(null);
-    fetchPatients();
-  };
-
-  const handleQuickVerify = async (patientId: string, patientName: string) => {
-    try {
-      await patientService.verifyPatient(patientId);
-      toast.success(`${patientName} verified successfully`, {
-        style: { backgroundColor: "#10B981", color: "white" },
-      });
-      fetchPatients();
-    } catch (error) {
-      console.error("Error verifying patient:", error);
-      toast.error("Failed to verify patient");
-    }
-  };
-
-  const handleQuickDecline = async (patientId: string, patientName: string) => {
-    try {
-      await patientService.declinePatient(patientId);
-      toast.success(`${patientName} request declined`, {
-        style: { backgroundColor: "#EF4444", color: "white" },
-      });
-      fetchPatients();
-    } catch (error) {
-      console.error("Error declining patient:", error);
-      toast.error("Failed to decline patient");
-    }
+    router.push(`/dashboard/${role}/requests/${patient._id}`);
   };
 
   // Calculate pending duration
@@ -241,33 +194,6 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
 
     return { total, todayRequests, oldRequests };
   }, [patients]);
-
-  if (selectedPatient) {
-    return (
-      <DashboardPageLayout
-        title="Verification Requests"
-        role={role}
-        breadcrumbItems={[]}
-      >
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={handleBack} className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Requests
-            </Button>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-amber-500" />
-              <span className="font-medium">Patient Verification</span>
-            </div>
-          </div>
-          <PatientVerificationDetails
-            patient={selectedPatient}
-            onVerified={handleVerificationComplete}
-          />
-        </div>
-      </DashboardPageLayout>
-    );
-  }
 
   return (
     <DashboardPageLayout
@@ -446,20 +372,24 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
                   return (
                     <Card
                       key={patient._id}
-                      className={`transition-all hover:shadow-md ${
-                        isUrgent ? "border-orange-200 bg-orange-50/50" : ""
+                      className={`transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer group ${
+                        isUrgent
+                          ? "border-orange-200 bg-orange-50/50 hover:border-orange-300 hover:bg-orange-50/70"
+                          : "hover:border-blue-200 hover:bg-blue-50/30"
                       }`}
+                      onClick={() => handlePatientClick(patient)}
                     >
-                      <CardHeader className="pb-3">
+                      <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                              {patient.firstName.charAt(0)}
-                              {patient.lastName.charAt(0)}
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-md group-hover:shadow-lg transition-shadow">
+                              {patient.firstName?.charAt(0) || "?"}
+                              {patient.lastName?.charAt(0) || "?"}
                             </div>
                             <div>
-                              <h3 className="font-semibold text-lg">
-                                {patient.firstName} {patient.lastName}
+                              <h3 className="font-semibold text-lg group-hover:text-blue-700 transition-colors">
+                                {patient.firstName || "Unknown"}{" "}
+                                {patient.lastName || "Patient"}
                               </h3>
                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1">
@@ -471,7 +401,7 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
                                 {isUrgent && (
                                   <Badge
                                     variant="outline"
-                                    className="border-orange-200 text-orange-700"
+                                    className="border-orange-200 text-orange-700 bg-orange-100"
                                   >
                                     <AlertTriangle className="h-3 w-3 mr-1" />
                                     Urgent
@@ -480,59 +410,22 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
                               </div>
                             </div>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>
-                                Quick Actions
-                              </DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handlePatientClick(patient)}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleQuickVerify(
-                                    patient._id,
-                                    `${patient.firstName} ${patient.lastName}`
-                                  )
-                                }
-                                className="text-green-600"
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Quick Verify
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleQuickDecline(
-                                    patient._id,
-                                    `${patient.firstName} ${patient.lastName}`
-                                  )
-                                }
-                                className="text-red-600"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Decline
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-blue-600 transition-colors">
+                            <span className="hidden sm:inline">
+                              Click to view
+                            </span>
+                            <Eye className="h-4 w-4" />
+                          </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                               <Phone className="h-3 w-3" />
                               PHONE
                             </div>
-                            <div className="font-mono text-sm">
+                            <div className="font-mono text-sm text-gray-700">
                               {patient.phone}
                             </div>
                           </div>
@@ -542,8 +435,12 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
                               <IdCard className="h-3 w-3" />
                               NATIONAL ID
                             </div>
-                            <div className="font-mono text-sm">
-                              {patient.nationalID || "Not provided"}
+                            <div className="font-mono text-sm text-gray-700">
+                              {patient.nationalID || (
+                                <span className="text-muted-foreground italic">
+                                  Not provided
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -552,51 +449,13 @@ export function PatientRequestsPage({ role }: PatientRequestsPageProps) {
                               <Calendar className="h-3 w-3" />
                               REGISTERED
                             </div>
-                            <div className="text-sm">
+                            <div className="text-sm text-gray-700">
                               {format(
                                 new Date(patient.createdAt),
-                                "MMM d, yyyy"
+                                "MMM d, yyyy 'at' HH:mm"
                               )}
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                          <Button
-                            onClick={() => handlePatientClick(patient)}
-                            className="gap-2 flex-1"
-                            variant="outline"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Details
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleQuickVerify(
-                                patient._id,
-                                `${patient.firstName} ${patient.lastName}`
-                              )
-                            }
-                            className="gap-2 bg-green-600 hover:bg-green-700"
-                            size="sm"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Verify
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleQuickDecline(
-                                patient._id,
-                                `${patient.firstName} ${patient.lastName}`
-                              )
-                            }
-                            variant="destructive"
-                            size="sm"
-                            className="gap-2"
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Decline
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>

@@ -245,17 +245,40 @@ export const patientService = {
     );
   },
 
+  // Filter out patients with invalid names
+  filterValidPatients: (patients: any[]) => {
+    if (!patients || !Array.isArray(patients)) return [];
+    return patients.filter((patient) => {
+      // Check if patient has valid firstName and lastName
+      const hasValidFirstName =
+        patient.firstName &&
+        typeof patient.firstName === "string" &&
+        patient.firstName.trim() !== "";
+      const hasValidLastName =
+        patient.lastName &&
+        typeof patient.lastName === "string" &&
+        patient.lastName.trim() !== "";
+
+      return hasValidFirstName && hasValidLastName;
+    });
+  },
+
   // Get all patients
   getAllPatients: async () => {
     const response = await axiosInstance.get("/api/v1/patients");
 
-    // Normalize the data if it exists
+    // Normalize and filter the data if it exists
     if (
       response.data &&
       response.data.data &&
       Array.isArray(response.data.data)
     ) {
+      // First normalize the data
       response.data.data = patientService.normalizePatientArray(
+        response.data.data
+      );
+      // Then filter out patients with invalid names
+      response.data.data = patientService.filterValidPatients(
         response.data.data
       );
     }
@@ -482,13 +505,18 @@ export const patientService = {
       "/api/v1/patients/?verifyAccount=false"
     );
 
-    // Normalize the data if it exists
+    // Normalize and filter the data if it exists
     if (
       response.data &&
       response.data.data &&
       Array.isArray(response.data.data)
     ) {
+      // First normalize the data
       response.data.data = patientService.normalizePatientArray(
+        response.data.data
+      );
+      // Then filter out patients with invalid names
+      response.data.data = patientService.filterValidPatients(
         response.data.data
       );
     }
