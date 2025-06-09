@@ -282,13 +282,8 @@ export function Chatbot() {
                 )}
               </Button>
             </div>
-            <div className="mt-2 space-y-1">
-              <div className="text-xs text-muted-foreground text-center">
-                Press Enter to send • Shift+Enter for new line
-              </div>
-              <div className="text-xs text-orange-600 dark:text-orange-400 text-center bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-md px-2 py-1">
-                ⚠️ Always consult your doctor. AI can make mistakes.
-              </div>
+            <div className="mt-2 text-xs text-orange-600 dark:text-orange-400 text-center bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-md px-2 py-1">
+              ⚠️ Always consult your doctor. AI can make mistakes.
             </div>
           </form>
         </Card>
