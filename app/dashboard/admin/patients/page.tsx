@@ -1,7 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  MoreHorizontal,
+  Pencil,
+  Trash,
+  Search,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  UserCheck,
+  UserX,
+  Plus,
+} from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -17,6 +29,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +49,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 // API response interfaces
 interface PatientMedicalHistory {
@@ -91,6 +113,8 @@ export default function PatientsPage() {
     null
   );
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
 
   // Use React Query for data operations
   const queryClient = useQueryClient();
@@ -112,6 +136,32 @@ export default function PatientsPage() {
       }
     },
   });
+
+  // Transform the response data and memoize to prevent infinite loops
+  const patients = useMemo(() => {
+    return response?.data || [];
+  }, [response?.data]);
+
+  // Filter patients based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredPatients(patients);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = patients.filter((patient) => {
+      return (
+        patient.nationalID?.toLowerCase().includes(query) ||
+        patient.firstName.toLowerCase().includes(query) ||
+        patient.lastName.toLowerCase().includes(query) ||
+        patient.phone.includes(query) ||
+        patient.email?.toLowerCase().includes(query)
+      );
+    });
+
+    setFilteredPatients(filtered);
+  }, [searchQuery, patients]);
 
   // Mutation: Create patient
   const createPatientMutation = useMutation({
@@ -316,31 +366,56 @@ export default function PatientsPage() {
     },
   });
 
-  // Transform the response data
-  const patients = response?.data || [];
-
   const columns: ColumnDef<Patient>[] = [
     {
       accessorKey: "nationalID",
       header: "National ID",
+      cell: ({ row }) => {
+        const nationalID = row.getValue("nationalID") as string;
+        return <div className="font-mono">{nationalID || "N/A"}</div>;
+      },
     },
     {
-      accessorFn: (row) => `${row.firstName} ${row.lastName}`,
-      id: "name",
-      header: "Name",
+      accessorKey: "name",
+      header: "Patient Name",
+      cell: ({ row }) => {
+        const patient = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">
+              {patient.firstName} {patient.lastName}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => {
+        const email = row.getValue("email") as string;
+        return email ? (
+          <div className="flex items-center gap-1">
+            <Mail className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{email}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-sm">N/A</span>
+        );
+      },
     },
     {
       accessorKey: "phone",
       header: "Phone",
       cell: ({ row }) => {
         const phone = row.getValue("phone") as string;
-        return phone
-          ? phone.replace(/(\d{3})(\d{3})(\d+)/, "+$1 $2 $3")
-          : "N/A";
+        return (
+          <div className="flex items-center gap-1">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            <span className="font-mono text-sm">{phone}</span>
+          </div>
+        );
       },
     },
     {
@@ -348,27 +423,63 @@ export default function PatientsPage() {
       header: "Gender",
       cell: ({ row }) => {
         const gender = row.getValue("gender") as string;
-        return gender
-          ? gender.charAt(0).toUpperCase() + gender.slice(1)
-          : "Not specified";
+        return (
+          <Badge variant="outline" className="capitalize">
+            {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "N/A"}
+          </Badge>
+        );
       },
     },
     {
       accessorKey: "createdAt",
-      header: "Registered On",
+      header: "Registered",
       cell: ({ row }) => {
-        return new Date(row.getValue("createdAt")).toLocaleDateString();
+        const date = row.getValue("createdAt") as string;
+        return (
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">
+              {format(new Date(date), "MMM d, yyyy")}
+            </span>
+          </div>
+        );
       },
     },
     {
       accessorKey: "verifyAccount",
-      header: "Verified",
+      header: "Status",
       cell: ({ row }) => {
-        return row.getValue("verifyAccount") ? "Yes" : "No";
+        const isVerified = row.getValue("verifyAccount") as boolean;
+        return (
+          <div className="flex items-center gap-1">
+            {isVerified ? (
+              <>
+                <UserCheck className="h-3 w-3 text-green-600" />
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-700"
+                >
+                  Verified
+                </Badge>
+              </>
+            ) : (
+              <>
+                <UserX className="h-3 w-3 text-amber-600" />
+                <Badge
+                  variant="outline"
+                  className="border-amber-200 text-amber-700"
+                >
+                  Pending
+                </Badge>
+              </>
+            )}
+          </div>
+        );
       },
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const patient = row.original;
 
@@ -531,100 +642,152 @@ export default function PatientsPage() {
 
   return (
     <DashboardPageLayout title="Patients" role="admin" breadcrumbItems={[]}>
-      <div className="flex w-full flex-col space-y-4">
-        <div className="flex w-full items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Patients</h2>
+      <div className="flex flex-col space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Patient Management</h1>
+            <p className="text-muted-foreground">
+              Manage patient records, add new patients, and update existing
+              information
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {filteredPatients.length} Patient
+              {filteredPatients.length !== 1 ? "s" : ""}
+            </Badge>
+            <Button
+              onClick={() => {
+                setEditingPatient(null);
+                setOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Patient
+            </Button>
+          </div>
         </div>
 
-        {isFetchingPatients ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading...</div>
-          </div>
-        ) : error ? (
-          <div className="rounded-md bg-destructive/15 p-4 text-destructive">
-            Failed to load patients data. Please try again later.
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={patients}
-            searchKey="nationalID"
-            searchPlaceholder="Search patients..."
-            onAdd={() => {
-              setEditingPatient(null);
-              setOpen(true);
-            }}
-          />
-        )}
+        {/* Search Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Search Patients</CardTitle>
+            <CardDescription>
+              Search by National ID, name, phone number, or email
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Enter National ID, name, phone, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <PatientDialog
-          open={open}
-          onOpenChange={setOpen}
-          title={editingPatient ? "Edit Patient" : "Add Patient"}
-          description={
-            editingPatient
-              ? "Edit the patient details."
-              : "Add a new patient to the system."
-          }
-          defaultValues={transformPatientForForm(editingPatient)}
-          onSubmit={handleSubmit}
-          fieldErrors={formErrors}
-          isAdmin={true}
-          isLoading={
-            createPatientMutation.isPending || updatePatientMutation.isPending
-          }
-        />
-
-        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the
-                patient from the system.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deletePatientMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground"
-                disabled={deletePatientMutation.isPending}
-              >
-                {deletePatientMutation.isPending ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Patients Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Patients List</CardTitle>
+            <CardDescription>
+              Manage patient records and their information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isFetchingPatients ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-lg">Loading patients...</div>
+              </div>
+            ) : error ? (
+              <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+                Failed to load patients data. Please try again later.
+              </div>
+            ) : (
+              <div className="[&>div>div:first-child]:hidden">
+                <DataTable
+                  columns={columns}
+                  data={filteredPatients}
+                  searchKey="nationalID"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <PatientDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={editingPatient ? "Edit Patient" : "Add Patient"}
+        description={
+          editingPatient
+            ? "Edit the patient details."
+            : "Add a new patient to the system."
+        }
+        defaultValues={transformPatientForForm(editingPatient)}
+        onSubmit={handleSubmit}
+        fieldErrors={formErrors}
+        isAdmin={true}
+        isLoading={
+          createPatientMutation.isPending || updatePatientMutation.isPending
+        }
+      />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              patient from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePatientMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+              disabled={deletePatientMutation.isPending}
+            >
+              {deletePatientMutation.isPending ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardPageLayout>
   );
 }

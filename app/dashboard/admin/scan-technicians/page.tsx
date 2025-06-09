@@ -1,26 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Metadata } from "next";
-import * as z from "zod";
-import { MoreHorizontal, Pencil, Trash } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  MoreHorizontal,
+  Pencil,
+  Trash,
+  Search,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  Building,
+  Plus,
+  Key,
+} from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
-import axiosInstance from "@/lib/axios";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ControllerRenderProps, FieldValues } from "react-hook-form";
-import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/data-table/data-table";
-import { EntityDialog } from "@/components/dialogs/entity-dialog";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import {
   DropdownMenu,
@@ -29,6 +28,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,249 +48,178 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Branch {
-  _id: string;
-  name: string;
-  address: string;
-  phone: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// Import the new staff service
+import {
+  staffService,
+  type StaffMember,
+  type StaffFormValues,
+  type Branch,
+  type StaffRole,
+} from "@/lib/services/staff";
 
-interface ScanTechnician {
-  _id: string;
-  name: string;
-  email: string;
-  nationalId: string;
-  phone: string;
-  role: string;
-  branch: Branch | string;
-  imageProfile?: string;
-  birthDate: string;
-  age: number;
-  addresses: string;
-  createdAt: string;
-  password?: string;
-}
+// Import the new StaffDialog component
+import { StaffDialog } from "@/components/dialogs/staff-dialog";
+import { PasswordChangeDialog } from "@/components/dialogs/password-change-dialog";
 
-interface FormValues {
-  name: string;
-  email: string;
-  nationalId: string;
-  phone: string;
-  branch: string;
-  addresses: string;
-  password?: string;
-}
-
-interface ApiErrorResponse {
-  message: string;
-  statusCode: number;
-  error: string;
-}
-
-const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  nationalId: z
-    .string()
-    .length(14, "National ID must be 14 digits")
-    .regex(/^[23]\d{13}$/, "National ID must start with 2 or 3")
-    .refine((value) => {
-      // Extract birth date components
-      const year = parseInt(value.substring(1, 3));
-      const month = parseInt(value.substring(3, 5));
-      const day = parseInt(value.substring(5, 7));
-
-      // Check if birth date is valid
-      const birthDate = new Date(
-        year + (value[0] === "2" ? 1900 : 2000),
-        month - 1,
-        day
-      );
-      if (
-        birthDate.getFullYear() !== (value[0] === "2" ? 1900 : 2000) + year ||
-        birthDate.getMonth() !== month - 1 ||
-        birthDate.getDate() !== day
-      ) {
-        return false;
-      }
-
-      // Check governorate code (01-27)
-      const governorate = parseInt(value.substring(7, 9));
-      if (governorate < 1 || governorate > 27) {
-        return false;
-      }
-
-      return true;
-    }, "Invalid National ID format - please check birth date and governorate code"),
-  phone: z
-    .string()
-    .length(11, "Phone number must be 11 digits")
-    .regex(
-      /^01[0125]\d{8}$/,
-      "Invalid Egyptian phone number format - must start with '01' followed by 0, 1, 2, or 5"
-    ),
-  branch: z.string().min(1, "Branch is required"),
-  addresses: z.string().min(5, "Address must be at least 5 characters"),
-  password: z
-    .string()
-    .min(6, "Password must be at least 6 characters")
-    .optional(),
-});
-
-type FormSchema = z.infer<typeof schema>;
-
-interface ApiResponse {
-  results: number;
-  paginationResult: any;
-  data: ScanTechnician[];
-}
-
-interface FormFieldComponentProps {
-  field: ControllerRenderProps<FieldValues, string>;
-}
+const STAFF_ROLE: StaffRole = "ScanTechnician";
 
 export default function ScanTechniciansPage() {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [passwordChangeOpen, setPasswordChangeOpen] = useState(false);
   const [editingTechnician, setEditingTechnician] =
-    useState<ScanTechnician | null>(null);
+    useState<StaffMember | null>(null);
+  const [changingPasswordTechnician, setChangingPasswordTechnician] =
+    useState<StaffMember | null>(null);
   const [deletingTechnicianId, setDeletingTechnicianId] = useState<
     string | null
   >(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-  const [formValues, setFormValues] = useState<FormValues | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<{
+    [key: string]: string;
+  }>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredTechnicians, setFilteredTechnicians] = useState<StaffMember[]>(
+    []
+  );
 
-  // Fetch branches
-  const { data: branches } = useQuery<Branch[]>({
-    queryKey: ["branches"],
-    queryFn: async () => {
-      try {
-        const response = await axiosInstance.get("/api/v1/branches/");
-        return response.data.data;
-      } catch (error) {
-        console.error("Error fetching branches:", error);
-        return [];
-      }
-    },
-  });
-
-  // Log environment variables
-  useEffect(() => {
-    console.log("Environment Variables:", {
-      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-      NODE_ENV: process.env.NODE_ENV,
-    });
-  }, []);
-
+  // Fetch staff using the staff service
   const {
     data: response,
     isLoading,
     error,
     refetch,
-  } = useQuery<ApiResponse>({
+  } = useQuery({
     queryKey: ["scan-technicians"],
-    queryFn: async () => {
-      try {
-        console.log("Starting API call to fetch scan technicians...");
-        console.log("Axios Instance Config:", {
-          baseURL: axiosInstance.defaults.baseURL,
-          headers: axiosInstance.defaults.headers,
-          withCredentials: axiosInstance.defaults.withCredentials,
-        });
-
-        const response = await axiosInstance.get<ApiResponse>(
-          `/api/v1/staff/?role=ScanTechnician`
-        );
-
-        console.log("API Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: response.data,
-        });
-
-        if (
-          !response.data ||
-          !response.data.data ||
-          response.data.data.length === 0
-        ) {
-          console.log("No data returned from API");
-          return { results: 0, paginationResult: {}, data: [] } as ApiResponse;
-        }
-
-        return response.data;
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        console.error("Detailed API Error:", {
-          message: axiosError.message,
-          response: axiosError.response?.data,
-          status: axiosError.response?.status,
-          headers: axiosError.response?.headers,
-        });
-        throw error;
-      }
-    },
+    queryFn: () => staffService.getStaffByRole(STAFF_ROLE),
   });
 
-  // Log component state changes
-  useEffect(() => {
-    if (response) {
-      console.log("Component State:", {
-        isLoading,
-        error,
-        techniciansCount: response.data.length,
-        technicians: response.data,
-      });
-    }
-  }, [isLoading, error, response]);
+  // Transform the response data and memoize to prevent infinite loops
+  const technicians = useMemo(() => {
+    return response?.data || [];
+  }, [response?.data]);
 
-  const columns: ColumnDef<ScanTechnician>[] = [
+  // Filter technicians based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredTechnicians(technicians);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = technicians.filter((technician) => {
+      return (
+        technician.nationalId?.toLowerCase().includes(query) ||
+        technician.name.toLowerCase().includes(query) ||
+        technician.phone.includes(query) ||
+        technician.email?.toLowerCase().includes(query) ||
+        (typeof technician.branch === "object" &&
+          technician.branch.name?.toLowerCase().includes(query))
+      );
+    });
+
+    setFilteredTechnicians(filtered);
+  }, [searchQuery, technicians]);
+
+  const columns: ColumnDef<StaffMember>[] = [
     {
       accessorKey: "nationalId",
       header: "National ID",
+      cell: ({ row }) => {
+        const nationalId = row.getValue("nationalId") as string;
+        return <div className="font-mono">{nationalId || "N/A"}</div>;
+      },
     },
     {
       accessorKey: "name",
-      header: "Name",
+      header: "Technician Name",
+      cell: ({ row }) => {
+        const technician = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{technician.name}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => {
+        const email = row.getValue("email") as string;
+        return email ? (
+          <div className="flex items-center gap-1">
+            <Mail className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{email}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-sm">N/A</span>
+        );
+      },
     },
     {
       accessorKey: "phone",
       header: "Phone",
+      cell: ({ row }) => {
+        const phone = row.getValue("phone") as string;
+        return (
+          <div className="flex items-center gap-1">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            <span className="font-mono text-sm">{phone}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "branch",
       header: "Branch",
       cell: ({ row }) => {
         const branch = row.getValue("branch");
+        let branchName = "N/A";
         if (branch && typeof branch === "object" && "name" in branch) {
-          return (branch as Branch).name;
+          branchName = (branch as Branch).name;
+        } else if (typeof branch === "string") {
+          branchName = branch;
         }
-        return branch;
+        return (
+          <div className="flex items-center gap-1">
+            <Building className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{branchName}</span>
+          </div>
+        );
       },
     },
     {
       accessorKey: "age",
       header: "Age",
-    },
-    {
-      accessorKey: "addresses",
-      header: "Address",
+      cell: ({ row }) => {
+        const age = row.getValue("age") as number;
+        return (
+          <Badge variant="outline" className="text-xs">
+            {age} years
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "createdAt",
       header: "Join Date",
       cell: ({ row }) => {
-        return new Date(row.getValue("createdAt")).toLocaleDateString();
+        const date = row.getValue("createdAt") as string;
+        return (
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">
+              {new Date(date).toLocaleDateString()}
+            </span>
+          </div>
+        );
       },
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const technician = row.original;
 
@@ -306,6 +243,15 @@ export default function ScanTechniciansPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
+                  setChangingPasswordTechnician(technician);
+                  setPasswordChangeOpen(true);
+                }}
+              >
+                <Key className="mr-2 h-4 w-4" />
+                Change Password
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
                   setDeletingTechnicianId(technician._id);
                   setDeleteOpen(true);
                 }}
@@ -321,286 +267,274 @@ export default function ScanTechniciansPage() {
     },
   ];
 
-  const formFields: Array<{
-    name: keyof FormSchema;
-    label: string;
-    type?: string;
-    placeholder?: string;
-    component?: React.ReactElement<{
-      value?: string;
-      onValueChange?: (value: string) => void;
-    }>;
-  }> = [
-    { name: "name", label: "Name", placeholder: "Enter name" },
-    {
-      name: "email",
-      label: "Email",
-      type: "email",
-      placeholder: "Enter email",
-    },
-    {
-      name: "nationalId",
-      label: "National ID",
-      placeholder: "Enter 14-digit national ID",
-    },
-    {
-      name: "phone",
-      label: "Phone",
-      placeholder: "Enter phone number",
-    },
-    {
-      name: "branch",
-      label: "Branch",
-      component: (
-        <Select defaultValue="">
-          <SelectTrigger>
-            <SelectValue placeholder="Select branch" />
-          </SelectTrigger>
-          <SelectContent>
-            {branches?.map((branch) => (
-              <SelectItem key={branch._id} value={branch._id}>
-                {branch.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      name: "addresses",
-      label: "Address",
-      placeholder: "Enter address",
-    },
-    {
-      name: "password",
-      label: "Password",
-      type: "password",
-      placeholder: "Enter password",
-    },
-  ];
-
-  const transformTechnicianForForm = (
-    technician: ScanTechnician | null
-  ): FormValues => {
-    if (!technician) {
-      return {
-        name: "",
-        email: "",
-        nationalId: "",
-        phone: "",
-        branch: "",
-        addresses: "",
-        password: "",
-      };
-    }
-
-    return {
-      name: technician.name,
-      email: technician.email,
-      nationalId: technician.nationalId,
-      phone: technician.phone,
-      branch:
-        typeof technician.branch === "string"
-          ? technician.branch
-          : technician.branch._id,
-      addresses: technician.addresses,
-      password: "",
-    };
-  };
-
-  const handleSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: StaffFormValues) => {
     try {
-      // Clear previous errors and save current values
+      // Clear previous errors
       setFormErrors({});
-      setFormValues(values);
 
       if (editingTechnician) {
         // Update existing technician
-        await axiosInstance.put(`/api/v1/staff/${editingTechnician._id}`, {
-          ...values,
-          role: "ScanTechnician",
-        });
-        toast.success("Scan technician updated successfully", {
-          style: { backgroundColor: "#10B981", color: "white" },
-        });
-        setOpen(false);
-        setFormValues(null);
+        await staffService.updateStaff(
+          editingTechnician._id,
+          values,
+          STAFF_ROLE
+        );
+        toast.success(
+          `${staffService.getRoleDisplayName(STAFF_ROLE)} updated successfully`,
+          {
+            style: { backgroundColor: "#10B981", color: "white" },
+          }
+        );
       } else {
         // Create new technician
-        await axiosInstance.post("/api/v1/staff/", {
-          ...values,
-          role: "ScanTechnician",
-        });
-        toast.success("Scan technician created successfully", {
-          style: { backgroundColor: "#10B981", color: "white" },
-        });
-        setOpen(false);
-        setFormValues(null);
+        await staffService.createStaff(values, STAFF_ROLE);
+        toast.success(
+          `${staffService.getRoleDisplayName(STAFF_ROLE)} created successfully`,
+          {
+            style: { backgroundColor: "#10B981", color: "white" },
+          }
+        );
       }
+
+      setOpen(false);
       refetch();
     } catch (error) {
-      const axiosError = error as AxiosError<any>;
-      console.error("API Error Response:", axiosError.response?.data);
+      const errors = staffService.parseApiErrors(error);
 
-      // Handle different error response formats
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        const errors: { [key: string]: string } = {};
-
-        // Handle single error object format
-        if (errorData.errors && !Array.isArray(errorData.errors)) {
-          const error = errorData.errors;
-          if (error.path && error.msg) {
-            errors[error.path] = error.msg;
-          }
-        }
-        // Handle validation errors array format
-        else if (Array.isArray(errorData.errors)) {
-          errorData.errors.forEach((error: any) => {
-            if (error.path && error.msg) {
-              errors[error.path] = error.msg;
-            }
-          });
-        }
-        // Handle object format errors
-        else if (typeof errorData.errors === "object") {
-          Object.entries(errorData.errors).forEach(([key, value]) => {
-            errors[key] = value as string;
-          });
-        }
-        // Handle duplicate key errors from message
-        else if (errorData.message && typeof errorData.message === "string") {
-          const message = errorData.message.toLowerCase();
-
-          // Check for duplicate email
-          if (
-            message.includes("e-mail already in user") ||
-            message.includes("email already in use") ||
-            (message.includes("duplicate key") && message.includes("email"))
-          ) {
-            errors.email = "This email is already in use";
-          }
-
-          // Check for duplicate phone
-          if (
-            (message.includes("duplicate key") && message.includes("phone")) ||
-            (message.includes("phone") && message.includes("already"))
-          ) {
-            errors.phone = "This phone number is already in use";
-          }
-
-          // Check for duplicate National ID
-          if (
-            (message.includes("duplicate key") &&
-              message.includes("nationalid")) ||
-            (message.includes("national id") && message.includes("already"))
-          ) {
-            errors.nationalId = "This National ID is already in use";
-          }
-        }
-
-        // Set the errors and keep the form open with current values
+      if (Object.keys(errors).length > 0) {
         setFormErrors(errors);
         toast.error("Please fix the errors in the form", {
           style: { backgroundColor: "#EF4444", color: "white" },
         });
-        return; // Return early to prevent form from closing
+      } else {
+        toast.error(
+          `An error occurred while saving the ${staffService
+            .getRoleDisplayName(STAFF_ROLE)
+            .toLowerCase()}`,
+          {
+            style: { backgroundColor: "#EF4444", color: "white" },
+          }
+        );
       }
+    }
+  };
 
-      // For any other errors, show a generic error message but keep form values
-      toast.error("An error occurred while saving the scan technician", {
-        style: { backgroundColor: "#EF4444", color: "white" },
-      });
+  const handlePasswordChange = async (
+    newPassword: string,
+    confirmPassword: string
+  ) => {
+    if (changingPasswordTechnician) {
+      try {
+        // Clear previous errors
+        setPasswordErrors({});
+
+        await staffService.changeStaffPassword(
+          changingPasswordTechnician._id,
+          newPassword,
+          confirmPassword
+        );
+        toast.success(
+          `Password changed successfully for ${changingPasswordTechnician.name}`,
+          {
+            style: { backgroundColor: "#10B981", color: "white" },
+          }
+        );
+        setPasswordChangeOpen(false);
+        setChangingPasswordTechnician(null);
+      } catch (error) {
+        console.error("Error changing password:", error);
+        const errors = staffService.parseApiErrors(error);
+
+        if (Object.keys(errors).length > 0) {
+          setPasswordErrors(errors);
+          toast.error("Please fix the errors in the form", {
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
+        } else {
+          toast.error("Failed to change password", {
+            style: { backgroundColor: "#EF4444", color: "white" },
+          });
+        }
+      }
     }
   };
 
   const handleDelete = async () => {
     if (deletingTechnicianId) {
       try {
-        await axiosInstance.delete(`/api/v1/staff/${deletingTechnicianId}`);
+        await staffService.deleteStaff(deletingTechnicianId);
+        toast.success(
+          `${staffService.getRoleDisplayName(STAFF_ROLE)} deleted successfully`,
+          {
+            style: { backgroundColor: "#10B981", color: "white" },
+          }
+        );
         refetch();
         setDeleteOpen(false);
         setDeletingTechnicianId(null);
       } catch (error) {
         console.error("Error deleting technician:", error);
+        toast.error(
+          `Failed to delete ${staffService
+            .getRoleDisplayName(STAFF_ROLE)
+            .toLowerCase()}`,
+          {
+            style: { backgroundColor: "#EF4444", color: "white" },
+          }
+        );
       }
     }
   };
 
   return (
     <DashboardPageLayout
-      title="Scan Technicians"
+      title={staffService.getRolePluralName(STAFF_ROLE)}
       role="admin"
       breadcrumbItems={[]}
     >
-      <div className="flex w-full flex-col space-y-4">
-        <div className="flex w-full items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Scan Technicians
-          </h2>
+      <div className="flex flex-col space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {staffService.getRoleDisplayName(STAFF_ROLE)} Management
+            </h1>
+            <p className="text-muted-foreground">
+              Manage {staffService.getRoleDisplayName(STAFF_ROLE).toLowerCase()}{" "}
+              records, add new technicians, and update existing information
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {filteredTechnicians.length} Technician
+              {filteredTechnicians.length !== 1 ? "s" : ""}
+            </Badge>
+            <Button
+              onClick={() => {
+                setEditingTechnician(null);
+                setOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Technician
+            </Button>
+          </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading...</div>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-red-500">
-              Error loading scan technicians. Please try again later.
+        {/* Search Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Search {staffService.getRolePluralName(STAFF_ROLE)}
+            </CardTitle>
+            <CardDescription>
+              Search by National ID, name, phone number, email, or branch
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Enter National ID, name, phone, email, or branch..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={response?.data || []}
-            searchKey="nationalId"
-            searchPlaceholder="Search by national ID..."
-            onAdd={() => {
-              setEditingTechnician(null);
-              setOpen(true);
-            }}
-          />
-        )}
+          </CardContent>
+        </Card>
 
-        <EntityDialog
-          open={open}
-          onOpenChange={setOpen}
-          title={
-            editingTechnician ? "Edit Scan Technician" : "Add Scan Technician"
-          }
-          description={
-            editingTechnician
-              ? "Edit the scan technician details."
-              : "Add a new scan technician to the system."
-          }
-          schema={schema}
-          defaultValues={
-            formValues || transformTechnicianForForm(editingTechnician)
-          }
-          onSubmit={handleSubmit}
-          fields={formFields}
-          fieldErrors={formErrors}
-        />
-
-        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the
-                scan technician from the system.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} data-destructive>
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Scan Technicians Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {staffService.getRolePluralName(STAFF_ROLE)} List
+            </CardTitle>
+            <CardDescription>
+              Manage {staffService.getRoleDisplayName(STAFF_ROLE).toLowerCase()}{" "}
+              records and their information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-lg">
+                  Loading{" "}
+                  {staffService.getRolePluralName(STAFF_ROLE).toLowerCase()}...
+                </div>
+              </div>
+            ) : error ? (
+              <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+                Error loading{" "}
+                {staffService.getRolePluralName(STAFF_ROLE).toLowerCase()}.
+                Please try again later.
+              </div>
+            ) : (
+              <div className="[&>div>div:first-child]:hidden">
+                <DataTable
+                  columns={columns}
+                  data={filteredTechnicians}
+                  searchKey="nationalId"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <StaffDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={
+          editingTechnician
+            ? `Edit ${staffService.getRoleDisplayName(STAFF_ROLE)}`
+            : `Add ${staffService.getRoleDisplayName(STAFF_ROLE)}`
+        }
+        description={
+          editingTechnician
+            ? `Edit the ${staffService
+                .getRoleDisplayName(STAFF_ROLE)
+                .toLowerCase()} details.`
+            : `Add a new ${staffService
+                .getRoleDisplayName(STAFF_ROLE)
+                .toLowerCase()} to the system.`
+        }
+        defaultValues={editingTechnician}
+        onSubmit={handleSubmit}
+        fieldErrors={formErrors}
+        role={STAFF_ROLE}
+      />
+
+      <PasswordChangeDialog
+        open={passwordChangeOpen}
+        onOpenChange={setPasswordChangeOpen}
+        staffName={changingPasswordTechnician?.name || ""}
+        onSubmit={handlePasswordChange}
+        fieldErrors={passwordErrors}
+      />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              {` ${staffService.getRoleDisplayName(STAFF_ROLE).toLowerCase()} `}
+              from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardPageLayout>
   );
 }

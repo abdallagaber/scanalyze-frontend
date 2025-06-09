@@ -15,6 +15,7 @@ import {
   History,
   TestTube,
   UserCheck,
+  Building,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
@@ -57,6 +58,11 @@ const navigationConfig: Record<
       title: "Requests",
       url: "/dashboard/admin/requests",
       icon: UserCheck,
+    },
+    {
+      title: "Branches",
+      url: "/dashboard/admin/branches",
+      icon: Building,
     },
     {
       title: "Lab Technicians",
