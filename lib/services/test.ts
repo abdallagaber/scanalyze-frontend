@@ -1,5 +1,55 @@
 import axiosInstance from "@/lib/axios";
 
+// Type for branch object
+export interface Branch {
+  _id: string;
+  name: string;
+}
+
+// Type for patient snapshot in test response
+export interface PatientSnapshot {
+  medicalHistory: {
+    chronicDiseases: {
+      hasChronicDiseases: boolean;
+      diseasesList: string[];
+      otherDiseases?: string;
+    };
+    allergies: {
+      hasAllergies: boolean;
+      allergyDetails?: string;
+    };
+    medications: {
+      takesMedications: boolean;
+      list: Array<{
+        name: string;
+        dosage: string;
+        reason: string;
+        _id: string;
+      }>;
+    };
+    surgeries: {
+      hadSurgeries: boolean;
+      surgeryDetails?: string;
+    };
+    currentSymptoms: {
+      hasSymptoms: boolean;
+      symptomsDetails?: string;
+    };
+    lifestyle: {
+      smokes: boolean;
+      consumesAlcohol: boolean;
+    };
+  };
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  gender: string;
+  nationalID: string;
+  birthDate?: string;
+  age?: number;
+}
+
 // Type for an individual test result
 export interface TestItem {
   testName: string;
@@ -30,9 +80,10 @@ export interface LabTestResponse {
     labTest: {
       _id: string;
       patient: string;
-      branch: string;
+      branch: Branch;
       labTechnician: string;
       testResults: TestCategory[];
+      patientSnapshot: PatientSnapshot;
       createdAt: string;
       updatedAt: string;
     };

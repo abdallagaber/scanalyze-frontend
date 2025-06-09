@@ -59,17 +59,17 @@ export default function PatientRequestPage({
 
   const handleVerificationComplete = () => {
     // Navigate back to requests list after verification/decline
-    router.push("/dashboard/receptionist/requests");
+    router.push("/dashboard/admin/requests");
   };
 
   const handleBack = () => {
-    router.push("/dashboard/receptionist/requests");
+    router.push("/dashboard/admin/requests");
   };
 
   const breadcrumbItems = [
     {
       title: "Verification Requests",
-      href: "/dashboard/receptionist/requests",
+      href: "/dashboard/admin/requests",
     },
     {
       title: patient
@@ -83,7 +83,7 @@ export default function PatientRequestPage({
     return (
       <DashboardPageLayout
         title="Patient Verification"
-        role="receptionist"
+        role="admin"
         breadcrumbItems={breadcrumbItems}
       >
         <div className="space-y-6">
@@ -128,7 +128,7 @@ export default function PatientRequestPage({
     return (
       <DashboardPageLayout
         title="Patient Verification"
-        role="receptionist"
+        role="admin"
         breadcrumbItems={breadcrumbItems}
       >
         <div className="space-y-6">
@@ -185,7 +185,7 @@ export default function PatientRequestPage({
   return (
     <DashboardPageLayout
       title="Patient Verification"
-      role="receptionist"
+      role="admin"
       breadcrumbItems={breadcrumbItems}
     >
       <div className="space-y-6">

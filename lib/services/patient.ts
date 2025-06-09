@@ -524,6 +524,22 @@ export const patientService = {
     return response.data;
   },
 
+  // Get a specific unverified patient by ID
+  getUnverifiedPatientById: async (id: string) => {
+    const response = await axiosInstance.get(
+      `/api/v1/patients/${id}?verifyAccount=false`
+    );
+
+    // Normalize the patient data if it exists
+    if (response.data && response.data.data) {
+      response.data.data = patientService.normalizePatientData(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
+
   // Verify a patient account
   verifyPatient: async (id: string) => {
     const response = await axiosInstance.post(

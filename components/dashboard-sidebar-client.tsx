@@ -179,10 +179,21 @@ export function DashboardSidebarClient({
   const pathname = usePathname();
 
   const Icon = roleIcons[role];
-  const navItems = navigationConfig[role].map((item) => ({
-    ...item,
-    isActive: pathname === item.url,
-  }));
+  const navItems = navigationConfig[role].map((item) => {
+    // For exact matches
+    if (pathname === item.url) {
+      return { ...item, isActive: true };
+    }
+
+    // For sub-route matches, but exclude base dashboard URLs (Overview pages)
+    // that are just /dashboard/{role} as they shouldn't match sub-routes
+    const isDashboardBase = item.url === `/dashboard/${role}`;
+    if (!isDashboardBase && pathname.startsWith(item.url + "/")) {
+      return { ...item, isActive: true };
+    }
+
+    return { ...item, isActive: false };
+  });
 
   return (
     <Sidebar collapsible="icon" {...props}>

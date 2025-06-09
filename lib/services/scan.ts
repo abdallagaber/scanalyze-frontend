@@ -1,5 +1,56 @@
 import axiosInstance from "@/lib/axios";
 
+// Type for branch object
+export interface Branch {
+  _id: string;
+  name: string;
+}
+
+// Type for patient snapshot in scan response
+export interface PatientSnapshot {
+  medicalHistory: {
+    chronicDiseases: {
+      hasChronicDiseases: boolean;
+      diseasesList: string[];
+      otherDiseases?: string;
+    };
+    allergies: {
+      hasAllergies: boolean;
+      allergyDetails?: string;
+    };
+    medications: {
+      takesMedications: boolean;
+      list: Array<{
+        name: string;
+        dosage: string;
+        reason: string;
+        _id: string;
+      }>;
+    };
+    surgeries: {
+      hadSurgeries: boolean;
+      surgeryDetails?: string;
+    };
+    currentSymptoms: {
+      hasSymptoms: boolean;
+      symptomsDetails?: string;
+    };
+    lifestyle: {
+      smokes: boolean;
+      consumesAlcohol: boolean;
+    };
+  };
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  gender: string;
+  nationalID: string;
+  birthDate?: string;
+  age?: number;
+}
+
+// Scan data for creating a new scan
 export interface ScanData {
   type: string;
   scanImage: File | string | Blob;
@@ -7,6 +58,20 @@ export interface ScanData {
   patient: string;
   scanTechnician: string;
   branch: string;
+}
+
+// Scan response interface for API responses
+export interface ScanResponse {
+  _id: string;
+  type: string;
+  scanImage: string;
+  report: string;
+  patient: string;
+  scanTechnician: string;
+  branch: Branch;
+  patientSnapshot: PatientSnapshot;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const scanService = {
