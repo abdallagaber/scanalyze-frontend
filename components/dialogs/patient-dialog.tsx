@@ -303,7 +303,7 @@ export function PatientDialog({
       consumesAlcohol: false,
     },
     isPhoneVerified: false,
-    verifyAccount: true,
+    verifyAccount: false, // Changed from true to false for consistency
     password: "", // Ensure password is an empty string, not undefined
   };
 
@@ -497,9 +497,34 @@ export function PatientDialog({
         }
       }
 
+      // Handle verification status fields specifically for admin
+      if (isAdmin) {
+        // Ensure verification fields are properly set with boolean values
+        // Check for different possible field names from backend
+        cleanedValues.isPhoneVerified = Boolean(
+          cleanedValues.isPhoneVerified ||
+            cleanedValues.phoneVerified ||
+            cleanedValues.phone_verified ||
+            false
+        );
+        cleanedValues.verifyAccount = Boolean(
+          cleanedValues.verifyAccount ||
+            cleanedValues.accountVerified ||
+            cleanedValues.account_verified ||
+            cleanedValues.isVerified ||
+            cleanedValues.verified ||
+            false
+        );
+      }
+
       // Handle string fields at top level and ensure they're never undefined
       Object.keys(cleanedValues).forEach((key) => {
         const value = cleanedValues[key as keyof typeof cleanedValues];
+
+        // Skip boolean fields (like verification status)
+        if (typeof value === "boolean") {
+          return;
+        }
 
         // If it's a string or undefined, ensure it's never undefined
         if (typeof value === "string" || value === undefined) {
@@ -529,7 +554,7 @@ export function PatientDialog({
         setIdImagePreview(defaultValues.nationalIDImg);
       }
     }
-  }, [open, defaultValues, form]);
+  }, [open, defaultValues, form, isAdmin]);
 
   useEffect(() => {
     // Clear previous errors first
@@ -606,9 +631,21 @@ export function PatientDialog({
   const handleSubmit = (values: z.infer<typeof patientSchema>) => {
     form.clearErrors();
 
+    // Prepare the submission data
+    const submissionData = {
+      ...values,
+      nationalIDImg: idImagePreview || undefined,
+    };
+
+    // Include verification status for admin users
+    if (isAdmin) {
+      submissionData.isPhoneVerified = Boolean(values.isPhoneVerified);
+      submissionData.verifyAccount = Boolean(values.verifyAccount);
+    }
+
     // Log the values being submitted to help with debugging
     console.log("Submitting patient form with values:", {
-      ...values,
+      ...submissionData,
       medicalHistory: {
         chronicDiseases: values.chronicDiseases,
         allergies: values.allergies,
@@ -619,11 +656,7 @@ export function PatientDialog({
       },
     });
 
-    // Include the image in the submission, ensuring it's either a string or undefined
-    onSubmit({
-      ...values,
-      nationalIDImg: idImagePreview || undefined,
-    });
+    onSubmit(submissionData);
   };
 
   const togglePasswordVisibility = () => {
@@ -740,8 +773,8 @@ export function PatientDialog({
             className="flex flex-col h-full overflow-hidden"
             onKeyDown={handleKeyDown}
           >
-            <ScrollArea className="flex-1 px-6">
-              <div className="space-y-8 py-6">
+            <ScrollArea className="flex-1">
+              <div className="space-y-8 py-6 px-6 mx-2">
                 {/* Personal Information Section - Simplified structure */}
                 <div className="space-y-5">
                   <div className="flex items-center">
@@ -898,51 +931,53 @@ export function PatientDialog({
                         className="hidden"
                         aria-describedby="id-image-hint"
                       />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full flex flex-col items-center justify-center cursor-pointer border-0 bg-transparent p-2"
-                      >
-                        {idImagePreview ? (
-                          <div className="relative w-full">
-                            <img
-                              src={idImagePreview}
-                              alt="ID Preview"
-                              className="mx-auto max-h-40 object-contain mb-2"
-                              aria-hidden="true"
-                            />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-0 right-0 h-8 w-8"
-                              onClick={removeIDImage}
-                              aria-label="Remove image"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <p className="text-sm text-muted-foreground">
-                              Click to change
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload
-                              className="h-10 w-10 text-muted-foreground mb-2"
-                              aria-hidden="true"
-                            />
-                            <p className="text-sm text-muted-foreground">
-                              Click to upload or drag and drop
-                            </p>
-                            <p
-                              className="text-xs text-muted-foreground mt-1"
-                              id="id-image-hint"
-                            >
-                              JPG, PNG or PDF (max. 5MB)
-                            </p>
-                          </>
-                        )}
-                      </button>
+                      {idImagePreview ? (
+                        <div className="relative w-full">
+                          <img
+                            src={idImagePreview}
+                            alt="ID Preview"
+                            className="mx-auto max-h-40 object-contain mb-2"
+                            aria-hidden="true"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-0 right-0 h-8 w-8"
+                            onClick={removeIDImage}
+                            aria-label="Remove image"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full text-sm text-muted-foreground bg-transparent border-0 cursor-pointer p-1 hover:text-foreground transition-colors"
+                          >
+                            Click to change
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full flex flex-col items-center justify-center cursor-pointer border-0 bg-transparent p-2"
+                        >
+                          <Upload
+                            className="h-10 w-10 text-muted-foreground mb-2"
+                            aria-hidden="true"
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            Click to upload or drag and drop
+                          </p>
+                          <p
+                            className="text-xs text-muted-foreground mt-1"
+                            id="id-image-hint"
+                          >
+                            JPG, PNG or PDF (max. 5MB)
+                          </p>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1519,10 +1554,76 @@ export function PatientDialog({
                     </div>
                   </div>
                 </div>
+
+                {/* Admin Controls Section */}
+                {isAdmin && (
+                  <div className="space-y-5">
+                    <div className="flex items-center">
+                      <h3 className="text-lg font-semibold">Admin Controls</h3>
+                      <Separator className="flex-1 ml-3" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg border border-muted bg-muted/5">
+                      <FormField
+                        control={form.control}
+                        name="isPhoneVerified"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value || false}
+                                onCheckedChange={field.onChange}
+                                id="phone-verified"
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel
+                                htmlFor="phone-verified"
+                                className="font-normal cursor-pointer"
+                              >
+                                Phone Verified
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                Mark if the phone number has been verified
+                              </p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="verifyAccount"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value || false}
+                                onCheckedChange={field.onChange}
+                                id="account-verified"
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel
+                                htmlFor="account-verified"
+                                className="font-normal cursor-pointer"
+                              >
+                                Account Verified
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                Mark if the account has been verified
+                              </p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
-            <div className="flex justify-end px-6 py-4 border-t shrink-0 bg-muted/5">
+            <div className="flex justify-end px-8 py-4 border-t shrink-0 bg-muted/5">
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? (
                   <>

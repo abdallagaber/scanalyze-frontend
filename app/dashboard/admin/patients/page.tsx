@@ -604,6 +604,9 @@ export default function PatientsPage() {
       nationalID: patient.nationalID || "",
       nationalIDImg: patient.nationalIDImg || "",
       gender: gender,
+      // Admin verification fields
+      isPhoneVerified: Boolean(patient.isPhoneVerified),
+      verifyAccount: Boolean(patient.verifyAccount),
       // Medical history fields at top level
       chronicDiseases: {
         hasChronicDiseases:
