@@ -271,6 +271,20 @@ export function AnalysisSection({
       });
 
       if (!response.ok) {
+        // Handle 400 Bad Request specifically
+        if (response.status === 400) {
+          try {
+            const errorData = await response.json();
+            if (errorData.detail) {
+              throw new Error(errorData.detail);
+            }
+          } catch (parseError) {
+            // If we can't parse the error response, fall back to generic message
+            throw new Error(
+              "Invalid file format. Please upload a valid medical image."
+            );
+          }
+        }
         throw new Error(`API request failed with status ${response.status}`);
       }
 
