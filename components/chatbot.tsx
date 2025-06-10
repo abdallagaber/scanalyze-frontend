@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useChatbot } from "./chatbot-provider";
 import Cookies from "js-cookie";
+import { marked } from "marked";
 
 export function Chatbot() {
   const {
@@ -98,26 +99,21 @@ export function Chatbot() {
     });
   };
 
-  // Function to format text with markdown-style formatting
+  // Configure marked for better rendering
+  marked.setOptions({
+    breaks: true, // Convert line breaks to <br>
+    gfm: true, // Enable GitHub Flavored Markdown
+  });
+
+  // Function to format text with marked markdown parser
   const formatText = (text: string) => {
-    // Parse **text** or *text* for bold
-    const boldText = text.replace(
-      /\*\*(.*?)\*\*|\*(.*?)\*/g,
-      "<strong>$1$2</strong>"
-    );
-
-    // Parse bullet points (* at the beginning of a line)
-    const withBullets = boldText
-      .replace(/^\s*\*\s+(.*?)$/gm, "<li>$1</li>")
-      .replace(/(<li>.*?<\/li>(\s*<li>.*?<\/li>)*)/g, "<ul>$1</ul>");
-
-    // Parse headings (# at the beginning of a line)
-    const withHeadings = withBullets.replace(/^#\s+(.*?)$/gm, "<h3>$1</h3>");
-
-    // Replace line breaks with <br>
-    const withLineBreaks = withHeadings.replace(/\n/g, "<br>");
-
-    return withLineBreaks;
+    try {
+      return marked.parse(text);
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      // Fallback to plain text with line breaks
+      return text.replace(/\n/g, "<br>");
+    }
   };
 
   return (

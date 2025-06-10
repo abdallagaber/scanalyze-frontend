@@ -213,49 +213,105 @@ export function ChatbotProvider({ children }: { children: ReactNode }) {
 
       // Gemini API configuration
       const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-      const response = await fetch(GEMINI_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: fullPrompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
+      // Primary model: Gemini 2.5 Flash Preview 05-20
+      const PRIMARY_MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+
+      // Fallback model: Gemini 2.0 Flash
+      const FALLBACK_MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: fullPrompt,
+              },
+            ],
           },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE",
-            },
-            {
-              category: "HARM_CATEGORY_HATE_SPEECH",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE",
-            },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE",
-            },
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE",
-            },
-          ],
-        }),
-      });
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+        ],
+      };
+
+      let response;
+      let usingFallback = false;
+
+      try {
+        // Try primary model first (Gemini 2.5 Flash Preview 05-20)
+        response = await fetch(PRIMARY_MODEL_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        // Check if we hit rate limits or quota exceeded
+        if (!response.ok) {
+          const error = await response.json().catch(() => null);
+          const isRateLimit =
+            response.status === 429 ||
+            response.status === 403 ||
+            (error &&
+              (error.error?.message?.includes("quota") ||
+                error.error?.message?.includes("rate") ||
+                error.error?.message?.includes("limit")));
+
+          if (isRateLimit) {
+            console.log(
+              "Primary model rate limited, switching to fallback model..."
+            );
+            // Fallback to Gemini 2.0 Flash
+            response = await fetch(FALLBACK_MODEL_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestBody),
+            });
+            usingFallback = true;
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+        }
+      } catch (primaryError) {
+        console.log(
+          "Primary model failed, trying fallback model...",
+          primaryError
+        );
+        // If primary model fails for any reason, try fallback
+        response = await fetch(FALLBACK_MODEL_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+        usingFallback = true;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -265,6 +321,15 @@ export function ChatbotProvider({ children }: { children: ReactNode }) {
 
       if (data.candidates && data.candidates[0] && data.candidates[0].content) {
         const botResponse = data.candidates[0].content.parts[0].text;
+
+        // Optional: Log which model was used (for debugging)
+        console.log(
+          `Response generated using: ${
+            usingFallback
+              ? "Gemini 2.0 Flash (Fallback)"
+              : "Gemini 2.5 Flash Preview 05-20 (Primary)"
+          }`
+        );
 
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
