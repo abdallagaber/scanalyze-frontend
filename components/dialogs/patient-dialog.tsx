@@ -635,12 +635,12 @@ export function PatientDialog({
     const submissionData = {
       ...values,
       nationalIDImg: idImagePreview || undefined,
+      verifyAccount: true, // Always set verifyAccount to true
     };
 
     // Include verification status for admin users
     if (isAdmin) {
       submissionData.isPhoneVerified = Boolean(values.isPhoneVerified);
-      submissionData.verifyAccount = Boolean(values.verifyAccount);
     }
 
     // Log the values being submitted to help with debugging
@@ -1554,72 +1554,6 @@ export function PatientDialog({
                     </div>
                   </div>
                 </div>
-
-                {/* Admin Controls Section */}
-                {isAdmin && (
-                  <div className="space-y-5">
-                    <div className="flex items-center">
-                      <h3 className="text-lg font-semibold">Admin Controls</h3>
-                      <Separator className="flex-1 ml-3" />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg border border-muted bg-muted/5">
-                      <FormField
-                        control={form.control}
-                        name="isPhoneVerified"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value || false}
-                                onCheckedChange={field.onChange}
-                                id="phone-verified"
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel
-                                htmlFor="phone-verified"
-                                className="font-normal cursor-pointer"
-                              >
-                                Phone Verified
-                              </FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Mark if the phone number has been verified
-                              </p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="verifyAccount"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value || false}
-                                onCheckedChange={field.onChange}
-                                id="account-verified"
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel
-                                htmlFor="account-verified"
-                                className="font-normal cursor-pointer"
-                              >
-                                Account Verified
-                              </FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Mark if the account has been verified
-                              </p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </ScrollArea>
 
