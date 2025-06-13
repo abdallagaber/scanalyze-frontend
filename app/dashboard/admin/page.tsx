@@ -33,6 +33,7 @@ import {
   Microscope,
   Phone,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { patientService } from "@/lib/services/patient";
 import { staffService, type StaffRole } from "@/lib/services/staff";
@@ -42,6 +43,26 @@ import { scanService } from "@/lib/services/scan";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useQueries } from "@tanstack/react-query";
+import { Pie, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from "chart.js";
+import type { TooltipItem } from "chart.js";
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement
+);
 
 interface DashboardStats {
   totalPatients: number;
@@ -147,12 +168,25 @@ const RealTimeIndicator = ({
   </div>
 );
 
+// Pie chart colors (matching your example)
+const staffColors = ["#16b3ac", "#3366cc", "#a259d9"];
+const genderColors = ["#3366cc", "#e75480"];
+
+// Helper to convert a string to Camel Case (capitalize each word)
+function toCamelCase(str: string) {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [categoryTab, setCategoryTab] = useState<"test" | "scan">("test");
+  const [activityPeriod, setActivityPeriod] = useState<
+    "today" | "week" | "month" | "quarter" | "year"
+  >("week");
 
   // Initialize client-side values after hydration
   useEffect(() => {
@@ -496,7 +530,6 @@ export default function AdminDashboard() {
             totalStaff: branchStaff.length,
             tests: branchTests,
             scans: branchScans,
-            activityScore: Math.min(activityScore, 100),
           };
         });
       };
@@ -510,7 +543,6 @@ export default function AdminDashboard() {
           female: allPatients.filter(
             (p: Patient) => p.gender?.toLowerCase() === "female"
           ).length,
-          unspecified: allPatients.filter((p: Patient) => !p.gender).length,
         },
         testCategories: getTestCategories(tests),
         scanTypes: getScanTypes(scans),
@@ -668,6 +700,120 @@ export default function AdminDashboard() {
       </DashboardPageLayout>
     );
   }
+
+  // Add state and pie data for the tab switcher and pie chart
+  const testCategoryColors = [
+    "#4F8EF7", // blue
+    "#34C759", // green
+    "#FF9500", // orange
+    "#AF52DE", // purple
+    "#FF2D55", // pink/red
+  ];
+  const scanCategoryColors = [
+    "#5AC8FA", // light blue
+    "#FFCC00", // yellow
+    "#5856D6", // indigo
+    "#FF3B30", // red
+    "#32D74B", // light green
+  ];
+  const testCategoriesBarData = {
+    labels: systemInsights.testCategories.map((c) => toCamelCase(c.name)),
+    datasets: [
+      {
+        label: "Test Categories",
+        data: systemInsights.testCategories.map((c) => c.count),
+        backgroundColor: testCategoryColors,
+        borderWidth: 1,
+      },
+    ],
+  };
+  const scanCategoriesBarData = {
+    labels: systemInsights.scanTypes.map((c) => toCamelCase(c.name)),
+    datasets: [
+      {
+        label: "Scan Categories",
+        data: systemInsights.scanTypes.map((c) => c.count),
+        backgroundColor: scanCategoryColors,
+        borderWidth: 1,
+      },
+    ],
+  };
+  const categoryBarOptions = {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            const label = context.dataset.label || "";
+            const value = context.raw;
+            return `${label}: ${value}`;
+          },
+        },
+      },
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        beginAtZero: true,
+        grid: { display: false },
+        ticks: { font: { size: 14 } },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: "#eee" },
+        ticks: { font: { size: 14 }, stepSize: 1 },
+      },
+    },
+  };
+
+  const periodOptions = [
+    { label: "Today", value: "today" },
+    { label: "This Week", value: "week" },
+    { label: "Month", value: "month" },
+    { label: "Quarter", value: "quarter" },
+    { label: "Year", value: "year" },
+  ];
+
+  // Helper to get date range for each period
+  function getPeriodStart(period: string) {
+    const now = new Date();
+    switch (period) {
+      case "today":
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case "week": {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+        return new Date(now.getFullYear(), now.getMonth(), diff);
+      }
+      case "month":
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case "quarter": {
+        const quarter = Math.floor(now.getMonth() / 3);
+        return new Date(now.getFullYear(), quarter * 3, 1);
+      }
+      case "year":
+      default:
+        return new Date(now.getFullYear(), 0, 1);
+    }
+  }
+
+  // Filtered activity stats based on selected period
+  const periodStart = getPeriodStart(activityPeriod);
+  const filteredNewPatients = (allPatientsQuery.data || []).filter(
+    (p: any) => new Date(p.createdAt) >= periodStart
+  );
+  const filteredNewStaff = [
+    ...(labTechniciansQuery.data || []),
+    ...(scanTechniciansQuery.data || []),
+    ...(receptionistsQuery.data || []),
+  ].filter((s: any) => new Date(s.createdAt) >= periodStart);
+  const filteredTests = (testsQuery.data || []).filter(
+    (t: any) => new Date(t.createdAt) >= periodStart
+  );
+  const filteredScans = (scansQuery.data || []).filter(
+    (s: any) => new Date(s.createdAt) >= periodStart
+  );
 
   return (
     <DashboardPageLayout title="Overview" role="admin" breadcrumbItems={[]}>
@@ -851,7 +997,7 @@ export default function AdminDashboard() {
               <Card className="w-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    This Week
+                    New patients
                   </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -859,7 +1005,7 @@ export default function AdminDashboard() {
                   <div className="text-2xl font-bold text-emerald-600">
                     {stats.recentRegistrations}
                   </div>
-                  <p className="text-xs text-muted-foreground">New patients</p>
+                  <p className="text-xs text-muted-foreground">This week</p>
                 </CardContent>
               </Card>
 
@@ -966,157 +1112,195 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm">Lab Technicians</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {stats.staffDistribution.LabTechnician}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          router.push("/dashboard/admin/lab-technicians")
-                        }
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </div>
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-48 h-48">
+                    <Pie
+                      data={{
+                        labels: [
+                          "Lab Technicians",
+                          "Scan Technicians",
+                          "Receptionists",
+                        ],
+                        datasets: [
+                          {
+                            data: [
+                              stats.staffDistribution.LabTechnician,
+                              stats.staffDistribution.ScanTechnician,
+                              stats.staffDistribution.Receptionist,
+                            ],
+                            backgroundColor: staffColors,
+                            borderWidth: 1,
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: function (context) {
+                                const label = context.label || "";
+                                const value = Number(context.raw);
+                                const total = context.dataset.data.reduce(
+                                  (a, b) => a + b,
+                                  0
+                                );
+                                const percent = total
+                                  ? Math.round((value / total) * 100)
+                                  : 0;
+                                return `${label}: ${percent}% (${value})`;
+                              },
+                            },
+                          },
+                        },
+                        cutout: "0%",
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span className="text-sm">Scan Technicians</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {stats.staffDistribution.ScanTechnician}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          router.push("/dashboard/admin/scan-technicians")
-                        }
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Receptionists</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {stats.staffDistribution.Receptionist}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          router.push("/dashboard/admin/receptionists")
-                        }
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </div>
+                  <div className="space-y-2">
+                    {[
+                      {
+                        label: "Lab Technicians",
+                        value: stats.staffDistribution.LabTechnician,
+                        color: staffColors[0],
+                      },
+                      {
+                        label: "Scan Technicians",
+                        value: stats.staffDistribution.ScanTechnician,
+                        color: staffColors[1],
+                      },
+                      {
+                        label: "Receptionists",
+                        value: stats.staffDistribution.Receptionist,
+                        color: staffColors[2],
+                      },
+                    ].map((item) => {
+                      const total =
+                        stats.staffDistribution.LabTechnician +
+                        stats.staffDistribution.ScanTechnician +
+                        stats.staffDistribution.Receptionist;
+                      const percent = total
+                        ? Math.round((item.value / total) * 100)
+                        : 0;
+                      return (
+                        <div
+                          key={item.label}
+                          className="flex items-center gap-2"
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          ></div>
+                          <span className="text-sm font-medium">
+                            {item.label}
+                          </span>
+                          <span className="ml-2 font-bold">{item.value}</span>
+                          <span className="ml-1 text-muted-foreground">
+                            ({percent}%)
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Test & Scan Categories */}
+          {/* Patient Demographics (moved here) */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Categories Distribution
+                <Users className="h-5 w-5" />
+                Patient Demographics
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <InsightCardSkeleton />
               ) : (
-                <div className="space-y-4">
-                  {/* Test Categories */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <TestTube className="h-3 w-3" />
-                      Test Categories
-                    </h4>
-                    <div className="space-y-2">
-                      {systemInsights.testCategories.map((category, index) => {
-                        const colors = [
-                          "bg-blue-500",
-                          "bg-green-500",
-                          "bg-purple-500",
-                          "bg-orange-500",
-                          "bg-cyan-500",
-                        ];
-                        return (
-                          <div
-                            key={category.name}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-2 h-2 ${
-                                  colors[index % colors.length]
-                                } rounded-full`}
-                              ></div>
-                              <span className="text-xs">{category.name}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {category.count}
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-48 h-48">
+                    <Pie
+                      data={{
+                        labels: ["Male", "Female"],
+                        datasets: [
+                          {
+                            data: [
+                              systemInsights.genderDistribution.male,
+                              systemInsights.genderDistribution.female,
+                            ],
+                            backgroundColor: genderColors,
+                            borderWidth: 1,
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: function (context) {
+                                const label = context.label || "";
+                                const value = Number(context.raw);
+                                const total = context.dataset.data.reduce(
+                                  (a, b) => a + b,
+                                  0
+                                );
+                                const percent = total
+                                  ? Math.round((value / total) * 100)
+                                  : 0;
+                                return `${label}: ${percent}% (${value})`;
+                              },
+                            },
+                          },
+                        },
+                        cutout: "0%",
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
                   </div>
-
-                  {/* Scan Categories */}
-                  <div className="pt-2 border-t">
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Scan className="h-3 w-3" />
-                      Scan Types
-                    </h4>
-                    <div className="space-y-2">
-                      {systemInsights.scanTypes.map((type, index) => {
-                        const colors = [
-                          "bg-indigo-500",
-                          "bg-pink-500",
-                          "bg-emerald-500",
-                          "bg-amber-500",
-                          "bg-rose-500",
-                        ];
-                        return (
+                  <div className="space-y-2">
+                    {[
+                      {
+                        label: "Male",
+                        value: systemInsights.genderDistribution.male,
+                        color: genderColors[0],
+                      },
+                      {
+                        label: "Female",
+                        value: systemInsights.genderDistribution.female,
+                        color: genderColors[1],
+                      },
+                    ].map((item) => {
+                      const total =
+                        systemInsights.genderDistribution.male +
+                        systemInsights.genderDistribution.female;
+                      const percent = total
+                        ? Math.round((item.value / total) * 100)
+                        : 0;
+                      return (
+                        <div
+                          key={item.label}
+                          className="flex items-center gap-2"
+                        >
                           <div
-                            key={type.name}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-2 h-2 ${
-                                  colors[index % colors.length]
-                                } rounded-full`}
-                              ></div>
-                              <span className="text-xs">{type.name}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {type.count}
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          ></div>
+                          <span className="text-sm font-medium">
+                            {item.label}
+                          </span>
+                          <span className="ml-2 font-bold">{item.value}</span>
+                          <span className="ml-1 text-muted-foreground">
+                            ({percent}%)
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1233,12 +1417,94 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Categories Distribution Section (new, full width, styled as in image) */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">
+              Categories Distribution
+            </CardTitle>
+            <p className="text-muted-foreground mt-1">
+              Distribution of test and scan types
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full flex flex-col items-center">
+              {/* Tab Switcher */}
+              <div className="w-full flex justify-center mb-6">
+                <div className="flex w-full max-w-xl rounded-lg overflow-hidden border bg-muted/5">
+                  <button
+                    className={`flex-1 py-2 text-lg font-semibold transition-colors ${
+                      categoryTab === "test"
+                        ? "bg-white text-black"
+                        : "bg-transparent text-muted-foreground"
+                    }`}
+                    onClick={() => setCategoryTab("test")}
+                  >
+                    Test Categories
+                  </button>
+                  <button
+                    className={`flex-1 py-2 text-lg font-semibold transition-colors ${
+                      categoryTab === "scan"
+                        ? "bg-white text-black"
+                        : "bg-transparent text-muted-foreground"
+                    }`}
+                    onClick={() => setCategoryTab("scan")}
+                  >
+                    Scan Categories
+                  </button>
+                </div>
+              </div>
+              {/* Pie Chart and Legend */}
+              <div className="flex flex-col items-center justify-center w-full">
+                <div className="w-full max-w-2xl h-72">
+                  <Bar
+                    data={
+                      categoryTab === "test"
+                        ? testCategoriesBarData
+                        : scanCategoriesBarData
+                    }
+                    options={categoryBarOptions}
+                  />
+                </div>
+                <div className="flex flex-wrap justify-center gap-4 mt-6">
+                  {(categoryTab === "test"
+                    ? systemInsights.testCategories
+                    : systemInsights.scanTypes
+                  ).map((item, idx) => {
+                    const color =
+                      categoryTab === "test"
+                        ? testCategoryColors[idx % testCategoryColors.length]
+                        : scanCategoryColors[idx % scanCategoryColors.length];
+                    return (
+                      <div
+                        key={item.name}
+                        className="flex items-center gap-2 text-base"
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: color }}
+                        ></div>
+                        <span className="font-medium">
+                          {toCamelCase(item.name)}
+                        </span>
+                        <span className="ml-2 font-bold">
+                          {item.count.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Branch Analytics */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Building className="h-5 w-5" />
-              Branch Performance Analytics
+              Branch Analytics
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1312,34 +1578,6 @@ export default function AdminDashboard() {
                           {branch.scans}
                         </Badge>
                       </div>
-
-                      <div className="pt-2 border-t">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium">Activity Score</span>
-                          <div className="flex items-center gap-1">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                branch.activityScore >= 80
-                                  ? "bg-green-500"
-                                  : branch.activityScore >= 60
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                            ></div>
-                            <span
-                              className={`font-medium ${
-                                branch.activityScore >= 80
-                                  ? "text-green-600"
-                                  : branch.activityScore >= 60
-                                  ? "text-yellow-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {branch.activityScore}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -1348,175 +1586,32 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Patient Demographics & System Health - moved to separate section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Patient Demographics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <InsightCardSkeleton />
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm">Male</span>
-                    </div>
-                    <Badge variant="outline">
-                      {systemInsights.genderDistribution.male}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
-                      <span className="text-sm">Female</span>
-                    </div>
-                    <Badge variant="outline">
-                      {systemInsights.genderDistribution.female}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                      <span className="text-sm">Unspecified</span>
-                    </div>
-                    <Badge variant="outline">
-                      {systemInsights.genderDistribution.unspecified}
-                    </Badge>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center justify-between text-sm font-medium">
-                      <span>Verification Rate</span>
-                      <span className="text-green-600">
-                        {stats.totalPatients > 0
-                          ? Math.round(
-                              (stats.verifiedPatients / stats.totalPatients) *
-                                100
-                            )
-                          : 0}
-                        %
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* System Health */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                System Health
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <InsightCardSkeleton />
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          stats.urgentRequests === 0
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></div>
-                      <span className="text-sm">Request Queue</span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        stats.urgentRequests === 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      {stats.urgentRequests === 0 ? "Healthy" : "Attention"}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          stats.totalStaff > 0 ? "bg-green-500" : "bg-red-500"
-                        }`}
-                      ></div>
-                      <span className="text-sm">Staff Coverage</span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        stats.totalStaff > 0 ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {stats.totalStaff > 0 ? "Adequate" : "Low"}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          stats.totalBranches > 0
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></div>
-                      <span className="text-sm">Branch Network</span>
-                    </div>
-                    <Badge variant="outline" className="text-green-600">
-                      Active
-                    </Badge>
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center justify-between text-sm font-medium">
-                      <span>Overall Status</span>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            stats.urgentRequests === 0 && stats.totalStaff > 0
-                              ? "bg-green-500"
-                              : "bg-yellow-500"
-                          }`}
-                        ></div>
-                        <span
-                          className={
-                            stats.urgentRequests === 0 && stats.totalStaff > 0
-                              ? "text-green-600"
-                              : "text-yellow-600"
-                          }
-                        >
-                          {stats.urgentRequests === 0 && stats.totalStaff > 0
-                            ? "Excellent"
-                            : "Good"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity Summary */}
+        {/* Recent Activity Summary with Time Tabs */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Recent Activity Summary
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <div className="flex flex-row items-center justify-between w-full pb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-base">
+                  Filter by time period:
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {periodOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+                      activityPeriod === opt.value
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-black border-muted-foreground hover:bg-muted"
+                    }`}
+                    onClick={() => setActivityPeriod(opt.value as any)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -1537,42 +1632,59 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium">New Patients</span>
                   </div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {systemInsights.recentActivity.newPatientsThisWeek}
+                    {filteredNewPatients.length}
                   </div>
-                  <p className="text-xs text-muted-foreground">This week</p>
+                  <p className="text-xs text-muted-foreground">
+                    {
+                      periodOptions.find((p) => p.value === activityPeriod)
+                        ?.label
+                    }
+                  </p>
                 </div>
-
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <UserPlus className="h-4 w-4 text-green-500" />
                     <span className="text-sm font-medium">New Staff</span>
                   </div>
                   <div className="text-2xl font-bold text-green-600">
-                    {systemInsights.recentActivity.newStaffThisMonth}
+                    {filteredNewStaff.length}
                   </div>
-                  <p className="text-xs text-muted-foreground">This month</p>
+                  <p className="text-xs text-muted-foreground">
+                    {
+                      periodOptions.find((p) => p.value === activityPeriod)
+                        ?.label
+                    }
+                  </p>
                 </div>
-
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <TestTube className="h-4 w-4 text-purple-500" />
                     <span className="text-sm font-medium">Lab Tests</span>
                   </div>
                   <div className="text-2xl font-bold text-purple-600">
-                    {systemInsights.recentActivity.testsThisWeek}
+                    {filteredTests.length}
                   </div>
-                  <p className="text-xs text-muted-foreground">This week</p>
+                  <p className="text-xs text-muted-foreground">
+                    {
+                      periodOptions.find((p) => p.value === activityPeriod)
+                        ?.label
+                    }
+                  </p>
                 </div>
-
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Scan className="h-4 w-4 text-indigo-500" />
                     <span className="text-sm font-medium">Scans</span>
                   </div>
                   <div className="text-2xl font-bold text-indigo-600">
-                    {systemInsights.recentActivity.scansThisWeek}
+                    {filteredScans.length}
                   </div>
-                  <p className="text-xs text-muted-foreground">This week</p>
+                  <p className="text-xs text-muted-foreground">
+                    {
+                      periodOptions.find((p) => p.value === activityPeriod)
+                        ?.label
+                    }
+                  </p>
                 </div>
               </div>
             )}

@@ -160,6 +160,14 @@ export function AnalysisSection({
   const [showResult, setShowResult] = useState(false);
   const [reportProgress, setReportProgress] = useState<string>("");
 
+  // Function to format the title properly
+  const formatTitle = (text: string) => {
+    return text
+      .split(/(?=[A-Z])/) // Split on capital letters
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
   // Memoize the update handler to prevent unnecessary re-renders
   const handleUpdate = useCallback(({ editor }: { editor: Editor }) => {
     const html = editor.getHTML();
@@ -316,6 +324,13 @@ export function AnalysisSection({
       return;
     }
 
+    // Clear the editor content
+    if (editor) {
+      editor.commands.setContent("");
+      setLocalContent("");
+      setAnalysisResult("");
+    }
+
     setIsGeneratingReport(true);
     setError(null);
     setIsQuotaError(false);
@@ -393,11 +408,15 @@ export function AnalysisSection({
               ) {
                 newContent =
                   currentContent +
-                  "<h2>Generated Medical Report</h2>" +
+                  `<h2>${
+                    scanType?.name ? formatTitle(scanType.name) : "Medical"
+                  } Report</h2>` +
                   reportContent;
               } else {
                 newContent =
-                  "<h2>Generated Medical Report</h2>" + reportContent;
+                  `<h2>${
+                    scanType?.name ? formatTitle(scanType.name) : "Medical"
+                  } Report</h2>` + reportContent;
               }
 
               // Set the new content

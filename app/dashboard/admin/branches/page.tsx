@@ -429,6 +429,7 @@ export default function BranchesPage() {
         isLoading={
           createBranchMutation.isPending || updateBranchMutation.isPending
         }
+        isEditMode={!!editingBranch}
       />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
