@@ -590,4 +590,107 @@ export const patientService = {
 
     return response.data;
   },
+
+  // Edit Profile Functions
+
+  // Step 1: Send OTP for phone number change
+  sendOtpForPhoneEdit: async (id: string, newPhone: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/OtpForEditPhoneNumber/${id}`,
+      {
+        newphone: newPhone,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Step 2: Verify OTP for phone number change
+  verifyOtpForPhoneEdit: async (otp: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/verifyOtpForEditPhoneNumber`,
+      {
+        otp: otp,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Step 3: Change phone number after OTP verification
+  changePhoneNumber: async (id: string, newPhone: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/EditPhoneNumber/${id}`,
+      {
+        newphone: newPhone,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Normalize the response data
+    if (response.data && response.data.data) {
+      response.data.data = patientService.normalizePatientData(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
+
+  // Edit email address
+  editEmail: async (id: string, newEmail: string) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/EditEmail/${id}`,
+      {
+        newEmail: newEmail,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Normalize the response data
+    if (response.data && response.data.data) {
+      response.data.data = patientService.normalizePatientData(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
+
+  // Change password
+  changePassword: async (
+    id: string,
+    currentPassword: string,
+    newPassword: string
+  ) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/changePassword/${id}`,
+      {
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  },
 };

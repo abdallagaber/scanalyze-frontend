@@ -74,6 +74,18 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
     });
   };
 
+  // Phone formatting function
+  const formatPhoneForDisplay = (phone: string) => {
+    if (!phone) return "";
+    // Remove country code "2" if present and format for display
+    let displayPhone = phone;
+    if (phone.startsWith("2") && phone.length === 12) {
+      displayPhone = phone.substring(1); // Remove the "2" prefix
+    }
+    // Format as: 012 1032 4025
+    return displayPhone.replace(/(\d{3})(\d{4})(\d{4})/, "$1 $2 $3");
+  };
+
   return (
     <div className="space-y-4">
       {/* Patient Information Card */}
@@ -124,10 +136,7 @@ export function PatientOverview({ patientData }: PatientOverviewProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phone:</span>
                   <span className="font-medium">
-                    {patientData.phone.replace(
-                      /(\d{3})(\d{3})(\d{5})/,
-                      "+$1 $2 $3"
-                    )}
+                    {formatPhoneForDisplay(patientData.phone)}
                   </span>
                 </div>
                 <div className="flex justify-between">

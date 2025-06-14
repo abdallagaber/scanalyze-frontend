@@ -35,8 +35,14 @@ import {
   ExternalLink,
   Pencil,
   IdCard,
+  Phone,
+  Mail,
+  Lock,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { patientService } from "@/lib/services/patient";
+import Cookies from "js-cookie";
 
 interface PatientProfilePageProps {
   patientData: any;
@@ -46,6 +52,26 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
   const [shareUrl, setShareUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Phone edit states
+  const [newPhone, setNewPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [phoneEditStep, setPhoneEditStep] = useState<
+    "input" | "verify" | "complete"
+  >("input");
+  const [phoneLoading, setPhoneLoading] = useState(false);
+
+  // Email edit states
+  const [newEmail, setNewEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   // References for QR codes
   const dialogQrRef = useRef<SVGSVGElement>(null);
   const mainQrRef = useRef<SVGSVGElement>(null);
@@ -72,6 +98,251 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
         setCopied(false);
       }, 2000);
     });
+  };
+
+  // Phone formatting functions
+  const formatPhoneForDisplay = (phone: string) => {
+    if (!phone) return "";
+    // Remove country code "2" if present and format for display
+    let displayPhone = phone;
+    if (phone.startsWith("2") && phone.length === 12) {
+      displayPhone = phone.substring(1); // Remove the "2" prefix
+    }
+    // Format as: 012 1032 4025
+    return displayPhone.replace(/(\d{3})(\d{4})(\d{4})/, "$1 $2 $3");
+  };
+
+  const formatPhoneForAPI = (phone: string) => {
+    if (!phone) return "";
+    // Remove any spaces and format for API
+    const cleanPhone = phone.replace(/\s/g, "");
+    // Add "2" prefix if phone starts with "0"
+    if (cleanPhone.startsWith("0")) {
+      return "2" + cleanPhone;
+    }
+    return cleanPhone;
+  };
+
+  // Phone edit functions
+  const handleSendPhoneOtp = async () => {
+    if (!newPhone.trim()) {
+      toast.error("Please enter a phone number");
+      return;
+    }
+
+    // Validate Egyptian phone number format (should start with 01 and be 11 digits)
+    const cleanPhone = newPhone.replace(/\s/g, "");
+    if (!cleanPhone.match(/^01[0-9]{9}$/)) {
+      toast.error("Please enter a valid Egyptian phone number (01XXXXXXXXX)");
+      return;
+    }
+
+    setPhoneLoading(true);
+    try {
+      const formattedPhone = formatPhoneForAPI(newPhone);
+      await patientService.sendOtpForPhoneEdit(patientData._id, formattedPhone);
+      toast.success("OTP sent successfully");
+      setPhoneEditStep("verify");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!otp.trim()) {
+      toast.error("Please enter the OTP");
+      return;
+    }
+
+    setPhoneLoading(true);
+    try {
+      await patientService.verifyOtpForPhoneEdit(otp);
+      toast.success("OTP verified successfully");
+      setPhoneEditStep("complete");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Invalid OTP");
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleChangePhone = async () => {
+    setPhoneLoading(true);
+    try {
+      const formattedPhone = formatPhoneForAPI(newPhone);
+      const response = await patientService.changePhoneNumber(
+        patientData._id,
+        formattedPhone
+      );
+
+      // Update cookies with the new patient data
+      if (response && response.data && response.data.patient) {
+        updateUserCookies(response.data.patient);
+      }
+
+      toast.success("Phone number updated successfully");
+      setPhoneEditStep("input");
+      setNewPhone("");
+      setOtp("");
+      setEditDialogOpen(false);
+
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to update phone number"
+      );
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  // Email edit function
+  const handleEditEmail = async () => {
+    if (!newEmail.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setEmailLoading(true);
+    try {
+      const response = await patientService.editEmail(
+        patientData._id,
+        newEmail
+      );
+
+      // Update cookies with the new patient data
+      if (response && response.data && response.data.patient) {
+        updateUserCookies(response.data.patient);
+      }
+
+      toast.success("Email updated successfully");
+      setNewEmail("");
+      setEditDialogOpen(false);
+
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update email");
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  // Password change function
+  const handleChangePassword = async () => {
+    if (
+      !currentPassword.trim() ||
+      !newPassword.trim() ||
+      !confirmPassword.trim()
+    ) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await patientService.changePassword(
+        patientData._id,
+        currentPassword,
+        newPassword
+      );
+      toast.success("Password changed successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      // Close the dialog after successful password change
+      setTimeout(() => {
+        setEditDialogOpen(false);
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to change password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const resetEditDialog = () => {
+    setPhoneEditStep("input");
+    setNewPhone("");
+    setOtp("");
+    setNewEmail("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  // Function to update cookies with new user data
+  const updateUserCookies = (updatedPatientData: any) => {
+    try {
+      // Normalize the updated patient data
+      const normalizedUser = { ...updatedPatientData };
+
+      // Handle medicalHistory if it's a string (convert to object)
+      if (
+        normalizedUser.medicalHistory &&
+        typeof normalizedUser.medicalHistory === "string"
+      ) {
+        try {
+          normalizedUser.medicalHistory = JSON.parse(
+            normalizedUser.medicalHistory
+          );
+        } catch (error) {
+          console.error("Failed to parse medical history string:", error);
+          // Provide default structure if parsing fails
+          normalizedUser.medicalHistory = {
+            chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+            allergies: { hasAllergies: false },
+            medications: { takesMedications: false, list: [] },
+            surgeries: { hadSurgeries: false },
+            currentSymptoms: { hasSymptoms: false },
+            lifestyle: { smokes: false, consumesAlcohol: false },
+          };
+        }
+      }
+
+      // Update the userData cookie with normalized data
+      Cookies.set("userData", JSON.stringify(normalizedUser), { expires: 7 });
+
+      // Update the user cookie for header/sidebar display
+      const userDisplayData = {
+        name: `${normalizedUser.firstName} ${normalizedUser.lastName}`,
+        email: normalizedUser.email || "",
+        phone: normalizedUser.phone,
+        userId: normalizedUser._id,
+      };
+
+      Cookies.set("user", encodeURIComponent(JSON.stringify(userDisplayData)), {
+        expires: 7,
+      });
+
+      console.log("Cookies updated successfully");
+    } catch (error) {
+      console.error("Error updating cookies:", error);
+    }
   };
 
   const downloadQRCode = (svgElement: SVGSVGElement | null) => {
@@ -394,10 +665,242 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Pencil className="h-4 w-4" />
-                  <span className="hidden sm:inline">Edit Profile</span>
-                </Button>
+                <Dialog
+                  open={editDialogOpen}
+                  onOpenChange={(open) => {
+                    setEditDialogOpen(open);
+                    if (!open) resetEditDialog();
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Pencil className="h-4 w-4" />
+                      <span className="hidden sm:inline">Edit Profile</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Edit Profile</DialogTitle>
+                      <DialogDescription>
+                        Update your profile information including phone, email,
+                        and password.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <Tabs defaultValue="phone" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="phone" className="gap-2">
+                          <Phone className="h-4 w-4" />
+                          Phone
+                        </TabsTrigger>
+                        <TabsTrigger value="email" className="gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </TabsTrigger>
+                        <TabsTrigger value="password" className="gap-2">
+                          <Lock className="h-4 w-4" />
+                          Password
+                        </TabsTrigger>
+                      </TabsList>
+
+                      {/* Phone Edit Section */}
+                      <TabsContent value="phone" className="space-y-4 mt-6">
+                        <div className="space-y-2">
+                          <Label>Current Phone Number</Label>
+                          <div className="p-3 bg-muted rounded-md text-sm">
+                            {formatPhoneForDisplay(patientData.phone)}
+                          </div>
+                        </div>
+
+                        {phoneEditStep === "input" && (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="new-phone">
+                                New Phone Number
+                              </Label>
+                              <Input
+                                id="new-phone"
+                                type="tel"
+                                placeholder="01XXXXXXXXX"
+                                value={newPhone}
+                                onChange={(e) => setNewPhone(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Enter your phone number without country code
+                                (e.g., 01212345678)
+                              </p>
+                            </div>
+                            <Button
+                              onClick={handleSendPhoneOtp}
+                              disabled={phoneLoading}
+                              className="w-full"
+                            >
+                              {phoneLoading && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Send OTP
+                            </Button>
+                          </div>
+                        )}
+
+                        {phoneEditStep === "verify" && (
+                          <div className="space-y-4">
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                              <p className="text-sm text-blue-800">
+                                We've sent an OTP to{" "}
+                                {formatPhoneForDisplay(
+                                  "2" + newPhone.replace(/\s/g, "")
+                                )}
+                                . Please enter it below to verify.
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="otp">Enter OTP</Label>
+                              <Input
+                                id="otp"
+                                type="text"
+                                placeholder="Enter 6-digit OTP"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                maxLength={6}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => setPhoneEditStep("input")}
+                                className="flex-1"
+                              >
+                                Back
+                              </Button>
+                              <Button
+                                onClick={handleVerifyPhoneOtp}
+                                disabled={phoneLoading}
+                                className="flex-1"
+                              >
+                                {phoneLoading && (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
+                                Verify OTP
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {phoneEditStep === "complete" && (
+                          <div className="space-y-4">
+                            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                              <p className="text-sm text-green-800">
+                                OTP verified successfully! Click submit to
+                                update your phone number.
+                              </p>
+                            </div>
+                            <Button
+                              onClick={handleChangePhone}
+                              disabled={phoneLoading}
+                              className="w-full"
+                            >
+                              {phoneLoading && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Submit & Update Phone
+                            </Button>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      {/* Email Edit Section */}
+                      <TabsContent value="email" className="space-y-4 mt-6">
+                        <div className="space-y-2">
+                          <Label>Current Email</Label>
+                          <div className="p-3 bg-muted rounded-md text-sm">
+                            {patientData.email || "No email set"}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="new-email">New Email Address</Label>
+                            <Input
+                              id="new-email"
+                              type="email"
+                              placeholder="Enter new email address"
+                              value={newEmail}
+                              onChange={(e) => setNewEmail(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            onClick={handleEditEmail}
+                            disabled={emailLoading}
+                            className="w-full"
+                          >
+                            {emailLoading && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Update Email
+                          </Button>
+                        </div>
+                      </TabsContent>
+
+                      {/* Password Change Section */}
+                      <TabsContent value="password" className="space-y-4 mt-6">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="current-password">
+                              Current Password
+                            </Label>
+                            <Input
+                              id="current-password"
+                              type="password"
+                              placeholder="Enter current password"
+                              value={currentPassword}
+                              onChange={(e) =>
+                                setCurrentPassword(e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="new-password">New Password</Label>
+                            <Input
+                              id="new-password"
+                              type="password"
+                              placeholder="Enter new password (min. 8 characters)"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="confirm-password">
+                              Confirm New Password
+                            </Label>
+                            <Input
+                              id="confirm-password"
+                              type="password"
+                              placeholder="Confirm new password"
+                              value={confirmPassword}
+                              onChange={(e) =>
+                                setConfirmPassword(e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <Button
+                            onClick={handleChangePassword}
+                            disabled={passwordLoading}
+                            className="w-full"
+                          >
+                            {passwordLoading && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Change Password
+                          </Button>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Edit your profile information</p>
@@ -445,10 +948,7 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phone:</span>
                   <span className="font-medium">
-                    {patientData.phone.replace(
-                      /(\d{3})(\d{3})(\d{5})/,
-                      "+$1 $2 $3"
-                    )}
+                    {formatPhoneForDisplay(patientData.phone)}
                   </span>
                 </div>
                 <div className="flex justify-between">
