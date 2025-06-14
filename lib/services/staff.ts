@@ -22,6 +22,7 @@ export interface StaffMember {
   birthDate: string;
   age: number;
   addresses: string;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
   password?: string;
@@ -126,13 +127,25 @@ class StaffService {
   }
 
   /**
-   * Delete a staff member
+   * Activate a staff member
    */
-  async deleteStaff(id: string): Promise<void> {
+  async activateStaff(id: string): Promise<void> {
     try {
-      await axiosInstance.delete(`/api/v1/staff/${id}`);
+      await axiosInstance.put(`/api/v1/staff/activate/${id}`);
     } catch (error) {
-      console.error("Error deleting staff member:", error);
+      console.error("Error activating staff member:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deactivate a staff member
+   */
+  async deactivateStaff(id: string): Promise<void> {
+    try {
+      await axiosInstance.put(`/api/v1/staff/deactivate/${id}`);
+    } catch (error) {
+      console.error("Error deactivating staff member:", error);
       throw error;
     }
   }

@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import {
   MoreHorizontal,
   Pencil,
-  Trash,
   Search,
   User,
   Phone,
@@ -13,6 +12,8 @@ import {
   Building,
   Plus,
   Key,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
@@ -59,15 +60,17 @@ const STAFF_ROLE: StaffRole = "LabTechnician";
 
 export default function LabTechniciansPage() {
   const [open, setOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [statusChangeOpen, setStatusChangeOpen] = useState(false);
   const [passwordChangeOpen, setPasswordChangeOpen] = useState(false);
   const [editingTechnician, setEditingTechnician] =
     useState<StaffMember | null>(null);
   const [changingPasswordTechnician, setChangingPasswordTechnician] =
     useState<StaffMember | null>(null);
-  const [deletingTechnicianId, setDeletingTechnicianId] = useState<
-    string | null
-  >(null);
+  const [changingStatusTechnician, setChangingStatusTechnician] =
+    useState<StaffMember | null>(null);
+  const [statusAction, setStatusAction] = useState<"activate" | "deactivate">(
+    "deactivate"
+  );
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [passwordErrors, setPasswordErrors] = useState<{
     [key: string]: string;
@@ -197,6 +200,25 @@ export default function LabTechniciansPage() {
       },
     },
     {
+      accessorKey: "active",
+      header: "Status",
+      cell: ({ row }) => {
+        const active = row.getValue("active") as boolean;
+        return (
+          <Badge
+            variant={active ? "default" : "destructive"}
+            className={`text-xs ${
+              active
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-red-500 hover:bg-red-600"
+            }`}
+          >
+            {active ? "Active" : "Inactive"}
+          </Badge>
+        );
+      },
+    },
+    {
       accessorKey: "createdAt",
       header: "Join Date",
       cell: ({ row }) => {
@@ -244,16 +266,31 @@ export default function LabTechniciansPage() {
                 <Key className="mr-2 h-4 w-4" />
                 Change Password
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setDeletingTechnicianId(technician._id);
-                  setDeleteOpen(true);
-                }}
-                className="text-destructive"
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
+              {technician.active ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setChangingStatusTechnician(technician);
+                    setStatusAction("deactivate");
+                    setStatusChangeOpen(true);
+                  }}
+                  className="text-orange-600"
+                >
+                  <UserX className="mr-2 h-4 w-4" />
+                  Deactivate
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setChangingStatusTechnician(technician);
+                    setStatusAction("activate");
+                    setStatusChangeOpen(true);
+                  }}
+                  className="text-green-600"
+                >
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Activate
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -353,23 +390,37 @@ export default function LabTechniciansPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (deletingTechnicianId) {
+  const handleStatusChange = async () => {
+    if (changingStatusTechnician) {
       try {
-        await staffService.deleteStaff(deletingTechnicianId);
-        toast.success(
-          `${staffService.getRoleDisplayName(STAFF_ROLE)} deleted successfully`,
-          {
-            style: { backgroundColor: "#10B981", color: "white" },
-          }
-        );
+        if (statusAction === "activate") {
+          await staffService.activateStaff(changingStatusTechnician._id);
+          toast.success(
+            `${staffService.getRoleDisplayName(
+              STAFF_ROLE
+            )} activated successfully`,
+            {
+              style: { backgroundColor: "#10B981", color: "white" },
+            }
+          );
+        } else {
+          await staffService.deactivateStaff(changingStatusTechnician._id);
+          toast.success(
+            `${staffService.getRoleDisplayName(
+              STAFF_ROLE
+            )} deactivated successfully`,
+            {
+              style: { backgroundColor: "#10B981", color: "white" },
+            }
+          );
+        }
         refetch();
-        setDeleteOpen(false);
-        setDeletingTechnicianId(null);
+        setStatusChangeOpen(false);
+        setChangingStatusTechnician(null);
       } catch (error) {
-        console.error("Error deleting technician:", error);
+        console.error(`Error ${statusAction}ing technician:`, error);
         toast.error(
-          `Failed to delete ${staffService
+          `Failed to ${statusAction} ${staffService
             .getRoleDisplayName(STAFF_ROLE)
             .toLowerCase()}`,
           {
@@ -508,24 +559,30 @@ export default function LabTechniciansPage() {
         fieldErrors={passwordErrors}
       />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
+              This will {statusAction} the
               {` ${staffService.getRoleDisplayName(STAFF_ROLE).toLowerCase()} `}
-              from the system.
+              "{changingStatusTechnician?.name}".{" "}
+              {statusAction === "deactivate"
+                ? "They will no longer be able to access the system."
+                : "They will be able to access the system again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={false}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground"
-              disabled={false}
+              onClick={handleStatusChange}
+              className={
+                statusAction === "activate"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-orange-600 hover:bg-orange-700"
+              }
             >
-              Delete
+              {statusAction === "activate" ? "Activate" : "Deactivate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

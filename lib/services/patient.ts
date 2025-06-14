@@ -609,6 +609,25 @@ export const patientService = {
     return response.data;
   },
 
+  // Send OTP for current phone verification
+  sendOtpForCurrentPhoneVerification: async (
+    id: string,
+    currentPhone: string
+  ) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/otpForVerificationPhone/${id}`,
+      {
+        newphone: currentPhone,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  },
+
   // Step 2: Verify OTP for phone number change
   verifyOtpForPhoneEdit: async (otp: string) => {
     const response = await axiosInstance.post(

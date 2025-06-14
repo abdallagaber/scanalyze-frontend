@@ -75,10 +75,13 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
     "input" | "verify" | "complete"
   >("input");
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   // Email edit states
   const [newEmail, setNewEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -139,34 +142,53 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
 
   // Phone edit functions
   const handleSendPhoneOtp = async () => {
+    // Clear previous errors
+    setPhoneError("");
+
     if (!newPhone.trim()) {
-      toast.error("Please enter a phone number");
+      setPhoneError("Please enter a phone number");
       return;
     }
 
     // Validate Egyptian phone number format (should start with 01 and be 11 digits)
     const cleanPhone = newPhone.replace(/\s/g, "");
     if (!cleanPhone.match(/^01[0-9]{9}$/)) {
-      toast.error("Please enter a valid Egyptian phone number (01XXXXXXXXX)");
+      setPhoneError("Please enter a valid Egyptian phone number (01XXXXXXXXX)");
+      return;
+    }
+
+    // Check if the new phone number is the same as the current one
+    const formattedNewPhone = formatPhoneForAPI(newPhone);
+    const currentPhone = patientData.phone;
+
+    if (formattedNewPhone === currentPhone) {
+      setPhoneError(
+        "Please enter a different phone number. This is your current number."
+      );
       return;
     }
 
     setPhoneLoading(true);
     try {
-      const formattedPhone = formatPhoneForAPI(newPhone);
-      await patientService.sendOtpForPhoneEdit(patientData._id, formattedPhone);
+      await patientService.sendOtpForPhoneEdit(
+        patientData._id,
+        formattedNewPhone
+      );
       toast.success("OTP sent successfully");
       setPhoneEditStep("verify");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      setPhoneError(error.response?.data?.message || "Failed to send OTP");
     } finally {
       setPhoneLoading(false);
     }
   };
 
   const handleVerifyPhoneOtp = async () => {
+    // Clear previous errors
+    setOtpError("");
+
     if (!otp.trim()) {
-      toast.error("Please enter the OTP");
+      setOtpError("Please enter the OTP");
       return;
     }
 
@@ -176,7 +198,7 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
       toast.success("OTP verified successfully");
       setPhoneEditStep("complete");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Invalid OTP");
+      setOtpError(error.response?.data?.message || "Invalid OTP");
     } finally {
       setPhoneLoading(false);
     }
@@ -217,14 +239,25 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
 
   // Email edit function
   const handleEditEmail = async () => {
+    // Clear previous errors
+    setEmailError("");
+
     if (!newEmail.trim()) {
-      toast.error("Please enter an email address");
+      setEmailError("Please enter an email address");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
-      toast.error("Please enter a valid email address");
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    // Check if the new email is the same as the current one
+    if (newEmail.trim() === patientData.email) {
+      setEmailError(
+        "Please enter a different email address. This is your current email."
+      );
       return;
     }
 
@@ -249,7 +282,7 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
         window.location.reload();
       }, 1000);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update email");
+      setEmailError(error.response?.data?.message || "Failed to update email");
     } finally {
       setEmailLoading(false);
     }
@@ -307,6 +340,10 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    // Clear all error states
+    setPhoneError("");
+    setOtpError("");
+    setEmailError("");
   };
 
   // Function to update cookies with new user data
@@ -741,12 +778,27 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                                   type="tel"
                                   placeholder="01XXXXXXXXX"
                                   value={newPhone}
-                                  onChange={(e) => setNewPhone(e.target.value)}
+                                  onChange={(e) => {
+                                    setNewPhone(e.target.value);
+                                    if (phoneError) setPhoneError("");
+                                  }}
+                                  className={
+                                    phoneError
+                                      ? "border-red-500 focus-visible:ring-red-500"
+                                      : ""
+                                  }
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                  Enter your phone number without country code
-                                  (e.g., 01212345678)
-                                </p>
+                                {phoneError ? (
+                                  <p className="text-sm text-red-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {phoneError}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">
+                                    Enter your phone number without country code
+                                    (e.g., 01212345678)
+                                  </p>
+                                )}
                               </div>
                               <Button
                                 onClick={handleSendPhoneOtp}
@@ -779,9 +831,23 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                                   type="text"
                                   placeholder="Enter 6-digit OTP"
                                   value={otp}
-                                  onChange={(e) => setOtp(e.target.value)}
+                                  onChange={(e) => {
+                                    setOtp(e.target.value);
+                                    if (otpError) setOtpError("");
+                                  }}
                                   maxLength={6}
+                                  className={
+                                    otpError
+                                      ? "border-red-500 focus-visible:ring-red-500"
+                                      : ""
+                                  }
                                 />
+                                {otpError && (
+                                  <p className="text-sm text-red-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {otpError}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex gap-2">
                                 <Button
@@ -846,8 +912,22 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                                 type="email"
                                 placeholder="Enter new email address"
                                 value={newEmail}
-                                onChange={(e) => setNewEmail(e.target.value)}
+                                onChange={(e) => {
+                                  setNewEmail(e.target.value);
+                                  if (emailError) setEmailError("");
+                                }}
+                                className={
+                                  emailError
+                                    ? "border-red-500 focus-visible:ring-red-500"
+                                    : ""
+                                }
                               />
+                              {emailError && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  {emailError}
+                                </p>
+                              )}
                             </div>
                             <Button
                               onClick={handleEditEmail}

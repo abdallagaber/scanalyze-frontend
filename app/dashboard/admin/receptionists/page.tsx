@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import {
   MoreHorizontal,
   Pencil,
-  Trash,
   Search,
   User,
   Phone,
@@ -13,6 +12,8 @@ import {
   Building,
   Plus,
   Key,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
@@ -66,15 +67,17 @@ const STAFF_ROLE: StaffRole = "Receptionist";
 
 export default function ReceptionistsPage() {
   const [open, setOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [statusChangeOpen, setStatusChangeOpen] = useState(false);
   const [passwordChangeOpen, setPasswordChangeOpen] = useState(false);
   const [editingReceptionist, setEditingReceptionist] =
     useState<StaffMember | null>(null);
   const [changingPasswordReceptionist, setChangingPasswordReceptionist] =
     useState<StaffMember | null>(null);
-  const [deletingReceptionistId, setDeletingReceptionistId] = useState<
-    string | null
-  >(null);
+  const [changingStatusReceptionist, setChangingStatusReceptionist] =
+    useState<StaffMember | null>(null);
+  const [statusAction, setStatusAction] = useState<"activate" | "deactivate">(
+    "deactivate"
+  );
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [passwordErrors, setPasswordErrors] = useState<{
     [key: string]: string;
@@ -205,6 +208,25 @@ export default function ReceptionistsPage() {
       },
     },
     {
+      accessorKey: "active",
+      header: "Status",
+      cell: ({ row }) => {
+        const active = row.getValue("active") as boolean;
+        return (
+          <Badge
+            variant={active ? "default" : "destructive"}
+            className={`text-xs ${
+              active
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-red-500 hover:bg-red-600"
+            }`}
+          >
+            {active ? "Active" : "Inactive"}
+          </Badge>
+        );
+      },
+    },
+    {
       accessorKey: "createdAt",
       header: "Join Date",
       cell: ({ row }) => {
@@ -252,16 +274,31 @@ export default function ReceptionistsPage() {
                 <Key className="mr-2 h-4 w-4" />
                 Change Password
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setDeletingReceptionistId(receptionist._id);
-                  setDeleteOpen(true);
-                }}
-                className="text-destructive"
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
+              {receptionist.active ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setChangingStatusReceptionist(receptionist);
+                    setStatusAction("deactivate");
+                    setStatusChangeOpen(true);
+                  }}
+                  className="text-orange-600"
+                >
+                  <UserX className="mr-2 h-4 w-4" />
+                  Deactivate
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setChangingStatusReceptionist(receptionist);
+                    setStatusAction("activate");
+                    setStatusChangeOpen(true);
+                  }}
+                  className="text-green-600"
+                >
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Activate
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -363,23 +400,37 @@ export default function ReceptionistsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (deletingReceptionistId) {
+  const handleStatusChange = async () => {
+    if (changingStatusReceptionist) {
       try {
-        await staffService.deleteStaff(deletingReceptionistId);
-        toast.success(
-          `${staffService.getRoleDisplayName(STAFF_ROLE)} deleted successfully`,
-          {
-            style: { backgroundColor: "#10B981", color: "white" },
-          }
-        );
+        if (statusAction === "activate") {
+          await staffService.activateStaff(changingStatusReceptionist._id);
+          toast.success(
+            `${staffService.getRoleDisplayName(
+              STAFF_ROLE
+            )} activated successfully`,
+            {
+              style: { backgroundColor: "#10B981", color: "white" },
+            }
+          );
+        } else {
+          await staffService.deactivateStaff(changingStatusReceptionist._id);
+          toast.success(
+            `${staffService.getRoleDisplayName(
+              STAFF_ROLE
+            )} deactivated successfully`,
+            {
+              style: { backgroundColor: "#10B981", color: "white" },
+            }
+          );
+        }
         refetch();
-        setDeleteOpen(false);
-        setDeletingReceptionistId(null);
+        setStatusChangeOpen(false);
+        setChangingStatusReceptionist(null);
       } catch (error) {
-        console.error("Error deleting receptionist:", error);
+        console.error(`Error ${statusAction}ing receptionist:`, error);
         toast.error(
-          `Failed to delete ${staffService
+          `Failed to ${statusAction} ${staffService
             .getRoleDisplayName(STAFF_ROLE)
             .toLowerCase()}`,
           {
@@ -521,23 +572,30 @@ export default function ReceptionistsPage() {
         fieldErrors={passwordErrors}
       />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
+              This will {statusAction} the
               {` ${staffService.getRoleDisplayName(STAFF_ROLE).toLowerCase()} `}
-              from the system.
+              "{changingStatusReceptionist?.name}".{" "}
+              {statusAction === "deactivate"
+                ? "They will no longer be able to access the system."
+                : "They will be able to access the system again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground"
+              onClick={handleStatusChange}
+              className={
+                statusAction === "activate"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-orange-600 hover:bg-orange-700"
+              }
             >
-              Delete
+              {statusAction === "activate" ? "Activate" : "Deactivate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
