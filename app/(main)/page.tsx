@@ -376,22 +376,7 @@ export default function Home() {
                 }`}
                 aria-current={isActive("testimonials") ? "page" : undefined}
               >
-                Testimonials
-              </a>
-              <a
-                href="#contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("contact");
-                }}
-                className={`font-medium py-2 transition-all duration-300 ease-in-out border-b-2 ${
-                  isActive("contact")
-                    ? "text-scanalyze-600 border-scanalyze-600"
-                    : "text-gray-600 border-transparent hover:text-scanalyze-600 hover:border-scanalyze-300"
-                }`}
-                aria-current={isActive("contact") ? "page" : undefined}
-              >
-                Contact
+                Capabilities
               </a>
             </nav>
 
@@ -506,22 +491,7 @@ export default function Home() {
                 } touch-manipulation`}
                 aria-current={isActive("testimonials") ? "page" : undefined}
               >
-                Testimonials
-              </a>
-              <a
-                href="#contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("contact");
-                }}
-                className={`font-medium py-3 transition-colors duration-300 ease-in-out pl-3 ${
-                  isActive("contact")
-                    ? "text-scanalyze-600 border-l-4 border-scanalyze-600"
-                    : "text-gray-600 hover:text-scanalyze-600 hover:pl-4"
-                } touch-manipulation`}
-                aria-current={isActive("contact") ? "page" : undefined}
-              >
-                Contact
+                Capabilities
               </a>
             </nav>
             <div className="flex flex-col space-y-3 px-1">
@@ -655,49 +625,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Trust Indicators */}
-      <div className="bg-white py-6 sm:py-8 border-b border-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-8 lg:gap-12">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-6 w-28" />
-                <Skeleton className="h-6 w-20" />
-              </>
-            ) : (
-              <>
-                <div className="flex items-center">
-                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-scanalyze-600 mr-2" />
-                  <span className="text-sm sm:text-base text-gray-600 font-medium">
-                    HIPAA Compliant
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-scanalyze-600 mr-2" />
-                  <span className="text-sm sm:text-base text-gray-600 font-medium">
-                    Fast Results
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-scanalyze-600 mr-2" />
-                  <span className="text-sm sm:text-base text-gray-600 font-medium">
-                    Certified Labs
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <HeartPulse className="h-4 w-4 sm:h-5 sm:w-5 text-scanalyze-600 mr-2" />
-                  <span className="text-sm sm:text-base text-gray-600 font-medium">
-                    Expert Care
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Services Section */}
       <div
         id="services"
@@ -712,72 +639,88 @@ export default function Home() {
               Our Comprehensive Services
             </h2>
             <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-              Discover our range of advanced diagnostic services designed to
-              provide accurate insights for better healthcare decisions.
+              Advanced diagnostic services powered by AI technology and expert
+              medical analysis
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {/* Service Card 1 */}
-            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100">
-              <div className="bg-scanalyze-50 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-5">
-                <Microscope className="h-7 w-7 text-scanalyze-600" />
+            {/* Service Card 1 - Enhanced */}
+            <div className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-scanalyze-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-scanalyze-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-scanalyze-500 to-scanalyze-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Microscope className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-scanalyze-800 mb-3">
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-scanalyze-600 transition-colors duration-300">
                 Laboratory Testing
               </h3>
-              <p className="text-gray-600 mb-4">
-                Comprehensive blood work, urine analysis, and specialized
-                diagnostic tests with rapid results.
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Complete Blood Count (CBC), diabetes screening, kidney function
+                tests, liver function panels, and comprehensive metabolic
+                profiles.
               </p>
               <a
-                href="#"
-                className="text-scanalyze-600 font-medium flex items-center group"
+                href="#features"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("features");
+                }}
+                className="inline-flex items-center text-scanalyze-600 font-semibold group-hover:text-scanalyze-700 transition-colors duration-300"
               >
                 Learn more{" "}
-                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
               </a>
             </div>
 
-            {/* Service Card 2 */}
-            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100">
-              <div className="bg-scanalyze-50 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-5">
-                <PieChart className="h-7 w-7 text-scanalyze-600" />
+            {/* Service Card 2 - Enhanced */}
+            <div className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-blue-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <PieChart className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-scanalyze-800 mb-3">
-                Medical Imaging
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-blue-600 transition-colors duration-300">
+                AI-Powered Medical Imaging
               </h3>
-              <p className="text-gray-600 mb-4">
-                Advanced MRI, CT, X-ray, and ultrasound scans with expert
-                analysis and digital access.
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Brain analysis, lung screening (X-ray & plasma), kidney imaging,
+                retinal scans for diabetic retinopathy, and knee analysis.
               </p>
               <a
-                href="#"
-                className="text-scanalyze-600 font-medium flex items-center group"
+                href="#features"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("features");
+                }}
+                className="inline-flex items-center text-blue-600 font-semibold group-hover:text-blue-700 transition-colors duration-300"
               >
                 Learn more{" "}
-                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
               </a>
             </div>
 
-            {/* Service Card 3 */}
-            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100">
-              <div className="bg-scanalyze-50 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-5">
-                <FileText className="h-7 w-7 text-scanalyze-600" />
+            {/* Service Card 3 - Enhanced */}
+            <div className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-green-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-green-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <FileText className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-scanalyze-800 mb-3">
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-green-600 transition-colors duration-300">
                 Digital Health Records
               </h3>
-              <p className="text-gray-600 mb-4">
-                Secure access to your complete health history, test results, and
-                doctor's notes in one place.
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Secure patient portals with complete medical history, test
+                results, medication tracking, and real-time health monitoring.
               </p>
               <a
-                href="#"
-                className="text-scanalyze-600 font-medium flex items-center group"
+                href="#features"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("features");
+                }}
+                className="inline-flex items-center text-green-600 font-semibold group-hover:text-green-700 transition-colors duration-300"
               >
                 Learn more{" "}
-                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-300" />
               </a>
             </div>
           </div>
@@ -811,11 +754,12 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-scanalyze-800 mb-2">
-                  Fast Turnaround Times
+                  AI-Powered Analysis
                 </h3>
                 <p className="text-gray-600">
-                  Get results within 24-48 hours for most tests, allowing for
-                  quicker diagnosis and treatment.
+                  Advanced machine learning models analyze medical scans for
+                  brain, lung, kidney, retinal, and knee conditions with
+                  precision.
                 </p>
               </div>
             </div>
@@ -827,11 +771,11 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-scanalyze-800 mb-2">
-                  State-of-the-Art Equipment
+                  Multi-Role Dashboard System
                 </h3>
                 <p className="text-gray-600">
-                  Our facilities are equipped with the latest diagnostic
-                  technology for the most accurate results.
+                  Specialized dashboards for patients, doctors, lab technicians,
+                  scan technicians, receptionists, and administrators.
                 </p>
               </div>
             </div>
@@ -843,11 +787,12 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-scanalyze-800 mb-2">
-                  Expert Medical Team
+                  Comprehensive Test Library
                 </h3>
                 <p className="text-gray-600">
-                  Our specialists are board-certified with years of experience
-                  in medical diagnostics.
+                  Complete blood count, diabetes screening, kidney function,
+                  liver function tests with automated reference range
+                  validation.
                 </p>
               </div>
             </div>
@@ -859,37 +804,13 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-scanalyze-800 mb-2">
-                  Secure Digital Access
+                  Real-Time Health Monitoring
                 </h3>
                 <p className="text-gray-600">
-                  Review your results online through our secure patient portal
-                  anytime, anywhere.
+                  Live dashboards, instant notifications, medical history
+                  tracking, and secure patient verification systems.
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="bg-scanalyze-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <p className="text-4xl md:text-5xl font-bold mb-2">98%</p>
-              <p className="text-scanalyze-100">Patient Satisfaction</p>
-            </div>
-            <div>
-              <p className="text-4xl md:text-5xl font-bold mb-2">24h</p>
-              <p className="text-scanalyze-100">Average Result Time</p>
-            </div>
-            <div>
-              <p className="text-4xl md:text-5xl font-bold mb-2">50+</p>
-              <p className="text-scanalyze-100">Specialized Tests</p>
-            </div>
-            <div>
-              <p className="text-4xl md:text-5xl font-bold mb-2">15+</p>
-              <p className="text-scanalyze-100">Years of Excellence</p>
             </div>
           </div>
         </div>
@@ -906,367 +827,211 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-scanalyze-800 mb-4">
-              What Our Patients Say
+              Platform Capabilities
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Hear from patients who have experienced the Scanalyze difference
-              in their healthcare journey.
+              Comprehensive medical diagnostic platform features designed for
+              modern healthcare
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Testimonial 1 */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center text-scanalyze-500 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    className="w-5 h-5 fill-current"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                ))}
+            {/* Capability 1 - Enhanced */}
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-scanalyze-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-scanalyze-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-scanalyze-500 to-scanalyze-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Stethoscope className="h-8 w-8 text-white" />
               </div>
-              <p className="text-gray-600 mb-4">
-                "The speed and accuracy of Scanalyze's diagnostic services are
-                remarkable. I received my test results the next day with a
-                detailed explanation."
-              </p>
-              <div className="font-medium">
-                <p className="text-scanalyze-800">Sarah Johnson</p>
-                <p className="text-gray-500 text-sm">Patient since 2021</p>
-              </div>
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-scanalyze-600 transition-colors duration-300">
+                Patient Portal Features
+              </h3>
+              <ul className="text-gray-600 space-y-2 leading-relaxed">
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-scanalyze-500 mr-2 flex-shrink-0" />{" "}
+                  Medical history management
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-scanalyze-500 mr-2 flex-shrink-0" />{" "}
+                  Test result viewing
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-scanalyze-500 mr-2 flex-shrink-0" />{" "}
+                  Scan image analysis
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-scanalyze-500 mr-2 flex-shrink-0" />{" "}
+                  Medication tracking
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-scanalyze-500 mr-2 flex-shrink-0" />{" "}
+                  Secure health records
+                </li>
+              </ul>
             </div>
 
-            {/* Testimonial 2 */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center text-scanalyze-500 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    className="w-5 h-5 fill-current"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                ))}
+            {/* Capability 2 - Enhanced */}
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-blue-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Shield className="h-8 w-8 text-white" />
               </div>
-              <p className="text-gray-600 mb-4">
-                "The online portal is so convenient. I can access all my test
-                history, book appointments, and communicate with my healthcare
-                provider."
-              </p>
-              <div className="font-medium">
-                <p className="text-scanalyze-800">Michael Thompson</p>
-                <p className="text-gray-500 text-sm">Patient since 2020</p>
-              </div>
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-blue-600 transition-colors duration-300">
+                Multi-User System
+              </h3>
+              <ul className="text-gray-600 space-y-2 leading-relaxed">
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />{" "}
+                  Patient dashboards
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />{" "}
+                  Admin management
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />{" "}
+                  Lab technician interface
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />{" "}
+                  Scan technician tools
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />{" "}
+                  Receptionist portal
+                </li>
+              </ul>
             </div>
 
-            {/* Testimonial 3 */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center text-scanalyze-500 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    className="w-5 h-5 fill-current"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                ))}
+            {/* Capability 3 - Enhanced */}
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 hover:border-purple-200 hover:-translate-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-purple-100 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <PieChart className="h-8 w-8 text-white" />
               </div>
-              <p className="text-gray-600 mb-4">
-                "As a doctor, I regularly refer my patients to Scanalyze. Their
-                diagnostic accuracy and comprehensive reporting help me provide
-                better care."
-              </p>
-              <div className="font-medium">
-                <p className="text-scanalyze-800">Dr. Emily Chen</p>
-                <p className="text-gray-500 text-sm">Healthcare Partner</p>
-              </div>
+              <h3 className="text-xl font-bold text-scanalyze-800 mb-4 group-hover:text-purple-600 transition-colors duration-300">
+                AI Integration
+              </h3>
+              <ul className="text-gray-600 space-y-2 leading-relaxed">
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" />{" "}
+                  Brain scan analysis
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" />{" "}
+                  Lung imaging (X-ray & plasma)
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" />{" "}
+                  Kidney condition detection
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" />{" "}
+                  Retinal screening
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2 flex-shrink-0" />{" "}
+                  Knee joint assessment
+                </li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="py-16 md:py-20 scanalyze-gradient">
+      {/* CTA Section - Enhanced */}
+      <section className="py-20 md:py-24 bg-gradient-to-br from-scanalyze-50 via-white to-blue-50">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-scanalyze-800 mb-6 max-w-3xl mx-auto">
-            Ready to experience advanced diagnostic care?
-          </h2>
-          <p className="text-gray-700 mb-8 max-w-2xl mx-auto">
-            Join thousands of patients who trust Scanalyze for their diagnostic
-            needs. Get started today and take control of your health journey.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="scanalyze-button-primary px-8 py-6 text-lg h-auto"
-              >
-                Create Account
-              </Button>
-            </Link>
-            <a
-              href="#contact"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection("contact");
-              }}
-            >
-              <Button
-                size="lg"
-                variant="outline"
-                className="scanalyze-button-outline px-8 py-6 text-lg h-auto"
-              >
-                Contact Us
-              </Button>
-            </a>
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-scanalyze-100 to-blue-100 rounded-full text-sm font-medium text-scanalyze-700 mb-6">
+              <span className="w-2 h-2 bg-scanalyze-500 rounded-full mr-2 animate-pulse"></span>
+              Join the future of medical diagnostics
+            </div>
+
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              <span className="bg-gradient-to-r from-scanalyze-800 via-scanalyze-600 to-blue-600 bg-clip-text text-transparent">
+                Ready to experience
+              </span>
+              <br />
+              <span className="text-scanalyze-800">
+                AI-powered medical diagnostics?
+              </span>
+            </h2>
+
+            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
+              Access comprehensive laboratory testing, advanced medical imaging
+              with AI analysis, and secure digital health records management.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="/register">
+                <Button
+                  size="lg"
+                  className="scanalyze-button-primary px-10 py-7 text-lg h-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+                >
+                  Create Account
+                  <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="scanalyze-button-outline px-10 py-7 text-lg h-auto font-semibold border-2 hover:bg-scanalyze-50 transition-all duration-300 hover:scale-105"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <footer
-        id="contact"
-        ref={sectionRefs.contact}
-        className={`bg-gray-50 py-12 border-t border-gray-200 transition-opacity duration-1000 ease-in-out ${
-          isSectionVisible("contact") ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-8 md:mb-0">
-              <Image
-                src="/images/scanalyze-logo.png"
-                alt="Scanalyze Logo"
-                width={200}
-                height={66}
-                className="mb-4"
-                quality={100}
-                unoptimized
-              />
-              <p className="text-gray-500 mb-4 max-w-sm">
-                Providing advanced diagnostic services with a commitment to
-                accuracy, speed, and patient care.
+      <footer className="bg-gray-100 border-t border-gray-200 relative z-40">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center space-y-2">
+            {/* Copyright and Description with improved styling */}
+            <div className="space-y-2 max-w-2xl mx-auto">
+              <p className="text-gray-700 text-lg font-semibold tracking-wide">
+                © {new Date().getFullYear()} Scanalyze Medical Platform. All
+                rights reserved.
               </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-scanalyze-600">
-                  <span className="sr-only">Facebook</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-scanalyze-600">
-                  <span className="sr-only">Twitter</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-scanalyze-600">
-                  <span className="sr-only">LinkedIn</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </a>
-              </div>
+              <p className="text-gray-500 text-base leading-relaxed">
+                Healthcare technology solutions for modern medical diagnostics.
+              </p>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-gray-900 font-semibold mb-4">Services</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <a
-                      href="#services"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection("services");
-                      }}
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Lab Testing
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#services"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection("services");
-                      }}
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Medical Imaging
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#services"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection("services");
-                      }}
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Health Records
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#services"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection("services");
-                      }}
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Screenings
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-gray-900 font-semibold mb-4">Company</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      About Us
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Careers
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Blog
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Press
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-gray-900 font-semibold mb-4">Support</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <a
-                      href="#contact"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection("contact");
-                      }}
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Contact Us
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      FAQs
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Privacy
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-gray-500 hover:text-scanalyze-600"
-                    >
-                      Terms
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <p className="text-gray-500 text-center">
-              © {new Date().getFullYear()} Scanalyze Medical. All rights
-              reserved.
-            </p>
           </div>
         </div>
       </footer>
 
       {/* Cookie Consent Banner */}
       {!cookieConsentShown && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-50 px-4 py-4 sm:px-6 md:flex md:items-center md:justify-between">
-          <div className="flex items-center mb-3 md:mb-0 md:w-3/4">
-            <Info className="h-5 w-5 text-scanalyze-600 mr-2 flex-shrink-0" />
-            <p className="text-sm text-gray-600">
-              We use cookies to enhance your browsing experience, serve
-              personalized content, and analyze our traffic. By clicking
-              "Accept", you consent to our use of cookies.
-            </p>
-          </div>
-          <div className="flex items-center justify-end space-x-3 md:w-1/4">
-            <Link
-              href="/privacy-policy"
-              className="text-sm text-scanalyze-600 underline hover:text-scanalyze-800 transition-colors duration-300"
-            >
-              Privacy Policy
-            </Link>
-            <Button
-              onClick={acceptCookies}
-              className="scanalyze-button-primary text-sm py-1.5 px-3 h-auto"
-            >
-              Accept
-            </Button>
+        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t-2 border-scanalyze-200 z-50 px-4 py-3">
+          <div className="container mx-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start sm:items-center">
+                <Info className="h-5 w-5 text-scanalyze-600 mr-2 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <p className="text-sm text-gray-600">
+                  We use cookies to enhance your browsing experience, serve
+                  personalized content, and analyze our traffic. By clicking
+                  "Accept", you consent to our use of cookies.
+                </p>
+              </div>
+              <div className="flex items-center justify-end space-x-3 flex-shrink-0">
+                <Link
+                  href="/privacy-policy"
+                  className="text-sm text-scanalyze-600 underline hover:text-scanalyze-800 transition-colors duration-300"
+                >
+                  Privacy Policy
+                </Link>
+                <Button
+                  onClick={acceptCookies}
+                  className="scanalyze-button-primary text-sm py-1.5 px-4 h-auto"
+                >
+                  Accept
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
