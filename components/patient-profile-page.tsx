@@ -1092,18 +1092,10 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
                     )}
                   </div>
                 </div>
-
-                {/* QR Info Badge */}
-                <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/20">
-                  <Shield className="h-3 w-3 text-primary" />
-                  <span className="text-xs font-medium text-primary">
-                    Secure & Read-Only
-                  </span>
-                </div>
               </div>
 
               {/* QR Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   variant="outline"
                   className="flex-1 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
@@ -1176,10 +1168,6 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
 
                 {/* Link Features */}
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Shield className="h-3 w-3 mr-1" />
-                    Secure
-                  </Badge>
                   <Badge variant="secondary" className="text-xs">
                     <ExternalLink className="h-3 w-3 mr-1" />
                     Direct Access
