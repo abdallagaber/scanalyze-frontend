@@ -1,4 +1,6 @@
-import { cookies } from "next/headers";
+"use client";
+
+import { useState, useEffect } from "react";
 import { DashboardPageLayout } from "@/components/dashboard-page-layout";
 import {
   Card,
@@ -7,49 +9,111 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { EditMedicalHistoryForm } from "@/components/edit-medical-history-form";
+import { Edit, Loader2 } from "lucide-react";
+import { getCookie } from "cookies-next";
 
-export default async function PatientMedicalHistoryPage() {
-  // Get user data from cookies on the server
-  const userDataCookie = (await cookies()).get("userData")?.value;
+export default function PatientMedicalHistoryPage() {
+  const [userData, setUserData] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  let userData = null;
-  if (userDataCookie) {
-    try {
-      userData = JSON.parse(userDataCookie);
+  useEffect(() => {
+    // Get user data from cookies on the client side
+    const userDataCookie = getCookie("userData");
 
-      // Normalize the medical history if needed
-      if (userData.medicalHistory) {
-        // If it's a string, parse it
-        if (typeof userData.medicalHistory === "string") {
-          try {
-            userData.medicalHistory = JSON.parse(userData.medicalHistory);
-          } catch (error) {
-            console.error("Error parsing medical history:", error);
-            // Provide default structure if parsing fails
-            userData.medicalHistory = {
-              chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
-              allergies: { hasAllergies: false },
-              medications: { takesMedications: false, list: [] },
-              surgeries: { hadSurgeries: false },
-              currentSymptoms: { hasSymptoms: false },
-              lifestyle: { smokes: false, consumesAlcohol: false },
-            };
+    if (userDataCookie) {
+      try {
+        const parsedUserData = JSON.parse(userDataCookie as string);
+
+        // Normalize the medical history if needed
+        if (parsedUserData.medicalHistory) {
+          // If it's a string, parse it
+          if (typeof parsedUserData.medicalHistory === "string") {
+            try {
+              parsedUserData.medicalHistory = JSON.parse(
+                parsedUserData.medicalHistory
+              );
+            } catch (error) {
+              console.error("Error parsing medical history:", error);
+              // Provide default structure if parsing fails
+              parsedUserData.medicalHistory = {
+                chronicDiseases: {
+                  hasChronicDiseases: false,
+                  diseasesList: [],
+                },
+                allergies: { hasAllergies: false },
+                medications: { takesMedications: false, list: [] },
+                surgeries: { hadSurgeries: false },
+                currentSymptoms: { hasSymptoms: false },
+                lifestyle: { smokes: false, consumesAlcohol: false },
+              };
+            }
           }
+        } else {
+          // If medical history is missing, add an empty one
+          parsedUserData.medicalHistory = {
+            chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
+            allergies: { hasAllergies: false },
+            medications: { takesMedications: false, list: [] },
+            surgeries: { hadSurgeries: false },
+            currentSymptoms: { hasSymptoms: false },
+            lifestyle: { smokes: false, consumesAlcohol: false },
+          };
         }
-      } else {
-        // If medical history is missing, add an empty one
-        userData.medicalHistory = {
-          chronicDiseases: { hasChronicDiseases: false, diseasesList: [] },
-          allergies: { hasAllergies: false },
-          medications: { takesMedications: false, list: [] },
-          surgeries: { hadSurgeries: false },
-          currentSymptoms: { hasSymptoms: false },
-          lifestyle: { smokes: false, consumesAlcohol: false },
-        };
+
+        setUserData(parsedUserData);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        // Let middleware handle authentication issues
       }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
     }
+
+    setIsLoading(false);
+  }, []);
+
+  const handleEditSuccess = (updatedUserData: any) => {
+    setUserData(updatedUserData);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <DashboardPageLayout
+        title="Medical History"
+        role="patient"
+        breadcrumbItems={[]}
+      >
+        <div className="flex justify-center items-center h-64">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Loading medical history...</span>
+          </div>
+        </div>
+      </DashboardPageLayout>
+    );
+  }
+
+  if (isEditing && userData) {
+    return (
+      <DashboardPageLayout
+        title="Edit Medical History"
+        role="patient"
+        breadcrumbItems={[]}
+      >
+        <EditMedicalHistoryForm
+          userData={userData}
+          onCancel={handleCancelEdit}
+          onSuccess={handleEditSuccess}
+        />
+      </DashboardPageLayout>
+    );
   }
 
   return (
@@ -61,11 +125,17 @@ export default async function PatientMedicalHistoryPage() {
       {userData ? (
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Medical History</CardTitle>
-              <CardDescription>
-                Your medical conditions and health information
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Medical History</CardTitle>
+                <CardDescription>
+                  Your medical conditions and health information
+                </CardDescription>
+              </div>
+              <Button onClick={() => setIsEditing(true)} size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -265,9 +335,7 @@ export default async function PatientMedicalHistoryPage() {
           </Card>
         </div>
       ) : (
-        <div className="flex justify-center items-center h-full">
-          Patient data not found. Please login again.
-        </div>
+        <p>No user data available</p>
       )}
     </DashboardPageLayout>
   );

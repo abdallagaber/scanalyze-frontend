@@ -563,4 +563,31 @@ export const patientService = {
     );
     return response.data;
   },
+
+  // Edit patient medical history
+  editMedicalHistory: async (
+    id: string,
+    medicalHistory: PatientMedicalHistory
+  ) => {
+    const response = await axiosInstance.post(
+      `/api/v1/patients/EditMedicalHistory/${id}`,
+      {
+        medicalHistory: medicalHistory,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Normalize the response data
+    if (response.data && response.data.data) {
+      response.data.data = patientService.normalizePatientData(
+        response.data.data
+      );
+    }
+
+    return response.data;
+  },
 };
