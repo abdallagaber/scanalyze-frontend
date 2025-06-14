@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Share2,
   Copy,
@@ -39,6 +41,18 @@ import {
   Mail,
   Lock,
   Loader2,
+  User,
+  Calendar,
+  Hash,
+  Users,
+  Shield,
+  Heart,
+  Pill,
+  Activity,
+  Scissors,
+  AlertTriangle,
+  Info,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { patientService } from "@/lib/services/patient";
@@ -654,318 +668,365 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
   return (
     <div className="space-y-4">
       {/* Patient Information Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>My Profile</CardTitle>
-            <CardDescription>
-              View and share your profile information
-            </CardDescription>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Dialog
-                  open={editDialogOpen}
-                  onOpenChange={(open) => {
-                    setEditDialogOpen(open);
-                    if (!open) resetEditDialog();
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button className="gap-2">
-                      <Pencil className="h-4 w-4" />
-                      <span className="hidden sm:inline">Edit Profile</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                      <DialogDescription>
-                        Update your profile information including phone, email,
-                        and password.
-                      </DialogDescription>
-                    </DialogHeader>
+      <Card className="border-primary/20">
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Patient Information
+              </CardTitle>
+              <CardDescription>
+                Your personal and contact information
+              </CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Dialog
+                    open={editDialogOpen}
+                    onOpenChange={(open) => {
+                      setEditDialogOpen(open);
+                      if (!open) resetEditDialog();
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button className="gap-2">
+                        <Pencil className="h-4 w-4" />
+                        <span className="hidden sm:inline">Edit Profile</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Edit Profile</DialogTitle>
+                        <DialogDescription>
+                          Update your profile information including phone,
+                          email, and password.
+                        </DialogDescription>
+                      </DialogHeader>
 
-                    <Tabs defaultValue="phone" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="phone" className="gap-2">
-                          <Phone className="h-4 w-4" />
-                          Phone
-                        </TabsTrigger>
-                        <TabsTrigger value="email" className="gap-2">
-                          <Mail className="h-4 w-4" />
-                          Email
-                        </TabsTrigger>
-                        <TabsTrigger value="password" className="gap-2">
-                          <Lock className="h-4 w-4" />
-                          Password
-                        </TabsTrigger>
-                      </TabsList>
+                      <Tabs defaultValue="phone" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="phone" className="gap-2">
+                            <Phone className="h-4 w-4" />
+                            Phone
+                          </TabsTrigger>
+                          <TabsTrigger value="email" className="gap-2">
+                            <Mail className="h-4 w-4" />
+                            Email
+                          </TabsTrigger>
+                          <TabsTrigger value="password" className="gap-2">
+                            <Lock className="h-4 w-4" />
+                            Password
+                          </TabsTrigger>
+                        </TabsList>
 
-                      {/* Phone Edit Section */}
-                      <TabsContent value="phone" className="space-y-4 mt-6">
-                        <div className="space-y-2">
-                          <Label>Current Phone Number</Label>
-                          <div className="p-3 bg-muted rounded-md text-sm">
-                            {formatPhoneForDisplay(patientData.phone)}
+                        {/* Phone Edit Section */}
+                        <TabsContent value="phone" className="space-y-4 mt-6">
+                          <div className="space-y-2">
+                            <Label>Current Phone Number</Label>
+                            <div className="p-3 bg-muted rounded-md text-sm">
+                              {formatPhoneForDisplay(patientData.phone)}
+                            </div>
                           </div>
-                        </div>
 
-                        {phoneEditStep === "input" && (
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="new-phone">
-                                New Phone Number
-                              </Label>
-                              <Input
-                                id="new-phone"
-                                type="tel"
-                                placeholder="01XXXXXXXXX"
-                                value={newPhone}
-                                onChange={(e) => setNewPhone(e.target.value)}
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Enter your phone number without country code
-                                (e.g., 01212345678)
-                              </p>
-                            </div>
-                            <Button
-                              onClick={handleSendPhoneOtp}
-                              disabled={phoneLoading}
-                              className="w-full"
-                            >
-                              {phoneLoading && (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              )}
-                              Send OTP
-                            </Button>
-                          </div>
-                        )}
-
-                        {phoneEditStep === "verify" && (
-                          <div className="space-y-4">
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                              <p className="text-sm text-blue-800">
-                                We've sent an OTP to{" "}
-                                {formatPhoneForDisplay(
-                                  "2" + newPhone.replace(/\s/g, "")
-                                )}
-                                . Please enter it below to verify.
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="otp">Enter OTP</Label>
-                              <Input
-                                id="otp"
-                                type="text"
-                                placeholder="Enter 6-digit OTP"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                maxLength={6}
-                              />
-                            </div>
-                            <div className="flex gap-2">
+                          {phoneEditStep === "input" && (
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="new-phone">
+                                  New Phone Number
+                                </Label>
+                                <Input
+                                  id="new-phone"
+                                  type="tel"
+                                  placeholder="01XXXXXXXXX"
+                                  value={newPhone}
+                                  onChange={(e) => setNewPhone(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Enter your phone number without country code
+                                  (e.g., 01212345678)
+                                </p>
+                              </div>
                               <Button
-                                variant="outline"
-                                onClick={() => setPhoneEditStep("input")}
-                                className="flex-1"
-                              >
-                                Back
-                              </Button>
-                              <Button
-                                onClick={handleVerifyPhoneOtp}
+                                onClick={handleSendPhoneOtp}
                                 disabled={phoneLoading}
-                                className="flex-1"
+                                className="w-full"
                               >
                                 {phoneLoading && (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                Verify OTP
+                                Send OTP
                               </Button>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {phoneEditStep === "complete" && (
+                          {phoneEditStep === "verify" && (
+                            <div className="space-y-4">
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <p className="text-sm text-blue-800">
+                                  We've sent an OTP to{" "}
+                                  {formatPhoneForDisplay(
+                                    "2" + newPhone.replace(/\s/g, "")
+                                  )}
+                                  . Please enter it below to verify.
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="otp">Enter OTP</Label>
+                                <Input
+                                  id="otp"
+                                  type="text"
+                                  placeholder="Enter 6-digit OTP"
+                                  value={otp}
+                                  onChange={(e) => setOtp(e.target.value)}
+                                  maxLength={6}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setPhoneEditStep("input")}
+                                  className="flex-1"
+                                >
+                                  Back
+                                </Button>
+                                <Button
+                                  onClick={handleVerifyPhoneOtp}
+                                  disabled={phoneLoading}
+                                  className="flex-1"
+                                >
+                                  {phoneLoading && (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  )}
+                                  Verify OTP
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {phoneEditStep === "complete" && (
+                            <div className="space-y-4">
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                                <p className="text-sm text-green-800">
+                                  OTP verified successfully! Click submit to
+                                  update your phone number.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={handleChangePhone}
+                                disabled={phoneLoading}
+                                className="w-full"
+                              >
+                                {phoneLoading && (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
+                                Submit & Update Phone
+                              </Button>
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        {/* Email Edit Section */}
+                        <TabsContent value="email" className="space-y-4 mt-6">
+                          <div className="space-y-2">
+                            <Label>Current Email</Label>
+                            <div className="p-3 bg-muted rounded-md text-sm">
+                              {patientData.email || "No email set"}
+                            </div>
+                          </div>
+
                           <div className="space-y-4">
-                            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                              <p className="text-sm text-green-800">
-                                OTP verified successfully! Click submit to
-                                update your phone number.
-                              </p>
+                            <div className="space-y-2">
+                              <Label htmlFor="new-email">
+                                New Email Address
+                              </Label>
+                              <Input
+                                id="new-email"
+                                type="email"
+                                placeholder="Enter new email address"
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                              />
                             </div>
                             <Button
-                              onClick={handleChangePhone}
-                              disabled={phoneLoading}
+                              onClick={handleEditEmail}
+                              disabled={emailLoading}
                               className="w-full"
                             >
-                              {phoneLoading && (
+                              {emailLoading && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
-                              Submit & Update Phone
+                              Update Email
                             </Button>
                           </div>
-                        )}
-                      </TabsContent>
+                        </TabsContent>
 
-                      {/* Email Edit Section */}
-                      <TabsContent value="email" className="space-y-4 mt-6">
-                        <div className="space-y-2">
-                          <Label>Current Email</Label>
-                          <div className="p-3 bg-muted rounded-md text-sm">
-                            {patientData.email || "No email set"}
+                        {/* Password Change Section */}
+                        <TabsContent
+                          value="password"
+                          className="space-y-4 mt-6"
+                        >
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="current-password">
+                                Current Password
+                              </Label>
+                              <Input
+                                id="current-password"
+                                type="password"
+                                placeholder="Enter current password"
+                                value={currentPassword}
+                                onChange={(e) =>
+                                  setCurrentPassword(e.target.value)
+                                }
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="new-password">New Password</Label>
+                              <Input
+                                id="new-password"
+                                type="password"
+                                placeholder="Enter new password (min. 8 characters)"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="confirm-password">
+                                Confirm New Password
+                              </Label>
+                              <Input
+                                id="confirm-password"
+                                type="password"
+                                placeholder="Confirm new password"
+                                value={confirmPassword}
+                                onChange={(e) =>
+                                  setConfirmPassword(e.target.value)
+                                }
+                              />
+                            </div>
+
+                            <Button
+                              onClick={handleChangePassword}
+                              disabled={passwordLoading}
+                              className="w-full"
+                            >
+                              {passwordLoading && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Change Password
+                            </Button>
                           </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="new-email">New Email Address</Label>
-                            <Input
-                              id="new-email"
-                              type="email"
-                              placeholder="Enter new email address"
-                              value={newEmail}
-                              onChange={(e) => setNewEmail(e.target.value)}
-                            />
-                          </div>
-                          <Button
-                            onClick={handleEditEmail}
-                            disabled={emailLoading}
-                            className="w-full"
-                          >
-                            {emailLoading && (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Update Email
-                          </Button>
-                        </div>
-                      </TabsContent>
-
-                      {/* Password Change Section */}
-                      <TabsContent value="password" className="space-y-4 mt-6">
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="current-password">
-                              Current Password
-                            </Label>
-                            <Input
-                              id="current-password"
-                              type="password"
-                              placeholder="Enter current password"
-                              value={currentPassword}
-                              onChange={(e) =>
-                                setCurrentPassword(e.target.value)
-                              }
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="new-password">New Password</Label>
-                            <Input
-                              id="new-password"
-                              type="password"
-                              placeholder="Enter new password (min. 8 characters)"
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="confirm-password">
-                              Confirm New Password
-                            </Label>
-                            <Input
-                              id="confirm-password"
-                              type="password"
-                              placeholder="Confirm new password"
-                              value={confirmPassword}
-                              onChange={(e) =>
-                                setConfirmPassword(e.target.value)
-                              }
-                            />
-                          </div>
-
-                          <Button
-                            onClick={handleChangePassword}
-                            disabled={passwordLoading}
-                            className="w-full"
-                          >
-                            {passwordLoading && (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Change Password
-                          </Button>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </DialogContent>
-                </Dialog>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Edit your profile information</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                        </TabsContent>
+                      </Tabs>
+                    </DialogContent>
+                  </Dialog>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit your profile information</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-lg font-medium">Personal Details</h3>
-              <div className="mt-2 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Full Name:</span>
-                  <span className="font-medium">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Personal Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-blue-50">
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold">Personal Details</h3>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Full Name:</span>
+                  </div>
+                  <span className="font-semibold">
                     {patientData.firstName} {patientData.lastName}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">National ID:</span>
-                  <span className="font-medium">{patientData.nationalID}</span>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Hash className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">National ID:</span>
+                  </div>
+                  <span className="font-semibold">
+                    {patientData.nationalID}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Age:</span>
-                  <span className="font-medium">{patientData.age} years</span>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Age:</span>
+                  </div>
+                  <span className="font-semibold">{patientData.age} years</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Gender:</span>
-                  <span className="font-medium">
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Gender:</span>
+                  </div>
+                  <span className="font-semibold">
                     {patientData.gender?.charAt(0).toUpperCase() +
                       patientData.gender?.slice(1) || "Not specified"}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Member Since:</span>
-                  <span className="font-medium">
-                    {formatDate(patientData.createdAt)}
-                  </span>
-                </div>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-medium">Contact Information</h3>
-              <div className="mt-2 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span className="font-medium">
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-green-50">
+                  <Phone className="h-4 w-4 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold">Contact Information</h3>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Phone:</span>
+                  </div>
+                  <span className="font-semibold">
                     {formatPhoneForDisplay(patientData.phone)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium">{patientData.email}</span>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Email:</span>
+                  </div>
+                  <span className="font-semibold">{patientData.email}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phone Verified:</span>
-                  <span
-                    className={`font-medium ${
-                      patientData.isPhoneVerified
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Phone Verified:
+                    </span>
+                  </div>
+                  <Badge
+                    variant={
+                      patientData.isPhoneVerified ? "secondary" : "destructive"
+                    }
                   >
-                    {patientData.isPhoneVerified ? "Yes" : "No"}
-                  </span>
+                    {patientData.isPhoneVerified ? "Verified" : "Not Verified"}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -974,98 +1035,222 @@ export function PatientProfilePage({ patientData }: PatientProfilePageProps) {
       </Card>
 
       {/* Profile Sharing Card */}
-      <Card>
+      <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle>Share Your Profile</CardTitle>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <Share2 className="h-5 w-5 text-primary" />
+            Share Your Profile
+          </CardTitle>
           <CardDescription>
-            Share your profile with healthcare providers
+            Securely share your medical profile with healthcare providers for
+            better care
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-medium">Share with QR Code</h3>
-              <p className="text-sm text-muted-foreground">
-                Use this QR code to quickly share your profile with healthcare
-                providers. They can scan it to view your information.
-              </p>
-              <div className="bg-white p-4 rounded-lg border self-center">
-                {isLoading ? (
-                  <div className="w-[220px] h-[220px] flex items-center justify-center bg-gray-100 animate-pulse">
-                    <span className="text-gray-400">Loading...</span>
-                  </div>
-                ) : (
-                  <QRCodeSVG
-                    ref={mainQrRef}
-                    value={shareUrl}
-                    size={220}
-                    bgColor="#FFFFFF"
-                    fgColor="#000000"
-                    level="H"
-                    includeMargin={false}
-                  />
-                )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* QR Code Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-purple-50">
+                  <IdCard className="h-4 w-4 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold">
+                  Quick Share with QR Code
+                </h3>
               </div>
-              <div className="flex gap-3 justify-center mt-2">
+
+              <p className="text-sm text-muted-foreground">
+                Generate a QR code for instant profile sharing. Healthcare
+                providers can scan to access your medical information
+                immediately.
+              </p>
+
+              {/* QR Code Display */}
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative group transition-all duration-300 hover:scale-105">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-primary/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                  <div className="relative bg-white p-6 rounded-xl border-2 border-primary/10 shadow-sm">
+                    {isLoading ? (
+                      <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-100 animate-pulse rounded-lg">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                          <span className="text-gray-400 text-sm">
+                            Generating...
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <QRCodeSVG
+                        ref={mainQrRef}
+                        value={shareUrl}
+                        size={200}
+                        bgColor="#FFFFFF"
+                        fgColor="#000000"
+                        level="H"
+                        includeMargin={false}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* QR Info Badge */}
+                <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/20">
+                  <Shield className="h-3 w-3 text-primary" />
+                  <span className="text-xs font-medium text-primary">
+                    Secure & Read-Only
+                  </span>
+                </div>
+              </div>
+
+              {/* QR Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  className="flex-1 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
                   onClick={() => downloadQRCode(mainQrRef.current)}
+                  disabled={isLoading}
                 >
                   <IdCard className="h-4 w-4" />
-                  Download ID Card
+                  Download Medical Card
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+                  onClick={() => downloadSimpleQRCode(mainQrRef.current)}
+                  disabled={isLoading}
+                >
+                  <Download className="h-4 w-4" />
+                  Download QR Only
                 </Button>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-medium">Share with URL</h3>
+            {/* URL Sharing Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-blue-50">
+                  <ExternalLink className="h-4 w-4 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold">Share with Link</h3>
+              </div>
+
               <p className="text-sm text-muted-foreground">
-                Share this link to provide access to your profile. Anyone with
-                this link can view your information.
+                Share your profile URL directly. Perfect for sending via email,
+                messaging apps, or embedding in digital forms.
               </p>
-              <div className="flex flex-col gap-2 mt-4">
-                <Label htmlFor="profile-link">Your Profile Link</Label>
-                <div className="flex items-center gap-2">
+
+              {/* URL Input Section */}
+              <div className="space-y-3">
+                <Label htmlFor="profile-link" className="text-sm font-medium">
+                  Your Secure Profile Link
+                </Label>
+                <div className="flex items-center gap-2 p-1 border rounded-lg bg-background">
                   <Input
                     id="profile-link"
-                    value={isLoading ? "Loading..." : shareUrl}
+                    value={isLoading ? "Generating secure link..." : shareUrl}
                     readOnly
-                    className={`flex-1 ${
-                      isLoading ? "bg-gray-100 animate-pulse" : ""
+                    className={`flex-1 border-0 focus-visible:ring-0 bg-transparent ${
+                      isLoading ? "animate-pulse" : ""
                     }`}
                   />
                   <Button
-                    size="icon"
-                    variant="outline"
+                    size="sm"
+                    variant={copied ? "default" : "secondary"}
                     onClick={handleCopyToClipboard}
-                    className="shrink-0"
                     disabled={isLoading}
+                    className="transition-all duration-200 shrink-0"
                   >
                     {copied ? (
-                      <Check className="h-4 w-4" />
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Copied!
+                      </>
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </>
                     )}
                   </Button>
                 </div>
+
+                {/* Link Features */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge variant="secondary" className="text-xs">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Secure
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Direct Access
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    <User className="h-3 w-3 mr-1" />
+                    Read-Only
+                  </Badge>
+                </div>
               </div>
-              <div className="flex flex-col gap-2 mt-2">
-                <Label>How it Works</Label>
-                <ol className="list-decimal pl-5 space-y-2 text-sm">
-                  <li>Share your profile link or QR code with your doctor</li>
-                  <li>They can access your information</li>
-                  <li>This helps them provide better care</li>
-                  <li>Your information is read-only and secure</li>
-                </ol>
+
+              {/* How it Works Section */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  How Sharing Works
+                </Label>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border">
+                    <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      1
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        Share your QR code or link
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Send to your healthcare provider via any method
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border">
+                    <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      2
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        Instant secure access
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        They can view your medical information immediately
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border">
+                    <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      3
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        Better care delivery
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Complete medical history helps provide optimal treatment
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <Button
-                className="gap-2 mt-4"
-                onClick={() => window.open(shareUrl, "_blank")}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Preview Your Public Profile
-              </Button>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  className="flex-1 gap-2 hover:shadow-md transition-all duration-200"
+                  onClick={() => window.open(shareUrl, "_blank")}
+                  disabled={isLoading}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Preview Profile
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
